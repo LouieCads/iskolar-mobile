@@ -14,7 +14,7 @@ import { authService } from '@/services/auth.service';
 const loginSchema = z.object({
   email: z.string()
     .nonempty("Email is required")
-    .email("Invalid email format"),
+    .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please enter a valid email address'),
   password: z.string()
     .nonempty("Password is required"),
 });
@@ -77,15 +77,21 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       setLoading(true);
-      
+      const email = data.email.trim().toLowerCase().slice(0, 254);
+      const password = data.password.trim().slice(0, 128);
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showToast('error', 'Validation', 'Invalid email format');
+        return;
+      }
+
       const response = await fetch(`${EXPO_API_URL}/auth/login`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: data.email,
-          password: data.password,
+          email,
+          password,
           rememberMe: rememberMe,
         }),
       });

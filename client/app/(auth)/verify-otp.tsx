@@ -11,7 +11,7 @@ const EXPO_API_URL = process.env.EXPO_PUBLIC_API_URL;
 export default function VerifyOTPPage() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const email = params.email as string; 
+  const email = (params.email as string)?.trim().toLowerCase().slice(0, 254);
   
   const [otp, setOtp] = useState('');
   const [isVerifying , setIsVerifying] = useState(false);
@@ -60,7 +60,8 @@ export default function VerifyOTPPage() {
       return;
     }
 
-    if (otp.length !== 6) {
+    const cleanOtp = otp.replace(/\D/g, '').slice(0, 6);
+    if (cleanOtp.length !== 6) {
       showToast('error', 'Error', 'OTP must be 6 digits');
       return;
     }
@@ -80,7 +81,7 @@ export default function VerifyOTPPage() {
         },
         body: JSON.stringify({
           email: email,
-          otp: otp.trim(),
+          otp: cleanOtp,
         }),
       });
 

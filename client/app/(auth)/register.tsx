@@ -13,7 +13,7 @@ import { authService } from '@/services/auth.service';
 const registerSchema = z.object({
   email: z.string()
     .nonempty("Email is required")
-    .email("Invalid email format"),
+    .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please enter a valid email address'),
   password: z.string()
     .nonempty("Password is required")
     .min(8, "Password must be at least 8 characters")
@@ -84,16 +84,24 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterFormData) => {
     try {
       setLoading(true);
-      
+      const email = data.email.trim().toLowerCase().slice(0, 254);
+      const password = data.password.trim().slice(0, 128);
+      const confirmPassword = data.confirmPassword.trim().slice(0, 128);
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showToast('error', 'Validation', 'Invalid email format');
+        return;
+      }
+
       const response = await fetch(`${EXPO_API_URL}/auth/register`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: data.email,
-          password: data.password,
-          confirmPassword: data.confirmPassword,
+          email,
+          password,
+          confirmPassword,
         }),
       });
 

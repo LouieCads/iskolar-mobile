@@ -4,6 +4,8 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 import User from "../models/Users";
+import { normalizeEmail, isValidEmail, sanitizeString, isValidPassword, isValidOTP, normalizeOTP, enforceMaxLength, isSafeInput } from "../utils/validation";
+import { ok, created, badRequest, notFound, serverError } from "../utils/responses";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -20,87 +22,72 @@ const PASSWORD_PATTERNS = {
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { email, password, confirmPassword } = req.body;
+    const rawEmail = enforceMaxLength(String(req.body?.email ?? ""), 254);
+    const email = normalizeEmail(rawEmail);
+    const password = String(req.body?.password ?? "");
+    const confirmPassword = String(req.body?.confirmPassword ?? "");
 
     if (!email || !password || !confirmPassword) {
-      return res.status(400).json({ message: "All fields are required" });
+      return badRequest(res, "All fields are required");
     }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ message: "Invalid email format" });
+    if (!isValidEmail(email)) {
+      return badRequest(res, "Invalid email format");
     }
 
     if (password !== confirmPassword) {
-      return res.status(400).json({ message: "Passwords do not match" });
+      return badRequest(res, "Passwords do not match");
+    }
+    if (!isValidPassword(password)) {
+      return badRequest(res, "Password does not meet complexity requirements");
     }
 
-    if (password.length < 8) {
-      return res.status(400).json({ 
-        message: "Password must be at least 8 characters" 
-      });
-    }
-
-    if (!PASSWORD_PATTERNS.uppercase.test(password)) {
-      return res.status(400).json({ 
-        message: "Password must contain at least one uppercase letter" 
-      });
-    }
-
-    if (!PASSWORD_PATTERNS.lowercase.test(password)) {
-      return res.status(400).json({ 
-        message: "Password must contain at least one lowercase letter" 
-      });
-    }
-
-    if (!PASSWORD_PATTERNS.number.test(password)) {
-      return res.status(400).json({ 
-        message: "Password must contain at least one number" 
-      });
-    }
-
-    if (!PASSWORD_PATTERNS.special.test(password)) {
-      return res.status(400).json({ 
-        message: "Password must contain at least one special character (@$!%*?&)" 
-      });
+    if (!isSafeInput(email)) {
+      return badRequest(res, "Invalid characters in email");
     }
 
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
-      return res.status(400).json({ message: "Email already registered" });
+      return badRequest(res, "Email already registered");
     }
 
     // Hash password 
     const hashedPassword = await bcrypt.hash(password, 15);
     const newUser = await User.create({ email, password: hashedPassword });
 
-    return res.status(201).json({ 
-      message: "Account created successfully!", 
+    return created(res, "Account created successfully!", { 
       user: { 
         id: newUser.user_id, 
         email: newUser.email 
-      } });
+      } 
+    });
   } catch (error) {
     console.error("Registration error:", error);
-    return res.status(500).json({ 
-      message: "Error registering user. Please try again later." 
-    });
+    return serverError(res, "Error registering user. Please try again later.");
   }
 };
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password, rememberMe } = req.body;
+    const rawEmail = enforceMaxLength(String(req.body?.email ?? ""), 254);
+    const email = normalizeEmail(rawEmail);
+    const password = String(req.body?.password ?? "");
+    const rememberMe = Boolean(req.body?.rememberMe);
 
     if (!email || !password) {
-      return res.status(400).json({ message: "Email and password required" });
+      return badRequest(res, "Email and password required");
+    }
+    if (!isValidEmail(email) || !isSafeInput(email)) {
+      return badRequest(res, "Invalid email format");
+    }
+    if (password.length > 128) {
+      return badRequest(res, "Invalid credentials");
     }
 
     const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(400).json({ message: "Invalid email or password" });
+    if (!user) return badRequest(res, "Invalid email or password");
 
     const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) return res.status(400).json({ message: "Invalid email or password" });
+    if (!validPassword) return badRequest(res, "Invalid email or password");
 
     const expiresIn = rememberMe ? "30d" : "1d";
 
@@ -118,38 +105,34 @@ export const login = async (req: Request, res: Response) => {
     
     const expiryTimestamp = Date.now() + expiresInMs;
 
-    return res.status(200).json({
-      message: "Login successful!",
+    return ok(res, "Login successful!", {
       token,
       expiresAt: expiryTimestamp,
       user: { id: user.user_id, email: user.email },
     });
   } catch (error) {
     console.error("Login error:", error);
-    return res.status(500).json({ 
-      message: "Error logging in. Please try again later." 
-    });
+    return serverError(res, "Error logging in. Please try again later.");
   }
 };
 
 // Send OTP 
 export const sendOTP = async (req: Request, res: Response) => {
   try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ message: "Email is required" });
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ message: "Invalid email format" });
+    const rawEmail = enforceMaxLength(String(req.body?.email ?? ""), 254);
+    const email = normalizeEmail(sanitizeString(rawEmail, { max: 254 }));
+    if (!email) return badRequest(res, "Email is required");
+    if (!isValidEmail(email) || !isSafeInput(email)) {
+      return badRequest(res, "Invalid email format");
     }
 
     const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(404).json({ message: "Email not found. Please create an account" });
+    if (!user) return notFound(res, "Email not found. Please create an account");
 
     // Generate 6-digit OTP
     const otp = crypto.randomInt(100000, 999999).toString();
 
-    otpStore.set(email, {
+    otpStore.set(email.toLowerCase(), {
       otp,
       expiresAt: new Date(Date.now() + 5 * 60 * 1000), // expires in 5 mins
       verified: false,
@@ -181,122 +164,93 @@ export const sendOTP = async (req: Request, res: Response) => {
       `,
     });
 
-    return res.status(200).json({ 
-      message: "OTP sent successfully to your email" 
-    });
+    return ok(res, "OTP sent successfully to your email");
   } catch (error) {
     console.error("Error sending OTP:", error);
-    return res.status(500).json({ 
-      message: "Error sending OTP. Please try again later." 
-    });
+    return serverError(res, "Error sending OTP. Please try again later.");
   }
 };
 
 // Verify OTP
 export const verifyOTP = (req: Request, res: Response) => {
   try {
-    const { email, otp } = req.body;
+    const rawEmail = enforceMaxLength(String(req.body?.email ?? ""), 254);
+    const email = normalizeEmail(sanitizeString(rawEmail, { max: 254 }));
+    const otp = normalizeOTP(req.body?.otp);
 
     if (!email || !otp) {
-      return res.status(400).json({ 
-        message: "Email and OTP are required" 
-      });
+      return badRequest(res, "Email and OTP are required");
+    }
+    if (!isValidEmail(email) || !isSafeInput(email)) {
+      return badRequest(res, "Invalid email format");
+    }
+    if (!isValidOTP(otp)) {
+      return badRequest(res, "Invalid OTP. Please try again.");
     }
 
     const otpData = otpStore.get(email.toLowerCase());
-    if (!otpData) return res.status(400).json({ message: "No OTP found for this email. Please request a new one." });
+    if (!otpData) return badRequest(res, "No OTP found for this email. Please request a new one.");
 
     if (otpData.expiresAt < new Date()) {
-      otpStore.delete(email);
-      return res.status(400).json({ message: "OTP has expired. Please request a new one." });
+      otpStore.delete(email.toLowerCase());
+      return badRequest(res, "OTP has expired. Please request a new one.");
     }
 
     if (otpData.otp !== otp) {
-      return res.status(400).json({ message: "Invalid OTP. Please try again."  });
+      return badRequest(res, "Invalid OTP. Please try again.");
     }
 
     otpData.verified = true;
-    otpStore.set(email, otpData);
+    otpStore.set(email.toLowerCase(), otpData);
 
-    return res.status(200).json({ message: "OTP verified successfully" });
+    return ok(res, "OTP verified successfully");
   } catch (error) {
     console.error("Error verifying OTP:", error);
-    return res.status(500).json({ 
-      message: "Error verifying OTP. Please try again later." 
-    });
+    return serverError(res, "Error verifying OTP. Please try again later.");
   }
 };
 
 // Reset Password
 export const resetPassword = async (req: Request, res: Response) => {
   try {
-    const { email, password, confirmPassword } = req.body;
+    const rawEmail = enforceMaxLength(String(req.body?.email ?? ""), 254);
+    const email = normalizeEmail(sanitizeString(rawEmail, { max: 254 }));
+    const password = String(req.body?.password ?? "");
+    const confirmPassword = String(req.body?.confirmPassword ?? "");
 
     if (!email || !password || !confirmPassword) {
-      return res.status(400).json({ 
-        message: "All fields are required" 
-      });
+      return badRequest(res, "All fields are required");
+    }
+    if (!isValidEmail(email) || !isSafeInput(email)) {
+      return badRequest(res, "Invalid email format");
     }
 
     if (password !== confirmPassword) {
-      return res.status(400).json({ 
-        message: "Passwords do not match" 
-      });
+      return badRequest(res, "Passwords do not match");
     }
-
-    if (password.length < 8) {
-      return res.status(400).json({ 
-        message: "Password must be at least 8 characters" 
-      });
-    }
-
-    if (!PASSWORD_PATTERNS.uppercase.test(password)) {
-      return res.status(400).json({ 
-        message: "Password must contain at least one uppercase letter" 
-      });
-    }
-
-    if (!PASSWORD_PATTERNS.lowercase.test(password)) {
-      return res.status(400).json({ 
-        message: "Password must contain at least one lowercase letter" 
-      });
-    }
-
-    if (!PASSWORD_PATTERNS.number.test(password)) {
-      return res.status(400).json({ 
-        message: "Password must contain at least one number" 
-      });
-    }
-
-    if (!PASSWORD_PATTERNS.special.test(password)) {
-      return res.status(400).json({ 
-        message: "Password must contain at least one special character (@$!%*?&)" 
-      });
+    if (!isValidPassword(password)) {
+      return badRequest(res, "Password does not meet complexity requirements");
     }
 
     // Check if OTP was verified
     const otpData = otpStore.get(email.toLowerCase());
     if (!otpData || !otpData.verified) {
-      return res.status(400).json({ 
-        message: "OTP not verified. Please verify OTP first." 
-      });
+      return badRequest(res, "OTP not verified. Please verify OTP first.");
     }
 
     const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) return notFound(res, "User not found");
 
     const hashedPassword = await bcrypt.hash(password, 15);
     user.password = hashedPassword;
     await user.save();
 
     // Remove from OTP store
-    otpStore.delete(email);
+    otpStore.delete(email.toLowerCase());
 
-    return res.status(200).json({ message: "Password reset successful! Please login" });
+    return ok(res, "Password reset successful! Please login");
   } catch (error) {
     console.error("Error resetting password:", error);
-    return res.status(500).json({ 
-      message: "Error resetting password. Please try again later." 
-    });
+    return serverError(res, "Error resetting password. Please try again later.");
   }
 };

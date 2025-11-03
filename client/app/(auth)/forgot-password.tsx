@@ -71,14 +71,19 @@ export default function ForgotPasswordPage() {
   const onSubmit = async (data: ForgotPasswordFormData) => {
     try {
       setLoading(true);
-      
+      const email = data.email.trim().toLowerCase().slice(0, 254);
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showToast('error', 'Validation', 'Invalid email format');
+        return;
+      }
+
       const response = await fetch(`${EXPO_API_URL}/auth/send-otp`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: data.email,
+          email,
         }),
       });
 
@@ -92,7 +97,7 @@ export default function ForgotPasswordPage() {
         setTimeout(() => {
           router.push({
             pathname: '/verify-otp',
-            params: { email: data.email }
+            params: { email }
           });
         }, 1500);
       } else {

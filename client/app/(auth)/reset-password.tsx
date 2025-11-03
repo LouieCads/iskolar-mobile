@@ -32,7 +32,7 @@ const EXPO_API_URL = process.env.EXPO_PUBLIC_API_URL;
 export default function ResetPasswordPage() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const email = params.email as string; 
+  const email = (params.email as string)?.trim().toLowerCase().slice(0, 254);
 
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({
@@ -96,8 +96,8 @@ export default function ResetPasswordPage() {
         },
         body: JSON.stringify({
           email: email,
-          password: data.password,
-          confirmPassword: data.confirmPassword,
+          password: data.password.trim().slice(0, 128),
+          confirmPassword: data.confirmPassword.trim().slice(0, 128),
         }),
       });
 

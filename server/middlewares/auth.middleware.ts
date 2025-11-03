@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
+import { isSafeInput } from "../utils/validation";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -21,7 +22,25 @@ export const authenticateToken = (
   next: NextFunction
 ): void => {
   const authHeader = req.headers["authorization"];
-  const token = authHeader?.split(" ")[1];
+  if (!authHeader || typeof authHeader !== "string") {
+    res.status(401).json({
+      success: false,
+      message: "Access token required",
+    });
+    return;
+  }
+
+  const [scheme, token] = authHeader.split(" ");
+
+  if (scheme !== "Bearer" || !token) {
+    res.status(401).json({ success: false, message: "Access token required" });
+    return;
+  }
+
+  if (token.length > 4096 || !isSafeInput(token)) {
+    res.status(403).json({ success: false, message: "Invalid or expired token" });
+    return;
+  }
 
   if (!token) {
     res.status(401).json({

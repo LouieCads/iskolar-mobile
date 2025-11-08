@@ -9,14 +9,51 @@ import {
   Alert,
   Animated,
   Platform,
+  TextInput,
+  ScrollView,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Dropdown } from 'react-native-element-dropdown';
 import Header from '@/components/header';
-import { scholarshipService } from '@/services/scholarship.service';
+import { scholarshipService, CustomFormField } from '@/services/scholarship.service';
 import Toast from '@/components/toast';
 
 type DocumentAsset = DocumentPicker.DocumentPickerAsset;
+
+// Helper function to safely extract custom form fields
+const getCustomFormFields = (scholarship: any): CustomFormField[] => {
+  if (!scholarship?.custom_form_fields) {
+    return [];
+  }
+
+  // If it's already an array, return it
+  if (Array.isArray(scholarship.custom_form_fields)) {
+    return scholarship.custom_form_fields;
+  }
+
+  // If it's a string, try to parse it
+  if (typeof scholarship.custom_form_fields === 'string') {
+    try {
+      const parsed = JSON.parse(scholarship.custom_form_fields);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      console.error('Failed to parse custom_form_fields:', e);
+      return [];
+    }
+  }
+
+  // If it's an object with a fields property or similar
+  if (typeof scholarship.custom_form_fields === 'object') {
+    // Check if it has a fields property
+    if (Array.isArray(scholarship.custom_form_fields.fields)) {
+      return scholarship.custom_form_fields.fields;
+    }
+  }
+
+  return [];
+};
 
 export default function ScholarshipApplyPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -30,6 +67,11 @@ export default function ScholarshipApplyPage() {
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [toastTitle, setToastTitle] = useState('');
   const [toastMessage, setToastMessage] = useState('');
+  
+  // Custom form fields state
+  const [customFormValues, setCustomFormValues] = useState<Record<string, any>>({});
+  const [customFormFiles, setCustomFormFiles] = useState<Record<string, DocumentAsset[]>>({});
+  const [datePickers, setDatePickers] = useState<Record<string, boolean>>({});
 
   const showToast = (type: 'success' | 'error', title: string, message: string) => {
     setToastType(type);
@@ -56,11 +98,16 @@ export default function ScholarshipApplyPage() {
       setLoading(true);
       const res = await scholarshipService.getScholarshipById(String(id));
       if (res.success && res.scholarship) {
+        console.log('Scholarship fetched:', res.scholarship);
+        console.log('Custom form fields:', res.scholarship.custom_form_fields);
+        console.log('Type:', typeof res.scholarship.custom_form_fields);
+        console.log('Is array?:', Array.isArray(res.scholarship.custom_form_fields));
         setScholarship(res.scholarship);
       } else {
         setError(res.message || 'Failed to load scholarship');
       }
     } catch (err) {
+      console.error('Fetch error:', err);
       setError('Failed to load scholarship');
     } finally {
       setLoading(false);
@@ -72,7 +119,89 @@ export default function ScholarshipApplyPage() {
     fetchDetails();
   }, [fetchDetails]);
 
-  const handleAddDocuments = useCallback(async () => {
+  const formatFileSize = (size?: number | null) => {
+    if (!size || size <= 0) return 'Unknown size';
+    if (size >= 1024 * 1024) {
+      return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+    }
+    if (size >= 1024) {
+      return `${(size / 1024).toFixed(1)} KB`;
+    }
+    return `${size} B`;
+  };
+
+  const handleSubmit = useCallback(() => {
+    if (!id) {
+      showToast('error', 'Error', 'We could not find this scholarship. Please try again later.');
+      return;
+    }
+
+    if (documents.length === 0) {
+      showToast('error', 'Validation Error', 'Please add at least one document to continue.');
+      return;
+    }
+
+    // Validate custom form fields
+    const customFields = getCustomFormFields(scholarship);
+    const validationErrors: string[] = [];
+
+    customFields.forEach((field: CustomFormField, index: number) => {
+      const fieldKey = `${field.label}-${index}`;
+      
+      if (field.required) {
+        if (field.type === 'file') {
+          const files = customFormFiles[fieldKey] || [];
+          if (files.length === 0) {
+            validationErrors.push(`${field.label} is required`);
+          }
+        } else {
+          const value = customFormValues[fieldKey];
+          if (!value || (typeof value === 'string' && value.trim() === '')) {
+            validationErrors.push(`${field.label} is required`);
+          }
+        }
+      }
+    });
+
+    if (validationErrors.length > 0) {
+      showToast('error', 'Validation Error', validationErrors.join('\n'));
+      return;
+    }
+
+    setSubmitting(true);
+
+    setTimeout(() => {
+      setSubmitting(false);
+      showToast('success', 'Success', 'Application form is ready. Submission endpoints will be available soon.');
+      
+      // Log the collected data for debugging
+      console.log('Application Data:', {
+        scholarshipId: id,
+        documents: documents.map(d => ({ name: d.name, size: d.size, type: d.mimeType })),
+        customFormValues,
+        customFormFiles: Object.keys(customFormFiles).map(key => ({
+          field: key,
+          files: customFormFiles[key].map(f => ({ name: f.name, size: f.size }))
+        }))
+      });
+    }, 600);
+  }, [documents, id, scholarship, customFormValues, customFormFiles]);
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'No deadline';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  };
+
+  // Custom form field handlers
+  const updateCustomFormValue = (fieldLabel: string, value: any) => {
+    setCustomFormValues(prev => ({
+      ...prev,
+      [fieldLabel]: value,
+    }));
+  };
+
+  const handleCustomFileUpload = useCallback(async (fieldLabel: string) => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: '*/*',
@@ -88,9 +217,10 @@ export default function ScholarshipApplyPage() {
         ? result.assets
         : [];
 
-      setDocuments((prev) => {
-        const existingUris = new Set(prev.map((doc) => doc.uri));
-        const next = [...prev];
+      setCustomFormFiles((prev) => {
+        const existing = prev[fieldLabel] || [];
+        const existingUris = new Set(existing.map((doc) => doc.uri));
+        const next = [...existing];
 
         pickedAssets.forEach((asset) => {
           if (asset?.uri && !existingUris.has(asset.uri)) {
@@ -99,58 +229,173 @@ export default function ScholarshipApplyPage() {
           }
         });
 
-        return next;
+        return {
+          ...prev,
+          [fieldLabel]: next,
+        };
       });
     } catch (err) {
       console.error('Document picking error:', err);
-      Alert.alert('Document Selection Failed', 'We could not access your files. Please try again.');
+      showToast('error', 'Error', 'Failed to select file. Please try again.');
     }
   }, []);
 
-  const handleRemoveDocument = useCallback((uri: string) => {
-    setDocuments((prev) => prev.filter((doc) => doc.uri !== uri));
-  }, []);
-
-  const formatFileSize = (size?: number | null) => {
-    if (!size || size <= 0) return 'Unknown size';
-    if (size >= 1024 * 1024) {
-      return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-    }
-    if (size >= 1024) {
-      return `${(size / 1024).toFixed(1)} KB`;
-    }
-    return `${size} B`;
+  const removeCustomFile = (fieldLabel: string, uri: string) => {
+    setCustomFormFiles(prev => ({
+      ...prev,
+      [fieldLabel]: (prev[fieldLabel] || []).filter((doc) => doc.uri !== uri),
+    }));
   };
 
-  const handleSubmit = useCallback(() => {
-    if (!id) {
-      Alert.alert('Missing Scholarship', 'We could not find this scholarship. Please try again later.');
-      return;
+  const handleDateChange = (fieldLabel: string, event: any, selectedDate?: Date) => {
+    // On Android, the picker closes automatically after selection
+    if (Platform.OS === 'android') {
+      setDatePickers(prev => ({ ...prev, [fieldLabel]: false }));
     }
-
-    if (documents.length === 0) {
-      Alert.alert('No Documents Added', 'Please add at least one document to continue.');
-      return;
+    
+    // Update the value if a date was selected
+    if (selectedDate && event.type !== 'dismissed') {
+      const formattedDate = selectedDate.toISOString().split('T')[0];
+      updateCustomFormValue(fieldLabel, formattedDate);
     }
+  };
 
-    setSubmitting(true);
+  // Render custom form field based on type
+  const renderCustomFormField = (field: CustomFormField, index: number) => {
+    const fieldKey = `${field.label}-${index}`;
+    const value = customFormValues[fieldKey] || '';
+    const files = customFormFiles[fieldKey] || [];
+    const showDatePicker = datePickers[fieldKey] || false;
 
-    setTimeout(() => {
-      setSubmitting(false);
-      Alert.alert(
-        'Application Ready',
-        'Your documents are ready to be uploaded. Submission endpoints will be available soon.'
-      );
-    }, 600);
-  }, [documents, id]);
+    return (
+      <View key={fieldKey} style={styles.customFieldContainer}>
+        <View style={styles.customFieldLabelContainer}>
+          <Text style={styles.customFieldLabel}>
+            {field.label}
+            {field.required && <Text style={styles.requiredAsterisk}> *</Text>}
+          </Text>
+        </View>
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'No deadline';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        {field.type === 'text' && (
+          <TextInput
+            style={styles.customFieldInput}
+            value={value}
+            onChangeText={(text) => updateCustomFormValue(fieldKey, text)}
+            placeholder={`Enter ${field.label.toLowerCase()}`}
+            placeholderTextColor="#9CA3AF"
+          />
+        )}
+
+        {field.type === 'textarea' && (
+          <TextInput
+            style={[styles.customFieldInput, styles.customFieldTextArea]}
+            value={value}
+            onChangeText={(text) => updateCustomFormValue(fieldKey, text)}
+            placeholder={`Enter ${field.label.toLowerCase()}`}
+            placeholderTextColor="#9CA3AF"
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+          />
+        )}
+
+        {field.type === 'number' && (
+          <TextInput
+            style={styles.customFieldInput}
+            value={value}
+            onChangeText={(text) => updateCustomFormValue(fieldKey, text)}
+            placeholder={`Enter ${field.label.toLowerCase()}`}
+            placeholderTextColor="#9CA3AF"
+            keyboardType="numeric"
+          />
+        )}
+
+        {field.type === 'date' && (
+          <View>
+            <Pressable
+              style={styles.customFieldDateInput}
+              onPress={() => setDatePickers(prev => ({ ...prev, [fieldKey]: true }))}
+            >
+              <MaterialIcons name="calendar-today" size={18} color="#6B7280" />
+              <Text style={[styles.customFieldDateText, !value && styles.placeholderText]}>
+                {value ? formatDate(value) : `Select ${field.label.toLowerCase()}`}
+              </Text>
+            </Pressable>
+            {showDatePicker && (
+              <DateTimePicker
+                value={value ? new Date(value) : new Date()}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event, date) => handleDateChange(fieldKey, event, date)}
+              />
+            )}
+          </View>
+        )}
+
+        {field.type === 'dropdown' && field.options && (
+          <Dropdown
+            style={styles.customFieldDropdown}
+            placeholderStyle={styles.placeholderStyle}
+            selectedTextStyle={styles.selectedTextStyle}
+            iconStyle={styles.iconStyle}
+            containerStyle={styles.dropdownContainer}
+            itemContainerStyle={styles.itemContainer}
+            itemTextStyle={styles.itemText}
+            activeColor="#E0ECFF"
+            data={field.options.map(opt => ({ label: opt, value: opt }))}
+            maxHeight={300}
+            labelField="label"
+            valueField="value"
+            placeholder={`Select ${field.label.toLowerCase()}`}
+            value={value}
+            onChange={item => updateCustomFormValue(fieldKey, item.value)}
+          />
+        )}
+
+        {field.type === 'file' && (
+          <View>
+            <Pressable
+              style={styles.customFieldFileButton}
+              onPress={() => handleCustomFileUpload(fieldKey)}
+            >
+              <Ionicons name="cloud-upload-outline" size={16} color="#3A52A6" />
+              <Text style={styles.customFieldFileButtonText}>Upload File</Text>
+            </Pressable>
+            {files.length > 0 && (
+              <View style={styles.customFieldFileList}>
+                {files.map((file) => (
+                  <View key={file.uri} style={styles.customFieldFileItem}>
+                    <View style={styles.documentIconContainer}>
+                      <Ionicons name="document-text-outline" size={18} color="#3A52A6" />
+                    </View>
+                    <View style={styles.documentInfo}>
+                      <Text numberOfLines={1} style={styles.documentName}>
+                        {file.name || 'Untitled document'}
+                      </Text>
+                      <Text style={styles.documentMeta}>
+                        {formatFileSize(file.size)} • {file.mimeType || 'Unknown type'}
+                      </Text>
+                    </View>
+                    <Pressable
+                      style={styles.removeButton}
+                      onPress={() => removeCustomFile(fieldKey, file.uri)}
+                    >
+                      <Ionicons name="close-circle" size={24} color="#EF4444" />
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+      </View>
+    );
   };
 
   const showFooter = !loading && !error;
+
+  // Get custom form fields safely
+  const customFields = getCustomFormFields(scholarship);
 
   return (
     <View style={styles.container}>
@@ -191,13 +436,13 @@ export default function ScholarshipApplyPage() {
             <View style={styles.card}>
               <Text style={styles.sectionTitle}>Criteria</Text>
               <View style={styles.tagsContainer}>
-                {(scholarship?.criteria ?? []).map((doc: string, idx: number) => (
+                {(scholarship?.criteria ?? []).map((criterion: string, idx: number) => (
                   <View key={idx} style={styles.tag}>
-                    <Text style={styles.tagText}>{doc.replace(/_/g, ' ')}</Text>
+                    <Text style={styles.tagText}>{criterion.replace(/_/g, ' ')}</Text>
                   </View>
                 ))}
-                {(scholarship?.required_documents?.length ?? 0) === 0 && (
-                  <Text style={styles.emptyTagText}>No required documents were specified.</Text>
+                {(scholarship?.criteria?.length ?? 0) === 0 && (
+                  <Text style={styles.emptyTagText}>No criteria were specified.</Text>
                 )}
               </View>
             </View>
@@ -216,57 +461,20 @@ export default function ScholarshipApplyPage() {
               </View>
             </View>
 
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardHeaderText}>
-                  <Text style={styles.sectionTitle}>Upload Documents</Text>
-                  <Text style={styles.helperText}>Accepted: PDF, images, and common document types up to 10MB each.</Text>
+            {/* Custom Form Fields */}
+            {customFields.length > 0 && (
+              <View style={styles.card}>
+                <Text style={styles.sectionTitle}>Additional Information</Text>
+                <Text style={styles.helperText}>
+                  Please provide the following additional information requested by the sponsor.
+                </Text>
+                <View style={styles.customFieldsContainer}>
+                  {customFields.map((field: CustomFormField, index: number) => 
+                    renderCustomFormField(field, index)
+                  )}
                 </View>
-                <Pressable 
-                  style={({ pressed }) => [
-                    styles.addButton,
-                    pressed && styles.addButtonPressed
-                  ]} 
-                  onPress={handleAddDocuments}
-                >
-                  <Ionicons name="cloud-upload-outline" size={16} color="#F0F7FF" />
-                  <Text style={styles.addButtonText}>Add Files</Text>
-                </Pressable>
               </View>
-
-              {documents.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <View style={styles.emptyStateIconContainer}>
-                    <Ionicons name="document-outline" size={26} color="#3A52A6" />
-                  </View>
-                  <Text style={styles.emptyStateTitle}>No documents selected</Text>
-                  <Text style={styles.emptyStateText}>Tap "Add Files" to attach your requirements.</Text>
-                </View>
-              ) : (
-                <View style={styles.documentList}>
-                  {documents.map((doc) => (
-                    <View key={doc.uri} style={styles.documentItem}>
-                      <View style={styles.documentIconContainer}>
-                        <Ionicons name="document-text-outline" size={18} color="#3A52A6" />
-                      </View>
-                      <View style={styles.documentInfo}>
-                        <Text numberOfLines={1} style={styles.documentName}>{doc.name || 'Untitled document'}</Text>
-                        <Text style={styles.documentMeta}>{formatFileSize(doc.size)} • {doc.mimeType || 'Unknown type'}</Text>
-                      </View>
-                      <Pressable 
-                        style={({ pressed }) => [
-                          styles.removeButton,
-                          pressed && styles.removeButtonPressed
-                        ]} 
-                        onPress={() => handleRemoveDocument(doc.uri)}
-                      >
-                        <Ionicons name="close-circle" size={24} color="#EF4444" />
-                      </Pressable>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
+            )}
 
             {showFooter && (
               <>
@@ -373,7 +581,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
     color: '#111827',
-    fontWeight: '600',
     marginBottom: 2,
   },
   scholarshipTitle: {
@@ -461,7 +668,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
     color: '#F0F7FF',
-    fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',
@@ -487,7 +693,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
     color: '#3A52A6',
-    fontWeight: '600',
     marginBottom: 8,
   },
   emptyStateText: {
@@ -528,7 +733,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#111827',
     marginBottom: 4,
-    fontWeight: '500',
   },
   documentMeta: {
     fontFamily: 'BreeSerif_400Regular',
@@ -575,5 +779,132 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
     marginTop: 12,
+  },
+  customFieldsContainer: {
+    marginTop: 16,
+    gap: 20,
+  },
+  customFieldContainer: {
+    marginBottom: 4,
+  },
+  customFieldLabelContainer: {
+    marginBottom: 8,
+  },
+  customFieldLabel: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#111827',
+  },
+  requiredAsterisk: {
+    color: '#EF4444',
+  },
+  customFieldInput: {
+    fontFamily: 'BreeSerif_400Regular',
+    backgroundColor: '#F6F9FF',
+    borderWidth: 1,
+    borderColor: '#E0ECFF',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 13,
+    color: '#111827',
+  },
+  customFieldTextArea: {
+    minHeight: 100,
+    paddingTop: 12,
+  },
+  customFieldDateInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 8,
+    backgroundColor: '#F6F9FF',
+    borderWidth: 1,
+    borderColor: '#E0ECFF',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  customFieldDateText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#111827',
+  },
+  placeholderText: {
+    color: '#9CA3AF',
+  },
+  customFieldDropdown: {
+    backgroundColor: '#F6F9FF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E0ECFF',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  placeholderStyle: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#9CA3AF',
+  },
+  selectedTextStyle: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#111827',
+  },
+  iconStyle: {
+    width: 20,
+    height: 20,
+  },
+  dropdownContainer: {
+    backgroundColor: '#F6F9FF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E0ECFF',
+    shadowColor: '#3A52A6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+    marginTop: 4,
+  },
+  itemContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  itemText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#111827',
+  },
+  customFieldFileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E0ECFF',
+    borderWidth: 1,
+    borderColor: '#3A52A6',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  customFieldFileButtonText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#3A52A6',
+  },
+  customFieldFileList: {
+    marginTop: 12,
+    gap: 10,
+  },
+  customFieldFileItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F6F9FF',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: '#E0ECFF',
   },
 });

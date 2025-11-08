@@ -375,7 +375,6 @@ const styles = StyleSheet.create({
   metricValue: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 18,
-    fontWeight: '600',
     marginTop: 4,
   },
   perScholar: {

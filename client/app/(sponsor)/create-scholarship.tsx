@@ -4,7 +4,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Dropdown } from 'react-native-element-dropdown';
 import * as ImagePicker from 'expo-image-picker';
-import { scholarshipService } from '@/services/scholarship.service';
+import { scholarshipService, CustomFormField } from '@/services/scholarship.service';
 import Toast from '@/components/toast';
 import Header from '@/components/header';
 
@@ -30,6 +30,16 @@ export default function CreateScholarshipPage() {
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [toastTitle, setToastTitle] = useState('');
   const [toastMessage, setToastMessage] = useState('');
+  
+  // Custom form fields state
+  const [customFormFields, setCustomFormFields] = useState<CustomFormField[]>([]);
+  const [showCustomFormModal, setShowCustomFormModal] = useState(false);
+  const [editingFieldIndex, setEditingFieldIndex] = useState<number | null>(null);
+  const [newFieldType, setNewFieldType] = useState<'text' | 'textarea' | 'dropdown' | 'number' | 'date' | 'file'>('text');
+  const [newFieldLabel, setNewFieldLabel] = useState('');
+  const [newFieldRequired, setNewFieldRequired] = useState(false);
+  const [dropdownOptions, setDropdownOptions] = useState<string[]>([]);
+  const [dropdownOptionInput, setDropdownOptionInput] = useState('');
 
   const showToast = (type: 'success' | 'error', title: string, message: string) => {
     setToastType(type);
@@ -173,6 +183,86 @@ export default function CreateScholarshipPage() {
     setDocuments(prevDocuments => prevDocuments.filter((_, i) => i !== index));
   };
 
+  // Custom form field handlers
+  const openCustomFormModal = (index?: number) => {
+    if (index !== undefined) {
+      // Editing existing field
+      const field = customFormFields[index];
+      setEditingFieldIndex(index);
+      setNewFieldType(field.type);
+      setNewFieldLabel(field.label);
+      setNewFieldRequired(field.required);
+      setDropdownOptions(field.options || []);
+      setDropdownOptionInput('');
+    } else {
+      // Adding new field
+      setEditingFieldIndex(null);
+      setNewFieldType('text');
+      setNewFieldLabel('');
+      setNewFieldRequired(false);
+      setDropdownOptions([]);
+      setDropdownOptionInput('');
+    }
+    setShowCustomFormModal(true);
+  };
+
+  const closeCustomFormModal = () => {
+    setShowCustomFormModal(false);
+    setEditingFieldIndex(null);
+    setNewFieldType('text');
+    setNewFieldLabel('');
+    setNewFieldRequired(false);
+    setDropdownOptions([]);
+    setDropdownOptionInput('');
+  };
+
+  const addDropdownOption = () => {
+    const trimmed = dropdownOptionInput.trim();
+    if (trimmed && !dropdownOptions.includes(trimmed)) {
+      setDropdownOptions([...dropdownOptions, trimmed]);
+      setDropdownOptionInput('');
+    }
+  };
+
+  const removeDropdownOption = (index: number) => {
+    setDropdownOptions(dropdownOptions.filter((_, i) => i !== index));
+  };
+
+  const saveCustomFormField = () => {
+    if (!newFieldLabel.trim()) {
+      showToast('error', 'Validation Error', 'Please enter a field label');
+      return;
+    }
+
+    if (newFieldType === 'dropdown' && dropdownOptions.length === 0) {
+      showToast('error', 'Validation Error', 'Please add at least one dropdown option');
+      return;
+    }
+
+    const newField: CustomFormField = {
+      type: newFieldType,
+      label: newFieldLabel.trim(),
+      required: newFieldRequired,
+      ...(newFieldType === 'dropdown' && { options: dropdownOptions }),
+    };
+
+    if (editingFieldIndex !== null) {
+      // Update existing field
+      setCustomFormFields(customFormFields.map((field, index) => 
+        index === editingFieldIndex ? newField : field
+      ));
+    } else {
+      // Add new field
+      setCustomFormFields([...customFormFields, newField]);
+    }
+
+    closeCustomFormModal();
+  };
+
+  const removeCustomFormField = (index: number) => {
+    setCustomFormFields(customFormFields.filter((_, i) => i !== index));
+  };
+
   const pickImage = async () => {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -238,6 +328,7 @@ export default function CreateScholarshipPage() {
         application_deadline: deadline || undefined,
         criteria,
         required_documents: documents,
+        custom_form_fields: customFormFields.length > 0 ? customFormFields : undefined,
       };
 
       const result = await scholarshipService.createScholarship(scholarshipData);
@@ -265,6 +356,7 @@ export default function CreateScholarshipPage() {
         setDocumentsInput('');
         setImageUri(null);
         setDate(new Date());
+        setCustomFormFields([]);
       } else {
         showToast('error', 'Error', result.message || 'Failed to create scholarship');
       }
@@ -520,6 +612,64 @@ export default function CreateScholarshipPage() {
           )}
         </View>
 
+        {/* Custom Form Fields */}
+        <View style={styles.inputGroup}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.label}>Custom Application Form</Text>
+            <Text style={styles.helperText}>Add custom fields to collect information from applicants.</Text>
+          </View>
+          
+          {customFormFields.length > 0 && (
+            <View style={styles.customFieldsList}>
+              {customFormFields.map((field, index) => (
+                <View key={index} style={styles.customFieldItem}>
+                  <View style={styles.customFieldInfo}>
+                    <View style={styles.customFieldHeader}>
+                      <Text style={styles.customFieldLabel}>{field.label}</Text>
+                      {field.required && (
+                        <View style={styles.requiredBadge}>
+                          <Text style={styles.requiredBadgeText}>Required</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.customFieldType}>
+                      {field.type === 'dropdown' 
+                        ? `Dropdown (${field.options?.length || 0} options)`
+                        : field.type.charAt(0).toUpperCase() + field.type.slice(1).replace('_', ' ')}
+                    </Text>
+                  </View>
+                  <View style={styles.customFieldActions}>
+                    <Pressable 
+                      style={styles.editFieldButton}
+                      onPress={() => openCustomFormModal(index)}
+                    >
+                      <MaterialIcons name="edit" size={16} color="#3A52A6" />
+                    </Pressable>
+                    <Pressable 
+                      style={styles.removeFieldButton}
+                      onPress={() => removeCustomFormField(index)}
+                    >
+                      <MaterialIcons name="delete" size={16} color="#EF4444" />
+                    </Pressable>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
+          <Pressable 
+            style={styles.addCustomFieldButton}
+            onPress={() => openCustomFormModal()}
+          >
+            <MaterialIcons name="add-circle-outline" size={20} color="#3A52A6" />
+            <Text style={styles.addCustomFieldText}>
+              {customFormFields.length === 0 
+                ? 'Add Form Field' 
+                : 'Add Another Field'}
+            </Text>
+          </Pressable>
+        </View>
+
         {/* Create Button */}
         <Pressable 
           style={[styles.createButton, isLoading && styles.createButtonDisabled]} 
@@ -573,6 +723,134 @@ export default function CreateScholarshipPage() {
         </View>
       </Modal>
 
+      {/* Custom Form Field Modal */}
+      <Modal
+        visible={showCustomFormModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={closeCustomFormModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.customFormModalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {editingFieldIndex !== null ? 'Edit Field' : 'Add Form'}
+              </Text>
+              <Pressable onPress={closeCustomFormModal}>
+                <MaterialIcons name="close" size={24} color="#4A5568" />
+              </Pressable>
+            </View>
+
+            <ScrollView 
+              style={styles.customFormModalScroll}
+              contentContainerStyle={styles.customFormModalScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Field Type */}
+              <View style={styles.modalInputGroup}>
+                <Text style={styles.modalLabel}>Field Type</Text>
+                <Dropdown
+                  style={styles.modalDropdown}
+                  placeholderStyle={styles.placeholderStyle}
+                  selectedTextStyle={styles.selectedTextStyle}
+                  iconStyle={styles.iconStyle}
+                  containerStyle={styles.dropdownContainer}
+                  itemContainerStyle={styles.itemContainer}
+                  itemTextStyle={styles.itemText}
+                  activeColor="#E0ECFF"
+                  data={[
+                    { label: 'Text', value: 'text' },
+                    { label: 'Text Area', value: 'textarea' },
+                    { label: 'Number', value: 'number' },
+                    { label: 'Date', value: 'date' },
+                    { label: 'Dropdown', value: 'dropdown' },
+                    { label: 'File Upload', value: 'file' },
+                  ]}
+                  maxHeight={300}
+                  labelField="label"
+                  valueField="value"
+                  placeholder="Select field type"
+                  value={newFieldType}
+                  onChange={item => setNewFieldType(item.value)}
+                />
+              </View>
+
+              {/* Field Label */}
+              <View style={styles.modalInputGroup}>
+                <Text style={styles.modalLabel}>Field Label</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={newFieldLabel}
+                  onChangeText={setNewFieldLabel}
+                  placeholder="e.g., Full Name, Email, etc."
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
+
+              {/* Required Toggle */}
+              <View style={styles.modalInputGroup}>
+                <Pressable 
+                  style={styles.requiredToggle}
+                  onPress={() => setNewFieldRequired(!newFieldRequired)}
+                >
+                  <View style={[styles.checkbox, newFieldRequired && styles.checkboxChecked]}>
+                    {newFieldRequired && (
+                      <MaterialIcons name="check" size={16} color="#F0F7FF" />
+                    )}
+                  </View>
+                  <Text style={styles.requiredToggleText}>Required Field</Text>
+                </Pressable>
+              </View>
+
+              {/* Dropdown Options (only for dropdown type) */}
+              {newFieldType === 'dropdown' && (
+                <View style={styles.modalInputGroup}>
+                  <Text style={styles.modalLabel}>Dropdown Options</Text>
+                  <View style={styles.arrayInputContainer}>
+                    <TextInput
+                      style={styles.arrayInput}
+                      value={dropdownOptionInput}
+                      onChangeText={setDropdownOptionInput}
+                      placeholder="Enter option"
+                      placeholderTextColor="#A0AEC0"
+                      onSubmitEditing={addDropdownOption}
+                      returnKeyType="done"
+                    />
+                    <Pressable style={styles.addButton} onPress={addDropdownOption}>
+                      <MaterialIcons name="add" size={20} color="#F0F7FF" />
+                    </Pressable>
+                  </View>
+                  {dropdownOptions.length > 0 && (
+                    <View style={styles.tagsContainer}>
+                      {dropdownOptions.map((option, index) => (
+                        <View key={index} style={styles.tag}>
+                          <Text style={styles.tagText} numberOfLines={1}>{option}</Text>
+                          <Pressable onPress={() => removeDropdownOption(index)}>
+                            <MaterialIcons name="close" size={14} color="#111827" />
+                          </Pressable>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
+            </ScrollView>
+
+            {/* Modal Buttons */}
+            <View style={styles.modalButtons}>
+              <Pressable style={styles.modalCancelButton} onPress={closeCustomFormModal}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable style={styles.modalSaveButton} onPress={saveCustomFormField}>
+                <Text style={styles.modalSaveText}>
+                  {editingFieldIndex !== null ? 'Update' : 'Add'} Field
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Toast */}
       <Toast
         visible={toastVisible}
@@ -602,7 +880,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#3A52A6',
     flex: 1,
-    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
@@ -723,7 +1000,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: 'BreeSerif_400Regular',
-    fontSize: 12,
+    fontSize: 14,
     color: '#4A5568',
     marginBottom: 8,
     marginLeft: 2,
@@ -805,7 +1082,6 @@ const styles = StyleSheet.create({
   createButtonText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
-    fontWeight: '600',
     color: '#F0F7FF',
   },
   modalOverlay: {
@@ -837,7 +1113,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 18,
     color: '#3A52A6',
-    fontWeight: '600',
   },
   modalTextArea: {
     fontFamily: 'BreeSerif_400Regular',
@@ -882,7 +1157,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
     color: '#F0F7FF',
-    fontWeight: '600',
   },
   arrayInputContainer: {
     flexDirection: 'row',
@@ -928,5 +1202,160 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#3A52A6',
     flexShrink: 1,
+  },
+  sectionHeader: {
+    marginBottom: 12,
+  },
+  helperText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#6B7280',
+    marginLeft: 2,
+  },
+  customFieldsList: {
+    gap: 10,
+    marginBottom: 12,
+  },
+  customFieldItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E0ECFF',
+    borderRadius: 10,
+    padding: 12,
+    gap: 12,
+  },
+  customFieldInfo: {
+    flex: 1,
+  },
+  customFieldHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  customFieldLabel: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#111827',
+    flex: 1,
+  },
+  requiredBadge: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  requiredBadgeText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 10,
+    color: '#DC2626',
+  },
+  customFieldType: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 11,
+    color: '#6B7280',
+  },
+  customFieldActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  editFieldButton: {
+    padding: 6,
+  },
+  removeFieldButton: {
+    padding: 6,
+  },
+  addCustomFieldButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E0ECFF',
+    borderWidth: 2,
+    borderColor: '#3A52A6',
+    borderStyle: 'dashed',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  addCustomFieldText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#3A52A6',
+  },
+  customFormModalContent: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 500,
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  customFormModalScroll: {
+    maxHeight: 400,
+  },
+  customFormModalScrollContent: {
+    paddingBottom: 10,
+  },
+  modalInputGroup: {
+    marginBottom: 18,
+  },
+  modalLabel: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#4A5568',
+    marginBottom: 8,
+    marginLeft: 2,
+  },
+  modalInput: {
+    fontFamily: 'BreeSerif_400Regular',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#C4CBD5',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 13,
+    color: '#111827',
+  },
+  modalDropdown: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#C4CBD5',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  requiredToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: '#C4CBD5',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#3A52A6',
+    borderColor: '#3A52A6',
+  },
+  requiredToggleText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#111827',
   },
 });

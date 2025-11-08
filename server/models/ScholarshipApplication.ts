@@ -9,7 +9,7 @@ interface ScholarshipApplicationAttributes {
   scholarship_id: string;
   status?: "pending" | "approved" | "denied";
   remarks?: string;
-  document_url: string[];
+  custom_form_response: any
   applied_at?: Date;
   updated_at?: Date;
 }
@@ -22,7 +22,7 @@ class ScholarshipApplication extends Model<ScholarshipApplicationAttributes, App
   public scholarship_id!: string;
   public status?: "pending" | "approved" | "denied";
   public remarks?: string;
-  public document_url!: string[];
+  public custom_form_response!: any;
   public readonly applied_at!: Date;
   public readonly updated_at!: Date;
 
@@ -74,10 +74,9 @@ ScholarshipApplication.init(
       type: DataTypes.TEXT,
       allowNull: true,
     },
-    document_url: {
-      type: DataTypes.ARRAY(DataTypes.TEXT),
+    custom_form_response: {
+      type: DataTypes.JSONB,
       allowNull: false,
-      defaultValue: [],
     },
     applied_at: {
       type: DataTypes.DATE,

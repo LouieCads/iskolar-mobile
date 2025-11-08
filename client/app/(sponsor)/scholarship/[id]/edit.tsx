@@ -1,8 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, TextInput, Alert, Animated, Platform, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { scholarshipService } from '@/services/scholarship.service';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, TextInput, Alert, Animated, Platform, Image, Modal } from 'react-native';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { scholarshipService, CustomFormField } from '@/services/scholarship.service';
 import Toast from '@/components/toast';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
@@ -26,13 +26,23 @@ export default function EditScholarshipPage() {
   const [purpose, setPurpose] = useState('');
   const [status, setStatus] = useState('');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [newImageUri, setNewImageUri] = useState<string | null>(null); // Store selected image URI
+  const [newImageUri, setNewImageUri] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [date, setDate] = useState(new Date());
   const [toastVisible, setToastVisible] = useState(false);
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [toastTitle, setToastTitle] = useState('');
   const [toastMessage, setToastMessage] = useState('');
+
+  // Custom form fields state
+  const [customFormFields, setCustomFormFields] = useState<CustomFormField[]>([]);
+  const [showCustomFormModal, setShowCustomFormModal] = useState(false);
+  const [editingFieldIndex, setEditingFieldIndex] = useState<number | null>(null);
+  const [newFieldType, setNewFieldType] = useState<'text' | 'textarea' | 'dropdown' | 'number' | 'date' | 'file'>('text');
+  const [newFieldLabel, setNewFieldLabel] = useState('');
+  const [newFieldRequired, setNewFieldRequired] = useState(false);
+  const [dropdownOptions, setDropdownOptions] = useState<string[]>([]);
+  const [dropdownOptionInput, setDropdownOptionInput] = useState('');
 
   const typeDropdownRotation = useRef(new Animated.Value(0)).current;
   const typeDropdownScale = useRef(new Animated.Value(1)).current;
@@ -50,6 +60,14 @@ export default function EditScholarshipPage() {
       Animated.timing(slideAnim, { toValue: 0, duration: 250, useNativeDriver: true }),
     ]).start();
   }, [fadeAnim, slideAnim]);
+
+  const showToast = (type: 'success' | 'error', title: string, message: string) => {
+    setToastType(type);
+    setToastTitle(title);
+    setToastMessage(message);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 3000);
+  };
 
   const fetchDetails = useCallback(async () => {
     if (!id) return;
@@ -70,6 +88,7 @@ export default function EditScholarshipPage() {
         setPurpose(s.purpose || '');
         setStatus(s.status || '');
         setImageUrl(s.image_url || null);
+        setCustomFormFields(s.custom_form_fields || []);
         if (s.application_deadline) setDate(new Date(s.application_deadline));
       } else {
         setError(res.message);
@@ -89,7 +108,6 @@ export default function EditScholarshipPage() {
     try {
       setSaving(true);
       
-      // First, upload the new image if one was selected
       if (newImageUri) {
         const upload = await scholarshipService.uploadScholarshipImage(
           String(id), 
@@ -103,7 +121,6 @@ export default function EditScholarshipPage() {
         }
       }
       
-      // Then update the scholarship details
       const payload: any = {
         title,
         description,
@@ -115,16 +132,13 @@ export default function EditScholarshipPage() {
         type: type || undefined,
         purpose: purpose || undefined,
         status: status || undefined,
+        custom_form_fields: customFormFields.length > 0 ? customFormFields : undefined,
       };
       
       const res = await scholarshipService.updateScholarship(String(id), payload);
       if (res.success) {
-        setToastType('success');
-        setToastTitle('Success');
-        setToastMessage('Scholarship updated successfully!');
-        setToastVisible(true);
-        setNewImageUri(null); // Clear the pending image
-        setTimeout(() => setToastVisible(false), 3000);
+        showToast('success', 'Success', 'Scholarship updated successfully!');
+        setNewImageUri(null);
       } else {
         Alert.alert('Error', res.message);
       }
@@ -133,6 +147,82 @@ export default function EditScholarshipPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Custom form field handlers
+  const openCustomFormModal = (index?: number) => {
+    if (index !== undefined) {
+      const field = customFormFields[index];
+      setEditingFieldIndex(index);
+      setNewFieldType(field.type);
+      setNewFieldLabel(field.label);
+      setNewFieldRequired(field.required);
+      setDropdownOptions(field.options || []);
+      setDropdownOptionInput('');
+    } else {
+      setEditingFieldIndex(null);
+      setNewFieldType('text');
+      setNewFieldLabel('');
+      setNewFieldRequired(false);
+      setDropdownOptions([]);
+      setDropdownOptionInput('');
+    }
+    setShowCustomFormModal(true);
+  };
+
+  const closeCustomFormModal = () => {
+    setShowCustomFormModal(false);
+    setEditingFieldIndex(null);
+    setNewFieldType('text');
+    setNewFieldLabel('');
+    setNewFieldRequired(false);
+    setDropdownOptions([]);
+    setDropdownOptionInput('');
+  };
+
+  const addDropdownOption = () => {
+    const trimmed = dropdownOptionInput.trim();
+    if (trimmed && !dropdownOptions.includes(trimmed)) {
+      setDropdownOptions([...dropdownOptions, trimmed]);
+      setDropdownOptionInput('');
+    }
+  };
+
+  const removeDropdownOption = (index: number) => {
+    setDropdownOptions(dropdownOptions.filter((_, i) => i !== index));
+  };
+
+  const saveCustomFormField = () => {
+    if (!newFieldLabel.trim()) {
+      showToast('error', 'Validation Error', 'Please enter a field label');
+      return;
+    }
+
+    if (newFieldType === 'dropdown' && dropdownOptions.length === 0) {
+      showToast('error', 'Validation Error', 'Please add at least one dropdown option');
+      return;
+    }
+
+    const newField: CustomFormField = {
+      type: newFieldType,
+      label: newFieldLabel.trim(),
+      required: newFieldRequired,
+      ...(newFieldType === 'dropdown' && { options: dropdownOptions }),
+    };
+
+    if (editingFieldIndex !== null) {
+      setCustomFormFields(customFormFields.map((field, index) => 
+        index === editingFieldIndex ? newField : field
+      ));
+    } else {
+      setCustomFormFields([...customFormFields, newField]);
+    }
+
+    closeCustomFormModal();
+  };
+
+  const removeCustomFormField = (index: number) => {
+    setCustomFormFields(customFormFields.filter((_, i) => i !== index));
   };
 
   const typeItems = [
@@ -187,9 +277,7 @@ export default function EditScholarshipPage() {
       
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
-        // Store the selected image URI to be uploaded on save
         setNewImageUri(asset.uri);
-        // Show preview immediately
         setImageUrl(asset.uri);
       }
     } catch (e) {
@@ -253,7 +341,7 @@ export default function EditScholarshipPage() {
                 <LabeledInput label="Slots" value={totalSlot} onChangeText={setTotalSlot} keyboardType="numeric" placeholder="0" />
               </View>
             </View>
-            {/* Application Deadline picker */}
+            
             <Text style={styles.label}>Application Deadline</Text>
             <Pressable style={styles.dateInputContainer} onPress={() => setShowDatePicker(true)}>
               <Text style={styles.dateInputText}>{deadline ? formatDate(deadline) : 'Set application deadline'}</Text>
@@ -263,11 +351,9 @@ export default function EditScholarshipPage() {
               <DateTimePicker value={date} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={onChangeDate} minimumDate={new Date()} />
             )}
 
-            {/* Criteria and documents (comma-separated) */}
             <LabeledInput label="Criteria (comma-separated)" value={criteria} onChangeText={setCriteria} placeholder="example: senior_high,stem" />
             <LabeledInput label="Required Documents (comma-separated)" value={documents} onChangeText={setDocuments} placeholder="example: id,form_137" />
 
-            {/* Dropdowns for Type, Purpose, Status */}
             <View style={styles.row2}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.label}>Type</Text>
@@ -351,6 +437,64 @@ export default function EditScholarshipPage() {
                 )}
               />
             </Animated.View>
+
+            {/* Custom Form Fields Section */}
+            <View style={styles.customFormSection}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionLabel}>Application Form</Text>
+                <Text style={styles.helperText}>Edit fields for applicants</Text>
+              </View>
+              
+              {customFormFields.length > 0 && (
+                <View style={styles.customFieldsList}>
+                  {customFormFields.map((field, index) => (
+                    <View key={index} style={styles.customFieldItem}>
+                      <View style={styles.customFieldInfo}>
+                        <View style={styles.customFieldHeader}>
+                          <Text style={styles.customFieldLabel}>{field.label}</Text>
+                          {field.required && (
+                            <View style={styles.requiredBadge}>
+                              <Text style={styles.requiredBadgeText}>Required</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={styles.customFieldType}>
+                          {field.type === 'dropdown' 
+                            ? `Dropdown (${field.options?.length || 0} options)`
+                            : field.type.charAt(0).toUpperCase() + field.type.slice(1).replace('_', ' ')}
+                        </Text>
+                      </View>
+                      <View style={styles.customFieldActions}>
+                        <Pressable 
+                          style={styles.editFieldButton}
+                          onPress={() => openCustomFormModal(index)}
+                        >
+                          <MaterialIcons name="edit" size={16} color="#3A52A6" />
+                        </Pressable>
+                        <Pressable 
+                          style={styles.removeFieldButton}
+                          onPress={() => removeCustomFormField(index)}
+                        >
+                          <MaterialIcons name="delete" size={16} color="#EF4444" />
+                        </Pressable>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              <Pressable 
+                style={styles.addCustomFieldButton}
+                onPress={() => openCustomFormModal()}
+              >
+                <MaterialIcons name="add-circle-outline" size={20} color="#3A52A6" />
+                <Text style={styles.addCustomFieldText}>
+                  {customFormFields.length === 0 
+                    ? 'Add Custom Form Field' 
+                    : 'Add Another Field'}
+                </Text>
+              </Pressable>
+            </View>
           </View>
 
           <Pressable style={[styles.saveBtn, saving && { opacity: 0.7 }]} onPress={onSave} disabled={saving}>
@@ -362,6 +506,129 @@ export default function EditScholarshipPage() {
           <View style={{ height: 20 }} />
         </Animated.ScrollView>
       )}
+
+      {/* Custom Form Field Modal */}
+      <Modal
+        visible={showCustomFormModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={closeCustomFormModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.customFormModalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {editingFieldIndex !== null ? 'Edit Field' : 'Add Form Field'}
+              </Text>
+              <Pressable onPress={closeCustomFormModal}>
+                <MaterialIcons name="close" size={24} color="#4A5568" />
+              </Pressable>
+            </View>
+
+            <ScrollView 
+              style={styles.customFormModalScroll}
+              contentContainerStyle={styles.customFormModalScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.modalInputGroup}>
+                <Text style={styles.modalLabel}>Field Type</Text>
+                <Dropdown
+                  style={styles.modalDropdown}
+                  placeholderStyle={styles.placeholderStyle}
+                  selectedTextStyle={styles.selectedTextStyle}
+                  iconStyle={styles.iconStyle}
+                  containerStyle={styles.dropdownContainer}
+                  itemContainerStyle={styles.itemContainer}
+                  itemTextStyle={styles.itemText}
+                  activeColor="#E0ECFF"
+                  data={[
+                    { label: 'Text', value: 'text' },
+                    { label: 'Text Area', value: 'textarea' },
+                    { label: 'Number', value: 'number' },
+                    { label: 'Date', value: 'date' },
+                    { label: 'Dropdown', value: 'dropdown' },
+                    { label: 'File Upload', value: 'file' },
+                  ]}
+                  maxHeight={300}
+                  labelField="label"
+                  valueField="value"
+                  placeholder="Select field type"
+                  value={newFieldType}
+                  onChange={item => setNewFieldType(item.value)}
+                />
+              </View>
+
+              <View style={styles.modalInputGroup}>
+                <Text style={styles.modalLabel}>Field Label</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={newFieldLabel}
+                  onChangeText={setNewFieldLabel}
+                  placeholder="e.g., Full Name, Email, etc."
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
+
+              <View style={styles.modalInputGroup}>
+                <Pressable 
+                  style={styles.requiredToggle}
+                  onPress={() => setNewFieldRequired(!newFieldRequired)}
+                >
+                  <View style={[styles.checkbox, newFieldRequired && styles.checkboxChecked]}>
+                    {newFieldRequired && (
+                      <MaterialIcons name="check" size={16} color="#F0F7FF" />
+                    )}
+                  </View>
+                  <Text style={styles.requiredToggleText}>Required Field</Text>
+                </Pressable>
+              </View>
+
+              {newFieldType === 'dropdown' && (
+                <View style={styles.modalInputGroup}>
+                  <Text style={styles.modalLabel}>Dropdown Options</Text>
+                  <View style={styles.arrayInputContainer}>
+                    <TextInput
+                      style={styles.arrayInput}
+                      value={dropdownOptionInput}
+                      onChangeText={setDropdownOptionInput}
+                      placeholder="Enter option"
+                      placeholderTextColor="#A0AEC0"
+                      onSubmitEditing={addDropdownOption}
+                      returnKeyType="done"
+                    />
+                    <Pressable style={styles.addButton} onPress={addDropdownOption}>
+                      <MaterialIcons name="add" size={20} color="#F0F7FF" />
+                    </Pressable>
+                  </View>
+                  {dropdownOptions.length > 0 && (
+                    <View style={styles.tagsContainer}>
+                      {dropdownOptions.map((option, index) => (
+                        <View key={index} style={styles.tag}>
+                          <Text style={styles.tagText} numberOfLines={1}>{option}</Text>
+                          <Pressable onPress={() => removeDropdownOption(index)}>
+                            <MaterialIcons name="close" size={14} color="#111827" />
+                          </Pressable>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
+            </ScrollView>
+
+            <View style={styles.modalButtons}>
+              <Pressable style={styles.modalCancelButton} onPress={closeCustomFormModal}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable style={styles.modalSaveButton} onPress={saveCustomFormField}>
+                <Text style={styles.modalSaveText}>
+                  {editingFieldIndex !== null ? 'Update' : 'Add'} Field
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -386,18 +653,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F7FF',
     paddingBottom: 28,
   },
-  
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
   },
-  
   content: {
     padding: 16,
   },
-  
   topBar: {
     height: 80,
     backgroundColor: '#3A52A6',
@@ -408,7 +672,6 @@ const styles = StyleSheet.create({
     paddingTop: 28,
     elevation: 2,
   },
-  
   backBtn: {
     width: 38,
     height: 38,
@@ -416,20 +679,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  
   title: {
     color: '#F0F7FF',
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 16,
   },
-  
   loadingText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 16,
     color: '#5D6673',
     marginTop: 14,
   },
-  
   errorText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 16,
@@ -437,25 +697,21 @@ const styles = StyleSheet.create({
     marginTop: 14,
     textAlign: 'center',
   },
-  
   card: {
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 12,
     elevation: 2,
   },
-  
   imageRow: {
     position: 'relative',
   },
-  
   image: {
     width: '100%',
     aspectRatio: 1,
     borderRadius: 8,
     backgroundColor: '#F0F7FF',
   },
-  
   changeImageBtn: {
     position: 'absolute',
     right: 6,
@@ -468,7 +724,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  
   label: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
@@ -476,7 +731,6 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     marginTop: 4,
   },
-  
   input: {
     backgroundColor: '#F0F7FF',
     borderWidth: 1,
@@ -488,17 +742,14 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 13,
   },
-  
   inputMultiline: {
     minHeight: 92,
     textAlignVertical: 'top',
   },
-  
   row2: {
     flexDirection: 'row',
     gap: 8,
   },
-  
   dateInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -512,13 +763,11 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 8,
   },
-  
   dateInputText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
     color: '#111827',
   },
-  
   dropdown: {
     backgroundColor: '#FFFFFF',
     borderRadius: 6,
@@ -528,24 +777,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginTop: 4,
   },
-  
   placeholderStyle: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
     color: '#9CA3AF',
   },
-  
   selectedTextStyle: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
     color: '#111827',
   },
-  
   iconStyle: {
     width: 20,
     height: 20,
   },
-  
   dropdownContainer: {
     backgroundColor: '#FFFFFF',
     borderRadius: 6,
@@ -561,18 +806,15 @@ const styles = StyleSheet.create({
     elevation: 5,
     marginTop: 4,
   },
-  
   itemContainer: {
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  
   itemText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
     color: '#111827',
   },
-  
   saveBtn: {
     marginTop: 12,
     backgroundColor: '#EFA508',
@@ -583,10 +825,267 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 12,
   },
-
   saveText: {
     color: '#F0F7FF',
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
+  },
+  customFormSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  sectionHeader: {
+    marginBottom: 12,
+  },
+  sectionLabel: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 14,
+    color: '#3A52A6',
+    marginBottom: 4,
+  },
+  helperText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 11,
+    color: '#6B7280',
+  },
+  customFieldsList: {
+    gap: 10,
+    marginBottom: 12,
+  },
+  customFieldItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E0ECFF',
+    borderRadius: 8,
+    padding: 12,
+    gap: 12,
+  },
+  customFieldInfo: {
+    flex: 1,
+  },
+  customFieldHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  customFieldLabel: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#111827',
+    flex: 1,
+  },
+  requiredBadge: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  requiredBadgeText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 9,
+    color: '#DC2626',
+  },
+  customFieldType: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 11,
+    color: '#6B7280',
+  },
+  customFieldActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  editFieldButton: {
+    padding: 6,
+  },
+  removeFieldButton: {
+    padding: 6,
+  },
+  addCustomFieldButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E0ECFF',
+    borderWidth: 2,
+    borderColor: '#3A52A6',
+    borderStyle: 'dashed',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  addCustomFieldText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#3A52A6',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  customFormModalContent: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 500,
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 18,
+    color: '#3A52A6',
+  },
+  customFormModalScroll: {
+    maxHeight: 400,
+  },
+  customFormModalScrollContent: {
+    paddingBottom: 10,
+  },
+  modalInputGroup: {
+    marginBottom: 18,
+  },
+  modalLabel: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#4A5568',
+    marginBottom: 8,
+  },
+  modalInput: {
+    fontFamily: 'BreeSerif_400Regular',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#C4CBD5',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 13,
+    color: '#111827',
+  },
+  modalDropdown: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#C4CBD5',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  requiredToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: '#C4CBD5',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#3A52A6',
+    borderColor: '#3A52A6',
+  },
+  requiredToggleText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#111827',
+  },
+  arrayInputContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  arrayInput: {
+    flex: 1,
+    fontFamily: 'BreeSerif_400Regular',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#C4CBD5',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 12,
+    color: '#111827',
+  },
+  addButton: {
+    backgroundColor: '#3A52A6',
+    borderRadius: 10,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E0ECFF',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    gap: 6,
+  },
+  tagText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 11,
+    color: '#3A52A6',
+    flexShrink: 1,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  modalCancelButton: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#C4CBD5',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 14,
+    color: '#4A5568',
+  },
+  modalSaveButton: {
+    flex: 1,
+    backgroundColor: '#3A52A6',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  modalSaveText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 14,
+    color: '#F0F7FF',
   },
 });

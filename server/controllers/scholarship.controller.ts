@@ -113,26 +113,40 @@ export const createScholarship = async (req: AuthenticatedRequest, res: Response
       total_slot, 
       application_deadline, 
       criteria, 
-      required_documents 
+      required_documents,
+      custom_form_fields
     } = req.body;
 
-    if (!title || !total_amount || !total_slot || !criteria || !required_documents) {
+    if (!title || !total_amount || !total_slot || !criteria || !required_documents || !custom_form_fields) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields: title, total_amount, total_slot, criteria, required_documents"
+        message: "Missing required fields: title, total_amount, total_slot, criteria, required_documents, custom_form_fields"
       });
     }
 
     let criteriaArray = [];
     let documentsArray = [];
+    let customFormFieldsArray = null;
 
     try {
       criteriaArray = typeof criteria === 'string' ? JSON.parse(criteria) : criteria;
       documentsArray = typeof required_documents === 'string' ? JSON.parse(required_documents) : required_documents;
+      
+      // Parse custom_form_fields if provided
+      if (custom_form_fields) {
+        customFormFieldsArray = typeof custom_form_fields === 'string' 
+          ? JSON.parse(custom_form_fields) 
+          : custom_form_fields;
+        
+        // Validate it's an array
+        if (!Array.isArray(customFormFieldsArray)) {
+          throw new Error('custom_form_fields must be an array');
+        }
+      }
     } catch (parseError) {
       return res.status(400).json({
         success: false,
-        message: "Invalid format for criteria or required_documents arrays"
+        message: "Invalid format for criteria, required_documents, or custom_form_fields"
       });
     }
 
@@ -149,6 +163,7 @@ export const createScholarship = async (req: AuthenticatedRequest, res: Response
       application_deadline: application_deadline ? new Date(application_deadline) : undefined,
       criteria: criteriaArray,
       required_documents: documentsArray,
+      custom_form_fields: customFormFieldsArray,
       image_url: undefined, 
     });
 
@@ -168,6 +183,7 @@ export const createScholarship = async (req: AuthenticatedRequest, res: Response
         application_deadline: scholarship.application_deadline,
         criteria: scholarship.criteria,
         required_documents: scholarship.required_documents,
+        custom_form_fields: scholarship.custom_form_fields,
         image_url: scholarship.image_url,
         created_at: scholarship.created_at,
         updated_at: scholarship.updated_at,
@@ -296,26 +312,30 @@ export const getAllScholarships = async (req: Request, res: Response) => {
     });
 
     // Format the response
-    const formattedScholarships = scholarships.map((scholarship: any) => ({
-      scholarship_id: scholarship.scholarship_id,
-      sponsor_id: scholarship.sponsor_id,
-      status: scholarship.status,
-      type: scholarship.type,
-      purpose: scholarship.purpose,
-      title: scholarship.title,
-      total_amount: scholarship.total_amount,
-      total_slot: scholarship.total_slot,
-      application_deadline: scholarship.application_deadline,
-      criteria: scholarship.criteria,
-      required_documents: scholarship.required_documents,
-      image_url: scholarship.image_url,
-      created_at: scholarship.created_at,
-      updated_at: scholarship.updated_at,
-      sponsor: {
-        sponsor_id: scholarship.sponsor?.sponsor_id,
-        organization_name: scholarship.sponsor?.organization_name,
-      }
-    }));
+    const formattedScholarships = scholarships.map((scholarship: any) => {
+      const scholarshipData = scholarship.toJSON();
+      return {
+        scholarship_id: scholarshipData.scholarship_id,
+        sponsor_id: scholarshipData.sponsor_id,
+        status: scholarshipData.status,
+        type: scholarshipData.type,
+        purpose: scholarshipData.purpose,
+        title: scholarshipData.title,
+        total_amount: scholarshipData.total_amount,
+        total_slot: scholarshipData.total_slot,
+        application_deadline: scholarshipData.application_deadline,
+        criteria: scholarshipData.criteria,
+        required_documents: scholarshipData.required_documents,
+        custom_form_fields: scholarshipData.custom_form_fields || null,
+        image_url: scholarshipData.image_url,
+        created_at: scholarshipData.created_at,
+        updated_at: scholarshipData.updated_at,
+        sponsor: {
+          sponsor_id: scholarshipData.sponsor?.sponsor_id,
+          organization_name: scholarshipData.sponsor?.organization_name,
+        }
+      };
+    });
 
     return res.status(200).json({
       success: true,
@@ -371,28 +391,32 @@ export const getSponsorScholarships = async (req: AuthenticatedRequest, res: Res
     });
 
     // Format the response with applications count
-    const formattedScholarships = scholarships.map((scholarship: any) => ({
-      scholarship_id: scholarship.scholarship_id,
-      sponsor_id: scholarship.sponsor_id,
-      status: scholarship.status,
-      type: scholarship.type,
-      purpose: scholarship.purpose,
-      title: scholarship.title,
-      description: scholarship.description,
-      total_amount: scholarship.total_amount,
-      total_slot: scholarship.total_slot,
-      application_deadline: scholarship.application_deadline,
-      criteria: scholarship.criteria,
-      required_documents: scholarship.required_documents,
-      image_url: scholarship.image_url,
-      applications_count: 0, 
-      created_at: scholarship.created_at,
-      updated_at: scholarship.updated_at,
-      sponsor: {
-        sponsor_id: scholarship.sponsor?.sponsor_id,
-        organization_name: scholarship.sponsor?.organization_name,
-      }
-    }));
+    const formattedScholarships = scholarships.map((scholarship: any) => {
+      const scholarshipData = scholarship.toJSON();
+      return {
+        scholarship_id: scholarshipData.scholarship_id,
+        sponsor_id: scholarshipData.sponsor_id,
+        status: scholarshipData.status,
+        type: scholarshipData.type,
+        purpose: scholarshipData.purpose,
+        title: scholarshipData.title,
+        description: scholarshipData.description,
+        total_amount: scholarshipData.total_amount,
+        total_slot: scholarshipData.total_slot,
+        application_deadline: scholarshipData.application_deadline,
+        criteria: scholarshipData.criteria,
+        required_documents: scholarshipData.required_documents,
+        custom_form_fields: scholarshipData.custom_form_fields || null,
+        image_url: scholarshipData.image_url,
+        applications_count: 0, 
+        created_at: scholarshipData.created_at,
+        updated_at: scholarshipData.updated_at,
+        sponsor: {
+          sponsor_id: scholarshipData.sponsor?.sponsor_id,
+          organization_name: scholarshipData.sponsor?.organization_name,
+        }
+      };
+    });
 
     return res.status(200).json({
       success: true,
@@ -407,7 +431,7 @@ export const getSponsorScholarships = async (req: AuthenticatedRequest, res: Res
   }
 };
 
-// Get single scholarship (sponsor-owned details, or public basic)
+// Get single scholarship 
 export const getScholarshipById = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { scholarship_id } = req.params as { scholarship_id: string };
@@ -429,25 +453,28 @@ export const getScholarshipById = async (req: AuthenticatedRequest, res: Respons
       });
     }
 
+    const scholarshipData = scholarship.toJSON();
+
     return res.status(200).json({
       success: true,
       scholarship: {
-        scholarship_id: scholarship.scholarship_id,
-        sponsor_id: scholarship.sponsor_id,
-        status: scholarship.status,
-        type: scholarship.type,
-        purpose: scholarship.purpose,
-        title: scholarship.title,
-        description: scholarship.description,
-        total_amount: scholarship.total_amount,
-        total_slot: scholarship.total_slot,
-        application_deadline: scholarship.application_deadline,
-        criteria: scholarship.criteria,
-        required_documents: scholarship.required_documents,
-        image_url: scholarship.image_url,
+        scholarship_id: scholarshipData.scholarship_id,
+        sponsor_id: scholarshipData.sponsor_id,
+        status: scholarshipData.status,
+        type: scholarshipData.type,
+        purpose: scholarshipData.purpose,
+        title: scholarshipData.title,
+        description: scholarshipData.description,
+        total_amount: scholarshipData.total_amount,
+        total_slot: scholarshipData.total_slot,
+        application_deadline: scholarshipData.application_deadline,
+        criteria: scholarshipData.criteria,
+        required_documents: scholarshipData.required_documents,
+        custom_form_fields: scholarshipData.custom_form_fields || null,
+        image_url: scholarshipData.image_url,
         applications_count: 0,
-        created_at: scholarship.created_at,
-        updated_at: scholarship.updated_at,
+        created_at: scholarshipData.created_at,
+        updated_at: scholarshipData.updated_at,
         sponsor: {
           sponsor_id: (scholarship as any).sponsor?.sponsor_id,
           organization_name: (scholarship as any).sponsor?.organization_name,
@@ -463,7 +490,7 @@ export const getScholarshipById = async (req: AuthenticatedRequest, res: Respons
   }
 };
 
-// Update scholarship (sponsor only and must own)
+// Update scholarship 
 export const updateScholarship = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user?.id;
@@ -517,11 +544,13 @@ export const updateScholarship = async (req: AuthenticatedRequest, res: Response
       application_deadline,
       criteria,
       required_documents,
+      custom_form_fields,
       status,
     } = req.body as any;
 
     let criteriaArray: string[] | undefined = undefined;
     let documentsArray: string[] | undefined = undefined;
+    let customFormFieldsArray: any = undefined;
 
     try {
       if (typeof criteria !== 'undefined') {
@@ -532,10 +561,22 @@ export const updateScholarship = async (req: AuthenticatedRequest, res: Response
         documentsArray = typeof required_documents === 'string' ? JSON.parse(required_documents) : required_documents;
         if (!Array.isArray(documentsArray)) throw new Error('required_documents must be array');
       }
+      if (typeof custom_form_fields !== 'undefined') {
+        if (custom_form_fields === null) {
+          throw new Error('custom_form_fields must not be null');
+        } else {
+          customFormFieldsArray = typeof custom_form_fields === 'string' 
+            ? JSON.parse(custom_form_fields) 
+            : custom_form_fields;
+          if (!Array.isArray(customFormFieldsArray)) {
+            throw new Error('custom_form_fields must be an array');
+          }
+        }
+      }
     } catch (parseError) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid format for criteria or required_documents arrays'
+        message: 'Invalid format for criteria, required_documents, or custom_form_fields'
       });
     }
 
@@ -549,13 +590,14 @@ export const updateScholarship = async (req: AuthenticatedRequest, res: Response
     if (typeof application_deadline !== 'undefined') scholarship.application_deadline = application_deadline ? new Date(application_deadline) : null as any;
     if (typeof criteriaArray !== 'undefined') scholarship.criteria = criteriaArray;
     if (typeof documentsArray !== 'undefined') scholarship.required_documents = documentsArray;
+    if (typeof customFormFieldsArray !== 'undefined') scholarship.custom_form_fields = customFormFieldsArray;
 
     await scholarship.save();
 
     return res.status(200).json({
       success: true,
       message: 'Scholarship updated successfully',
-      scholarship
+      scholarship: scholarship.toJSON()
     });
   } catch (error) {
     console.error('Error updating scholarship:', error);

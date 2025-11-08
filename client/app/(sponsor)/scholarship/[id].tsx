@@ -1,9 +1,9 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Alert, Animated, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import Header from '@/components/header';
-import { scholarshipService } from '@/services/scholarship.service';
+import { scholarshipService, CustomFormField } from '@/services/scholarship.service';
 import { profileService } from '@/services/profile.service';
 
 export default function ScholarshipDetailsPage() {
@@ -73,6 +73,18 @@ export default function ScholarshipDetailsPage() {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
+  const getFieldTypeLabel = (type: string) => {
+    const typeMap: Record<string, string> = {
+      text: 'Text',
+      textarea: 'Text Area',
+      dropdown: 'Dropdown',
+      number: 'Number',
+      date: 'Date',
+      file: 'File Upload',
+    };
+    return typeMap[type] || type;
+  };
+
   const onEdit = () => {
     if (!id) return;
     router.push({ pathname: `/(sponsor)/scholarship/${id}/edit` } as any);
@@ -126,7 +138,7 @@ export default function ScholarshipDetailsPage() {
             <Text style={styles.statusText}>{scholarship?.status || 'Active'}</Text>
           </View>
 
-          {/* Hero/Image Card (mirrors create page image area styling) */}
+          {/* Hero/Image Card */}
           <View style={styles.heroCard}>
             <Image
               source={scholarship?.image_url ? { uri: scholarship.image_url } : require('@/assets/images/iskolar-logo.png')}
@@ -148,7 +160,7 @@ export default function ScholarshipDetailsPage() {
             </View>
           </View>
 
-          {/* Metrics Row (styled akin to create inputs/cards) */}
+          {/* Metrics Row */}
           <View style={styles.row}> 
             <View style={[styles.metricBox, { borderColor: '#FF6B6B' }]}>
               <Text style={styles.metricLabel}>Applications</Text>
@@ -194,6 +206,61 @@ export default function ScholarshipDetailsPage() {
               <View style={styles.tagsContainer}>
                 {scholarship.required_documents.map((d: string, idx: number) => (
                   <View key={idx} style={styles.tag}><Text style={styles.tagText}>{d.replace(/_/g, ' ')}</Text></View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Custom Form Fields - Only visible to owner */}
+          {isOwner && Array.isArray(scholarship?.custom_form_fields) && scholarship.custom_form_fields.length > 0 && (
+            <View style={styles.card}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.label}>Application Form Fields</Text>
+              </View>
+              <View style={styles.customFieldsList}>
+                {scholarship.custom_form_fields.map((field: CustomFormField, index: number) => (
+                  <View key={index} style={styles.customFieldItem}>
+                    <View style={styles.customFieldIconContainer}>
+                      <MaterialIcons 
+                        name={
+                          field.type === 'text' ? 'text-fields' :
+                          field.type === 'textarea' ? 'subject' :
+                          field.type === 'dropdown' ? 'arrow-drop-down-circle' :
+                          field.type === 'number' ? 'pin' :
+                          field.type === 'date' ? 'event' :
+                          field.type === 'file' ? 'attach-file' :
+                          'help-outline'
+                        } 
+                        size={20} 
+                        color="#3A52A6" 
+                      />
+                    </View>
+                    <View style={styles.customFieldInfo}>
+                      <View style={styles.customFieldHeader}>
+                        <Text style={styles.customFieldLabel}>{field.label}</Text>
+                        {field.required && (
+                          <View style={styles.requiredBadge}>
+                            <Text style={styles.requiredBadgeText}>Required</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={styles.customFieldType}>
+                        {getFieldTypeLabel(field.type)}
+                        {field.type === 'dropdown' && field.options && field.options.length > 0 && 
+                          ` • ${field.options.length} option${field.options.length !== 1 ? 's' : ''}`
+                        }
+                      </Text>
+                      {field.type === 'dropdown' && field.options && field.options.length > 0 && (
+                        <View style={styles.dropdownOptionsContainer}>
+                          {field.options.map((option: string, optIndex: number) => (
+                            <View key={optIndex} style={styles.dropdownOptionChip}>
+                              <Text style={styles.dropdownOptionText}>{option}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  </View>
                 ))}
               </View>
             </View>
@@ -326,12 +393,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
   },
-  metricSingle: {
-    borderRadius: 8,
-    padding: 12,
-    backgroundColor: '#fff',
-    marginBottom: 12,
-  },
   row: {
     flexDirection: 'row',
     gap: 6,
@@ -386,6 +447,79 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
     color: '#3A52A6',
+  },
+  sectionHeader: {
+    marginBottom: 12,
+  },
+  customFieldsList: {
+    gap: 10,
+  },
+  customFieldItem: {
+    flexDirection: 'row',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E0ECFF',
+    borderRadius: 10,
+    padding: 12,
+    gap: 12,
+  },
+  customFieldIconContainer: {
+    width: 36,
+    height: 36,
+    backgroundColor: '#E0ECFF',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  customFieldInfo: {
+    flex: 1,
+  },
+  customFieldHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  customFieldLabel: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#111827',
+    flex: 1,
+  },
+  requiredBadge: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  requiredBadgeText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 9,
+    color: '#DC2626',
+  },
+  customFieldType: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 11,
+    color: '#6B7280',
+  },
+  dropdownOptionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
+  dropdownOptionChip: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  dropdownOptionText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 10,
+    color: '#4B5563',
   },
   actionsRow: {
     flexDirection: 'row',

@@ -12,6 +12,14 @@ interface ScholarshipData {
   application_deadline?: string;
   criteria: string[];
   required_documents: string[];
+  custom_form_fields?: CustomFormField[];
+}
+
+export interface CustomFormField {
+  type: 'text' | 'textarea' | 'dropdown' | 'number' | 'date' | 'file';
+  label: string;
+  required: boolean;
+  options?: string[]; 
 }
 
 interface Sponsor {
@@ -34,6 +42,7 @@ interface Scholarship {
   application_deadline?: string;
   criteria: string[];
   required_documents: string[];
+  custom_form_fields?: CustomFormField[];
   image_url?: string;
   applications_count?: number;
   created_at: string;
@@ -85,7 +94,7 @@ class ScholarshipService {
     }
   }
 
-  async updateScholarship(scholarshipId: string, data: Partial<ScholarshipData> & { status?: string }): Promise<{
+  async updateScholarship(scholarshipId: string, data: Partial<ScholarshipData> & { status?: string; custom_form_fields?: CustomFormField[] }): Promise<{
     success: boolean;
     scholarship?: any;
     message: string;

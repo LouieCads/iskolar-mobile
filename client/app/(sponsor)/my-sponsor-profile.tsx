@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 24,
     color: '#111827',
-    fontWeight: '600',
+
   },
   roleText: {
     fontFamily: 'BreeSerif_400Regular',

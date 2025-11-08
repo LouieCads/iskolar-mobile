@@ -16,6 +16,7 @@ interface ScholarshipAttributes {
   application_deadline?: Date;
   criteria: string[];
   required_documents: string[];
+  custom_form_fields: any; 
   created_at?: Date;
   updated_at?: Date;
 }
@@ -36,6 +37,7 @@ class Scholarship extends Model<ScholarshipAttributes, ScholarshipCreationAttrib
   public application_deadline?: Date;
   public criteria!: string[];
   public required_documents!: string[];
+  public custom_form_fields!: any; 
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
 
@@ -46,7 +48,7 @@ class Scholarship extends Model<ScholarshipAttributes, ScholarshipCreationAttrib
     });
     Scholarship.hasMany(models.ScholarshipApplication, {
       foreignKey: "scholarship_id",
-      as: "scholarship_application",
+      as: "applications",
     });
   }
 }
@@ -114,6 +116,10 @@ Scholarship.init(
       type: DataTypes.ARRAY(DataTypes.TEXT),
       allowNull: false,
       defaultValue: [],
+    },
+    custom_form_fields: {
+      type: DataTypes.JSONB,
+      allowNull: false,
     },
     created_at: {
       type: DataTypes.DATE,

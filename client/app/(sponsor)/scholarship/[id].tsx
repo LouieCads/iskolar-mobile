@@ -121,9 +121,9 @@ export default function ScholarshipDetailsPage() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.metricSingle}>
-            <Text style={styles.metricLabel}>Status</Text>
-            <Text style={[styles.metricValue, { color: '#31D0AA' }]}>{(scholarship?.status || '').toString()}</Text>
+          <View style={styles.statusBadge}>
+            <View style={[styles.statusDot, { backgroundColor: '#31D0AA' }]} />
+            <Text style={styles.statusText}>{scholarship?.status || 'Active'}</Text>
           </View>
 
           {/* Hero/Image Card (mirrors create page image area styling) */}
@@ -226,27 +226,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F7FF',
     paddingBottom: 28,
   },
-  
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
   },
-  
   scrollContent: {
     paddingHorizontal: 24,
     paddingTop: 16,
     paddingBottom: 28,
   },
-  
   loadingText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 16,
     color: '#5D6673',
     marginTop: 14,
   },
-  
   errorText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 16,
@@ -254,7 +250,6 @@ const styles = StyleSheet.create({
     marginTop: 14,
     textAlign: 'center',
   },
-  
   retryButton: {
     backgroundColor: '#3A52A6',
     paddingHorizontal: 24,
@@ -262,20 +257,44 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 16,
   },
-  
   retryButtonText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 16,
     color: '#F0F7FF',
   },
-  
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  statusText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#31D0AA',
+    textTransform: 'capitalize',
+  },
   heroCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 8,
     elevation: 2,
   },
-  
   heroImage: {
     width: '100%',
     aspectRatio: 1 / 1,
@@ -283,7 +302,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F7FF',
     resizeMode: 'cover',
   },
-  
   card: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -291,40 +309,34 @@ const styles = StyleSheet.create({
     elevation: 2,
     marginTop: 12,
   },
-  
   titleText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 20,
     color: '#111827',
     marginBottom: 8,
   },
-  
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     marginTop: 6,
   },
-  
   metaText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
     color: '#6B7280',
   },
-  
   metricSingle: {
     borderRadius: 8,
     padding: 12,
     backgroundColor: '#fff',
     marginBottom: 12,
   },
-  
   row: {
     flexDirection: 'row',
     gap: 6,
     marginTop: 12,
   },
-  
   metricBox: {
     flex: 1,
     borderWidth: 2,
@@ -332,63 +344,54 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: '#fff',
   },
-  
   metricLabel: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
     color: '#5D6673',
   },
-  
   metricValue: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
     marginTop: 4,
   },
-  
   perScholar: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 11,
     color: '#666',
   },
-  
   label: {
     fontFamily: 'BreeSerif_400Regular',
-    fontSize: 12,
+    fontSize: 14,
     color: '#5D6673',
     marginBottom: 6,
   },
-  
   bodyText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12.5,
     color: '#111827',
+    lineHeight: 22,
   },
-  
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  
   tag: {
     backgroundColor: '#E0ECFF',
     borderRadius: 8,
     paddingVertical: 6,
     paddingHorizontal: 10,
   },
-  
   tagText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
     color: '#3A52A6',
   },
-  
   actionsRow: {
     flexDirection: 'row',
     gap: 10,
     marginTop: 14,
   },
-  
   actionBtn: {
     flex: 1,
     height: 44,
@@ -398,15 +401,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  
   editBtn: {
     backgroundColor: '#3A52A6',
   },
-  
   deleteBtn: {
     backgroundColor: '#EF4444',
   },
-  
   actionText: {
     color: '#F0F7FF',
     fontFamily: 'BreeSerif_400Regular',

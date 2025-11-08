@@ -27,11 +27,11 @@ class ScholarshipApplication extends Model<ScholarshipApplicationAttributes, App
   public readonly updated_at!: Date;
 
   static associate(models: any) {
-    ScholarshipApplication.belongsTo(models.Sponsor, {
+    ScholarshipApplication.belongsTo(models.Student, {
       foreignKey: "student_id",
       as: "student",
     });
-    ScholarshipApplication.belongsTo(models.Sponsor, {
+    ScholarshipApplication.belongsTo(models.Scholarship, {
       foreignKey: "scholarship_id",
       as: "scholarship",
     });

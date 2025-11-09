@@ -154,6 +154,11 @@ export default function ScholarshipApplyPage() {
           if (files.length === 0) {
             validationErrors.push(`${field.label} is required`);
           }
+        } else if (field.type === 'checkbox') {
+          const value = customFormValues[fieldKey];
+          if (!Array.isArray(value) || value.length === 0) {
+            validationErrors.push(`${field.label} requires at least one selection`);
+          }
         } else {
           const value = customFormValues[fieldKey];
           if (!value || (typeof value === 'string' && value.trim() === '')) {
@@ -161,10 +166,60 @@ export default function ScholarshipApplyPage() {
           }
         }
       }
+      
+      // Type-specific validation (even if not required, validate format if filled)
+      const value = customFormValues[fieldKey];
+      
+      if (value && typeof value === 'string' && value.trim() !== '') {
+        switch (field.type) {
+          case 'email':
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(value.trim())) {
+              validationErrors.push(`${field.label} must be a valid email address`);
+            }
+            break;
+          
+          case 'phone':
+            const phoneDigits = value.replace(/\D/g, '');
+            const isValidPH = (
+              (phoneDigits.length === 11 && phoneDigits.startsWith('09')) ||
+              (phoneDigits.length === 12 && phoneDigits.startsWith('63')) ||
+              (phoneDigits.length === 10 && phoneDigits.startsWith('02'))
+            );
+            if (!isValidPH) {
+              validationErrors.push(`${field.label} must be a valid Philippine phone number (e.g., 09XX XXX XXXX)`);
+            }
+            break;
+          
+          case 'number':
+            if (isNaN(Number(value))) {
+              validationErrors.push(`${field.label} must be a valid number`);
+            }
+            break;
+          
+          case 'dropdown':
+            if (field.options && !field.options.includes(value)) {
+              validationErrors.push(`${field.label} has an invalid selection`);
+            }
+            break;
+        }
+      }
+      
+      // Validate checkbox options
+      if (field.type === 'checkbox' && Array.isArray(value) && value.length > 0) {
+        const invalidOptions = value.filter(v => !field.options?.includes(v));
+        if (invalidOptions.length > 0) {
+          validationErrors.push(`${field.label} contains invalid selections`);
+        }
+      }
     });
 
     if (validationErrors.length > 0) {
-      showToast('error', 'Validation Error', validationErrors.join('\n'));
+      // Show first 3 errors (to avoid overwhelming the user)
+      const displayErrors = validationErrors.slice(0, 3);
+      const errorMessage = displayErrors.join('\n') + 
+        (validationErrors.length > 3 ? `\n... and ${validationErrors.length - 3} more` : '');
+      showToast('error', 'Validation Error', errorMessage);
       return;
     }
 
@@ -178,7 +233,10 @@ export default function ScholarshipApplyPage() {
       console.log('Application Data:', {
         scholarshipId: id,
         documents: documents.map(d => ({ name: d.name, size: d.size, type: d.mimeType })),
-        customFormValues,
+        customFormValues: Object.entries(customFormValues).map(([key, value]) => ({
+          field: key,
+          value: Array.isArray(value) ? `[${value.join(', ')}]` : value
+        })),
         customFormFiles: Object.keys(customFormFiles).map(key => ({
           field: key,
           files: customFormFiles[key].map(f => ({ name: f.name, size: f.size }))
@@ -388,6 +446,64 @@ export default function ScholarshipApplyPage() {
             )}
           </View>
         )}
+
+        {field.type === 'email' && (
+          <TextInput
+            style={styles.customFieldInput}
+            value={value}
+            onChangeText={(text) => updateCustomFormValue(fieldKey, text)}
+            placeholder={`Enter ${field.label.toLowerCase()}`}
+            placeholderTextColor="#9CA3AF"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        )}
+
+        {field.type === 'phone' && (
+          <TextInput
+            style={styles.customFieldInput}
+            value={value}
+            onChangeText={(text) => updateCustomFormValue(fieldKey, text)}
+            placeholder="09XX XXX XXXX"
+            placeholderTextColor="#9CA3AF"
+            keyboardType="phone-pad"
+          />
+        )}
+
+        {field.type === 'checkbox' && field.options && (
+          <View>
+            {field.options.map((option, optIndex) => {
+              const selectedValues = Array.isArray(value) ? value : [];
+              const isChecked = selectedValues.includes(option);
+              
+              return (
+                <Pressable
+                  key={optIndex}
+                  style={styles.checkboxItem}
+                  onPress={() => {
+                    const currentValues = Array.isArray(value) ? [...value] : [];
+                    if (isChecked) {
+                      // Remove from array
+                      const newValues = currentValues.filter(v => v !== option);
+                      updateCustomFormValue(fieldKey, newValues);
+                    } else {
+                      // Add to array
+                      updateCustomFormValue(fieldKey, [...currentValues, option]);
+                    }
+                  }}
+                >
+                  <View style={[styles.checkbox, isChecked && styles.checkboxChecked]}>
+                    {isChecked && (
+                      <MaterialIcons name="check" size={16} color="#F0F7FF" />
+                    )}
+                  </View>
+                  <Text style={styles.checkboxLabel}>{option}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
       </View>
     );
   };
@@ -464,9 +580,9 @@ export default function ScholarshipApplyPage() {
             {/* Custom Form Fields */}
             {customFields.length > 0 && (
               <View style={styles.card}>
-                <Text style={styles.sectionTitle}>Additional Information</Text>
+                <Text style={styles.sectionTitle}>Student Information</Text>
                 <Text style={styles.helperText}>
-                  Please provide the following additional information requested by the sponsor.
+                  Please provide the following information requested.
                 </Text>
                 <View style={styles.customFieldsContainer}>
                   {customFields.map((field: CustomFormField, index: number) => 
@@ -739,6 +855,33 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#6B7280',
   },
+  checkboxItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    gap: 8,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#C4CBD5',
+    backgroundColor: '#F6F9FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#3A52A6',
+    borderColor: '#3A52A6',
+  },
+  checkboxLabel: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#111827',
+    flex: 1,
+  },
   removeButton: {
     padding: 4,
     marginLeft: 8,
@@ -792,7 +935,7 @@ const styles = StyleSheet.create({
   },
   customFieldLabel: {
     fontFamily: 'BreeSerif_400Regular',
-    fontSize: 13,
+    fontSize: 12,
     color: '#111827',
   },
   requiredAsterisk: {
@@ -806,7 +949,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 13,
+    fontSize: 12,
     color: '#111827',
   },
   customFieldTextArea: {
@@ -827,7 +970,7 @@ const styles = StyleSheet.create({
   },
   customFieldDateText: {
     fontFamily: 'BreeSerif_400Regular',
-    fontSize: 13,
+    fontSize: 12,
     color: '#111827',
   },
   placeholderText: {
@@ -843,12 +986,12 @@ const styles = StyleSheet.create({
   },
   placeholderStyle: {
     fontFamily: 'BreeSerif_400Regular',
-    fontSize: 13,
+    fontSize: 12,
     color: '#9CA3AF',
   },
   selectedTextStyle: {
     fontFamily: 'BreeSerif_400Regular',
-    fontSize: 13,
+    fontSize: 12,
     color: '#111827',
   },
   iconStyle: {
@@ -873,7 +1016,7 @@ const styles = StyleSheet.create({
   },
   itemText: {
     fontFamily: 'BreeSerif_400Regular',
-    fontSize: 13,
+    fontSize: 12,
     color: '#111827',
   },
   customFieldFileButton: {
@@ -890,7 +1033,7 @@ const styles = StyleSheet.create({
   },
   customFieldFileButtonText: {
     fontFamily: 'BreeSerif_400Regular',
-    fontSize: 13,
+    fontSize: 12,
     color: '#3A52A6',
   },
   customFieldFileList: {

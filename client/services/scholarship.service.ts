@@ -16,7 +16,7 @@ interface ScholarshipData {
 }
 
 export interface CustomFormField {
-  type: 'text' | 'textarea' | 'dropdown' | 'number' | 'date' | 'file';
+  type: 'text' | 'textarea' | 'dropdown' | 'checkbox' | 'number' | 'date' | 'email' | 'phone' | 'file' ;
   label: string;
   required: boolean;
   options?: string[]; 

@@ -142,6 +142,33 @@ export const createScholarship = async (req: AuthenticatedRequest, res: Response
         if (!Array.isArray(customFormFieldsArray)) {
           throw new Error('custom_form_fields must be an array');
         }
+        
+        // Validate each field structure
+        for (const field of customFormFieldsArray) {
+          const validTypes = ['text', 'textarea', 'dropdown', 'number', 'date', 'file', 'email', 'phone', 'checkbox'];
+          
+          if (!validTypes.includes(field.type)) {
+            return res.status(400).json({
+              success: false,
+              message: `Invalid field type: ${field.type}`
+            });
+          }
+          
+          if (!field.label || typeof field.label !== 'string') {
+            return res.status(400).json({
+              success: false,
+              message: 'Each field must have a label'
+            });
+          }
+          
+          if ((field.type === 'dropdown' || field.type === 'checkbox') && 
+              (!field.options || !Array.isArray(field.options) || field.options.length === 0)) {
+            return res.status(400).json({
+              success: false,
+              message: `${field.type} fields must have at least one option`
+            });
+          }
+        }
       }
     } catch (parseError) {
       return res.status(400).json({

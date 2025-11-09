@@ -229,6 +229,9 @@ export default function ScholarshipDetailsPage() {
                           field.type === 'number' ? 'pin' :
                           field.type === 'date' ? 'event' :
                           field.type === 'file' ? 'attach-file' :
+                          field.type === 'phone' ? 'call' :
+                          field.type === 'email' ? 'email' :
+                          field.type === 'checkbox' ? 'check-box' :
                           'help-outline'
                         } 
                         size={20} 

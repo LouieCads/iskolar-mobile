@@ -35,7 +35,7 @@ export default function CreateScholarshipPage() {
   const [customFormFields, setCustomFormFields] = useState<CustomFormField[]>([]);
   const [showCustomFormModal, setShowCustomFormModal] = useState(false);
   const [editingFieldIndex, setEditingFieldIndex] = useState<number | null>(null);
-  const [newFieldType, setNewFieldType] = useState<'text' | 'textarea' | 'dropdown' | 'number' | 'date' | 'file'>('text');
+  const [newFieldType, setNewFieldType] = useState<'text' | 'textarea' | 'dropdown' | 'checkbox' | 'number' | 'date' | 'email' | 'phone' | 'file'>('text');
   const [newFieldLabel, setNewFieldLabel] = useState('');
   const [newFieldRequired, setNewFieldRequired] = useState(false);
   const [dropdownOptions, setDropdownOptions] = useState<string[]>([]);
@@ -77,6 +77,31 @@ export default function CreateScholarshipPage() {
     { label: 'Allowance', value: 'allowance' },
     { label: 'Tuition', value: 'tuition' },
   ];
+
+  const getFieldIcon = (fieldType: string) => {
+    switch (fieldType) {
+      case 'text':
+        return 'text-fields';
+      case 'textarea':
+        return 'subject';
+      case 'number':
+        return 'numbers';
+      case 'email':
+        return 'email';
+      case 'phone':
+        return 'phone';
+      case 'date':
+        return 'calendar-today';
+      case 'dropdown':
+        return 'arrow-drop-down-circle';
+      case 'checkbox':
+        return 'check-box';
+      case 'file':
+        return 'attach-file';
+      default:
+        return 'help-outline';
+    }
+  };
 
   const onChangeDate = (event: any, selectedDate?: Date) => {
     setShowDatePicker(Platform.OS === 'ios');
@@ -234,8 +259,8 @@ export default function CreateScholarshipPage() {
       return;
     }
 
-    if (newFieldType === 'dropdown' && dropdownOptions.length === 0) {
-      showToast('error', 'Validation Error', 'Please add at least one dropdown option');
+    if ((newFieldType === 'dropdown' || newFieldType === 'checkbox') && dropdownOptions.length === 0) {
+      showToast('error', 'Validation Error', `Please add at least one ${newFieldType === 'checkbox' ? 'checkbox' : 'dropdown'} option`);
       return;
     }
 
@@ -243,7 +268,7 @@ export default function CreateScholarshipPage() {
       type: newFieldType,
       label: newFieldLabel.trim(),
       required: newFieldRequired,
-      ...(newFieldType === 'dropdown' && { options: dropdownOptions }),
+      ...((newFieldType === 'dropdown' || newFieldType === 'checkbox') && { options: dropdownOptions }),
     };
 
     if (editingFieldIndex !== null) {
@@ -615,7 +640,7 @@ export default function CreateScholarshipPage() {
         {/* Custom Form Fields */}
         <View style={styles.inputGroup}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.label}>Custom Application Form</Text>
+            <Text style={styles.label}>Application Form</Text>
             <Text style={styles.helperText}>Add custom fields to collect information from applicants.</Text>
           </View>
           
@@ -623,6 +648,13 @@ export default function CreateScholarshipPage() {
             <View style={styles.customFieldsList}>
               {customFormFields.map((field, index) => (
                 <View key={index} style={styles.customFieldItem}>
+                  <View style={styles.fieldIconContainer}>
+                    <MaterialIcons 
+                      name={getFieldIcon(field.type)} 
+                      size={20} 
+                      color="#3A52A6" 
+                    />
+                  </View>
                   <View style={styles.customFieldInfo}>
                     <View style={styles.customFieldHeader}>
                       <Text style={styles.customFieldLabel}>{field.label}</Text>
@@ -635,7 +667,16 @@ export default function CreateScholarshipPage() {
                     <Text style={styles.customFieldType}>
                       {field.type === 'dropdown' 
                         ? `Dropdown (${field.options?.length || 0} options)`
-                        : field.type.charAt(0).toUpperCase() + field.type.slice(1).replace('_', ' ')}
+                        : field.type === 'checkbox'
+                        ? `Checkbox (${field.options?.length || 0} options)`
+                        : field.type === 'phone'
+                        ? 'Phone number'
+                        : field.type === 'text'
+                        ? 'Short answer'
+                        : field.type === 'textarea'
+                        ? 'Long answer'
+                        : field.type.charAt(0).toUpperCase() + field.type.slice(1).replace('_', ' ')
+                      }
                     </Text>
                   </View>
                   <View style={styles.customFieldActions}>
@@ -759,12 +800,15 @@ export default function CreateScholarshipPage() {
                   itemTextStyle={styles.itemText}
                   activeColor="#E0ECFF"
                   data={[
-                    { label: 'Text', value: 'text' },
-                    { label: 'Text Area', value: 'textarea' },
-                    { label: 'Number', value: 'number' },
-                    { label: 'Date', value: 'date' },
-                    { label: 'Dropdown', value: 'dropdown' },
-                    { label: 'File Upload', value: 'file' },
+                    { label: 'Short answer', value: 'text', icon: 'text-fields' },
+                    { label: 'Long answer', value: 'textarea', icon: 'subject' },
+                    { label: 'Number', value: 'number', icon: 'numbers' },
+                    { label: 'Email', value: 'email', icon: 'email' },
+                    { label: 'Phone number', value: 'phone', icon: 'phone' },
+                    { label: 'Date', value: 'date', icon: 'calendar-today' },
+                    { label: 'Dropdown', value: 'dropdown', icon: 'arrow-drop-down-circle' },
+                    { label: 'Checkbox', value: 'checkbox', icon: 'check-box' },
+                    { label: 'File upload', value: 'file', icon: 'attach-file' },
                   ]}
                   maxHeight={300}
                   labelField="label"
@@ -772,6 +816,22 @@ export default function CreateScholarshipPage() {
                   placeholder="Select field type"
                   value={newFieldType}
                   onChange={item => setNewFieldType(item.value)}
+                  renderItem={(item) => (
+                    <View style={styles.dropdownItemWithIcon}>
+                      <MaterialIcons name={item.icon} size={18} color="#3A52A6" />
+                      <Text style={styles.dropdownItemText}>{item.label}</Text>
+                    </View>
+                  )}
+                  renderLeftIcon={() => 
+                    newFieldType ? (
+                      <MaterialIcons 
+                        name={getFieldIcon(newFieldType)} 
+                        size={18} 
+                        color="#3A52A6" 
+                        style={{ marginRight: 8 }}
+                      />
+                    ) : null
+                  }
                 />
               </View>
 
@@ -803,9 +863,11 @@ export default function CreateScholarshipPage() {
               </View>
 
               {/* Dropdown Options (only for dropdown type) */}
-              {newFieldType === 'dropdown' && (
+              {(newFieldType === 'dropdown' || newFieldType === 'checkbox') && (
                 <View style={styles.modalInputGroup}>
-                  <Text style={styles.modalLabel}>Dropdown Options</Text>
+                  <Text style={styles.modalLabel}>
+                    {newFieldType === 'checkbox' ? 'Checkbox Options' : 'Dropdown Options'}
+                  </Text>
                   <View style={styles.arrayInputContainer}>
                     <TextInput
                       style={styles.arrayInput}
@@ -1204,6 +1266,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   sectionHeader: {
+    marginTop: 10,
     marginBottom: 12,
   },
   helperText: {
@@ -1224,7 +1287,15 @@ const styles = StyleSheet.create({
     borderColor: '#E0ECFF',
     borderRadius: 10,
     padding: 12,
-    gap: 12,
+    gap: 10,
+  },
+  fieldIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#E0ECFF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   customFieldInfo: {
     flex: 1,
@@ -1356,6 +1427,18 @@ const styles = StyleSheet.create({
   requiredToggleText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 13,
+    color: '#111827',
+  },
+  dropdownItemWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  dropdownItemText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
     color: '#111827',
   },
 });

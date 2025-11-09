@@ -606,7 +606,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#111827',
     opacity: 0.75,
-    fontWeight: '600',
     letterSpacing: 0.5,
   },
   infoRow: {
@@ -640,13 +639,11 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
     color: '#111827',
-    fontWeight: '500',
   },
   editInput: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
     color: '#111827',
-    fontWeight: '500',
     borderBottomWidth: 1,
     borderBottomColor: '#3A52A6',
     paddingVertical: 4,
@@ -718,7 +715,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
     color: '#3A52A6',
-    fontWeight: '600',
     marginLeft: 8,
   },
   saveButton: {
@@ -739,7 +735,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
     color: '#FFFFFF',
-    fontWeight: '600',
     marginLeft: 8,
   },
   logoutButton: {
@@ -760,7 +755,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
     color: '#FFFFFF',
-    fontWeight: '600',
     marginLeft: 8,
   },
   modalOverlay: {
@@ -796,7 +790,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 18,
     color: '#111827',
-    fontWeight: '600',
     marginBottom: 8,
   },
   modalMessage: {
@@ -824,7 +817,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
     color: '#4B5563',
-    fontWeight: '600',
   },
   confirmButton: {
     flex: 1,
@@ -843,7 +835,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
     color: '#FFFFFF',
-    fontWeight: '600',
   },
   loadingContainer: {
     flex: 1,
@@ -880,7 +871,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
     color: '#FFFFFF',
-    fontWeight: '600',
   },
   profileImage: {
     width: 100,
@@ -902,7 +892,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
     color: '#FFFFFF',
-    fontWeight: '600',
   },
   cameraIconBadge: {
     position: 'absolute',

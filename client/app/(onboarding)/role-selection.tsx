@@ -351,7 +351,6 @@ const styles = StyleSheet.create({
     color: '#F0F7FF',
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 16,
-    fontWeight: '600',
   },
   buttonTextDisabled: {
     color: '#F0F7FF',

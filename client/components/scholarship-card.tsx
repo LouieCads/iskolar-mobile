@@ -265,7 +265,6 @@ const styles = StyleSheet.create({
   amountText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
-    fontWeight: 'bold',
     color: '#31D0AA',
     marginBottom: 2,
   },

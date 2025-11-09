@@ -399,7 +399,6 @@ const styles = StyleSheet.create({
     color: '#F0F7FF',
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
-    fontWeight: '600',
     letterSpacing: 0.5,
   },
 });

@@ -340,7 +340,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
     color: '#3A52A6',
-    fontWeight: '600',
     marginBottom: 8,
   },
   requirementText: {
@@ -368,7 +367,6 @@ const styles = StyleSheet.create({
     color: '#F0F7FF',
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
-    fontWeight: '600',
     letterSpacing: 0.5,
   },
 });

@@ -281,14 +281,12 @@ const styles = StyleSheet.create({
   applicationsText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
-    fontWeight: 'bold',
     color: '#FF6B6B',
     marginBottom: 2,
   },
   amountText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
-    fontWeight: 'bold',
     color: '#31D0AA',
     marginBottom: 2,
   },

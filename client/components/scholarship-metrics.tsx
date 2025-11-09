@@ -79,6 +79,5 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
     color: '#111827',
-    fontWeight: 'bold',
   },
 });

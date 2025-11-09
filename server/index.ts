@@ -6,6 +6,7 @@ import authRoutes from "./routes/auth.routes";
 import onboardingRoutes from "./routes/onboarding.routes";
 import profileRoutes from "./routes/profile.routes";
 import scholarshipRoutes from "./routes/scholarship.routes";
+import scholarshipApplicationRoutes from './routes/scholarship-application.routes';
 
 // Import Models
 import User from "./models/Users";
@@ -46,6 +47,7 @@ app.use("/auth", authRoutes);
 app.use("/onboarding", onboardingRoutes);
 app.use("/profile", profileRoutes);
 app.use("/scholarship", scholarshipRoutes);
+app.use('/scholarship-application', scholarshipApplicationRoutes);
 
 sequelize
   .authenticate()

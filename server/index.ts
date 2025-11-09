@@ -5,7 +5,7 @@ import sequelize from "./config/database";
 import authRoutes from "./routes/auth.routes";
 import onboardingRoutes from "./routes/onboarding.routes";
 import profileRoutes from "./routes/profile.routes";
-import scholarshipRoutes from "./routes/scholarship.routes";
+import scholarshipRoutes from "./routes/scholarship-creation.routes";
 import scholarshipApplicationRoutes from './routes/scholarship-application.routes';
 
 // Import Models

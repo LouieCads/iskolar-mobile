@@ -4,7 +4,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Dropdown } from 'react-native-element-dropdown';
 import * as ImagePicker from 'expo-image-picker';
-import { scholarshipService, CustomFormField } from '@/services/scholarship.service';
+import { scholarshipService, CustomFormField } from '@/services/scholarship-creation.service';
 import Toast from '@/components/toast';
 import Header from '@/components/header';
 

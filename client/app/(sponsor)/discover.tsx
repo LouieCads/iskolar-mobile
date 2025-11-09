@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import ScholarshipCard from '@/components/scholarship-card';
 import ScholarshipMetrics from '@/components/scholarship-metrics';
 import Header from '@/components/header';
-import { scholarshipService } from '@/services/scholarship.service';
+import { scholarshipService } from '@/services/scholarship-creation.service';
 import CreateScholarshipButton from '@/components/create-scholarship-button';
 
 interface Sponsor {

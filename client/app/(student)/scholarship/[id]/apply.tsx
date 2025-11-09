@@ -17,7 +17,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Dropdown } from 'react-native-element-dropdown';
 import Header from '@/components/header';
-import { scholarshipService, CustomFormField } from '@/services/scholarship.service';
+import { scholarshipService, CustomFormField } from '@/services/scholarship-creation.service';
 import { scholarshipApplicationService } from '@/services/scholarship-application.service';
 import Toast from '@/components/toast';
 

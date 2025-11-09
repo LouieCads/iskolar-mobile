@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Alert, Animated, Image } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import Header from '@/components/header';
-import { scholarshipService, CustomFormField } from '@/services/scholarship.service';
+import { scholarshipService, CustomFormField } from '@/services/scholarship-creation.service';
 import { profileService } from '@/services/profile.service';
 
 export default function ScholarshipDetailsPage() {

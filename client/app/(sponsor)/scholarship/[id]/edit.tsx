@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, TextInput, Alert, Animated, Platform, Image, Modal } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { scholarshipService, CustomFormField } from '@/services/scholarship.service';
+import { scholarshipService, CustomFormField } from '@/services/scholarship-creation.service';
 import Toast from '@/components/toast';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';

@@ -9,7 +9,7 @@ import {
   updateScholarship,
   deleteScholarship,
   upload 
-} from "../controllers/scholarship.controller";
+} from "../controllers/scholarship-creation.controller";
 
 const router = Router();
 

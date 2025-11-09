@@ -18,6 +18,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Dropdown } from 'react-native-element-dropdown';
 import Header from '@/components/header';
 import { scholarshipService, CustomFormField } from '@/services/scholarship.service';
+import { scholarshipApplicationService } from '@/services/scholarship-application.service';
 import Toast from '@/components/toast';
 
 type DocumentAsset = DocumentPicker.DocumentPickerAsset;
@@ -130,14 +131,9 @@ export default function ScholarshipApplyPage() {
     return `${size} B`;
   };
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     if (!id) {
       showToast('error', 'Error', 'We could not find this scholarship. Please try again later.');
-      return;
-    }
-
-    if (documents.length === 0) {
-      showToast('error', 'Validation Error', 'Please add at least one document to continue.');
       return;
     }
 
@@ -167,7 +163,6 @@ export default function ScholarshipApplyPage() {
         }
       }
       
-      // Type-specific validation (even if not required, validate format if filled)
       const value = customFormValues[fieldKey];
       
       if (value && typeof value === 'string' && value.trim() !== '') {
@@ -187,7 +182,7 @@ export default function ScholarshipApplyPage() {
               (phoneDigits.length === 10 && phoneDigits.startsWith('02'))
             );
             if (!isValidPH) {
-              validationErrors.push(`${field.label} must be a valid Philippine phone number (e.g., 09XX XXX XXXX)`);
+              validationErrors.push(`${field.label} must be a valid Philippine phone number`);
             }
             break;
           
@@ -205,7 +200,6 @@ export default function ScholarshipApplyPage() {
         }
       }
       
-      // Validate checkbox options
       if (field.type === 'checkbox' && Array.isArray(value) && value.length > 0) {
         const invalidOptions = value.filter(v => !field.options?.includes(v));
         if (invalidOptions.length > 0) {
@@ -215,7 +209,6 @@ export default function ScholarshipApplyPage() {
     });
 
     if (validationErrors.length > 0) {
-      // Show first 3 errors (to avoid overwhelming the user)
       const displayErrors = validationErrors.slice(0, 3);
       const errorMessage = displayErrors.join('\n') + 
         (validationErrors.length > 3 ? `\n... and ${validationErrors.length - 3} more` : '');
@@ -225,25 +218,110 @@ export default function ScholarshipApplyPage() {
 
     setSubmitting(true);
 
-    setTimeout(() => {
-      setSubmitting(false);
-      showToast('success', 'Success', 'Application form is ready. Submission endpoints will be available soon.');
+    try {
+      // Submit the application with non-file data
+      const formResponse = { ...customFormValues };
       
-      // Log the collected data for debugging
-      console.log('Application Data:', {
-        scholarshipId: id,
-        documents: documents.map(d => ({ name: d.name, size: d.size, type: d.mimeType })),
-        customFormValues: Object.entries(customFormValues).map(([key, value]) => ({
-          field: key,
-          value: Array.isArray(value) ? `[${value.join(', ')}]` : value
-        })),
-        customFormFiles: Object.keys(customFormFiles).map(key => ({
-          field: key,
-          files: customFormFiles[key].map(f => ({ name: f.name, size: f.size }))
-        }))
+      customFields.forEach((field: CustomFormField, index: number) => {
+        const fieldKey = `${field.label}-${index}`;
+        if (field.type === 'file') {
+          delete formResponse[fieldKey];
+        }
       });
-    }, 600);
-  }, [documents, id, scholarship, customFormValues, customFormFiles]);
+
+
+      const submitResult = await scholarshipApplicationService.submitApplication(
+        String(id),
+        formResponse
+      );
+
+      console.log('Submit result:', submitResult);
+
+      if (!submitResult.success) {
+        showToast('error', 'Submission Failed', submitResult.message);
+        setSubmitting(false);
+        return;
+      }
+
+      const applicationId = submitResult.application?.scholarship_application_id;
+
+      if (!applicationId) {
+        showToast('error', 'Error', 'Application created but ID not returned. Please contact support.');
+        setSubmitting(false);
+        return;
+      }
+
+      // Upload files for each file field
+      const fileUploadPromises: Promise<any>[] = [];
+      const fileFieldsWithFiles: string[] = [];
+      
+      customFields.forEach((field: CustomFormField, index: number) => {
+        const fieldKey = `${field.label}-${index}`;
+        if (field.type === 'file') {
+          const files = customFormFiles[fieldKey] || [];
+          if (files.length > 0) {
+            console.log(`Preparing to upload ${files.length} file(s) for field: ${fieldKey}`);
+            fileFieldsWithFiles.push(fieldKey);
+            
+            const mappedFiles = files.map(file => ({
+              uri: file.uri,
+              name: file.name || 'untitled',
+              mimeType: file.mimeType || 'application/octet-stream',
+              size: file.size,
+            }));
+            
+            const uploadPromise = scholarshipApplicationService.uploadApplicationFiles(
+              applicationId,
+              fieldKey,
+              mappedFiles
+            ).then(result => {
+              console.log(`Upload result for ${fieldKey}:`, result);
+              return result;
+            }).catch(error => {
+              console.error(`Upload error for ${fieldKey}:`, error);
+              return { success: false, message: error.message };
+            });
+            
+            fileUploadPromises.push(uploadPromise);
+          }
+        }
+      });
+
+      if (fileUploadPromises.length > 0) {
+        console.log(`Uploading files for ${fileUploadPromises.length} field(s)...`);
+        const uploadResults = await Promise.all(fileUploadPromises);
+        
+        console.log('All upload results:', uploadResults);
+        
+        const failedUploads = uploadResults.filter(result => !result.success);
+        if (failedUploads.length > 0) {
+          showToast(
+            'error',
+            'Upload Warning',
+            `Application submitted but ${failedUploads.length} file upload(s) failed. Please contact support.`
+          );
+          setSubmitting(false);
+          return;
+        }
+        
+        console.log('All files uploaded successfully!');
+      } else {
+        console.log('No files to upload');
+      }
+
+      showToast('success', 'Success', 'Your application has been submitted!');
+      
+      setTimeout(() => {
+        router.back();
+      }, 1500);
+
+    } catch (error) {
+      console.error('Submission error:', error);
+      showToast('error', 'Error', 'An unexpected error occurred. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }, [id, scholarship, customFormValues, customFormFiles, router]);
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'No deadline';
@@ -597,11 +675,11 @@ export default function ScholarshipApplyPage() {
                 <Pressable
                   style={({ pressed }) => [
                     styles.submitButton,
-                    (submitting || documents.length === 0) && styles.submitButtonDisabled,
+                    (submitting) && styles.submitButtonDisabled,
                     pressed && !submitting && documents.length > 0 && styles.submitButtonPressed
                   ]}
                   onPress={handleSubmit}
-                  disabled={submitting || documents.length === 0}
+                  disabled={submitting}
                 >
                   {submitting ? (
                     <ActivityIndicator size="small" color="#F0F7FF" />
@@ -616,16 +694,15 @@ export default function ScholarshipApplyPage() {
 
             <View style={{ height: 36 }} />
           </Animated.ScrollView>
-
-          {/* Toast */}
-          <Toast
-            visible={toastVisible}
-            type={toastType}
-            title={toastTitle}
-            message={toastMessage}
-          />
         </View>
       )}
+      {/* Toast */}
+      <Toast
+        visible={toastVisible}
+        type={toastType}
+        title={toastTitle}
+        message={toastMessage}
+      />
     </View>
   );
 }

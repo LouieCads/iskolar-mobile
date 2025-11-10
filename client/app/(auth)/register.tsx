@@ -111,7 +111,7 @@ export default function RegisterPage() {
         showToast('success', 'Success', result.message || 'Account created successfully!');
         setTimeout(() => {
           router.push('/login');
-        }, 2000);
+        }, 1000);
       } else {
         showToast('error', 'Registration Failed', result.message || 'An error occurred');
       }

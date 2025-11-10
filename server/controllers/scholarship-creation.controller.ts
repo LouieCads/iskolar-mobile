@@ -4,8 +4,10 @@ import { v4 as uuidv4 } from "uuid";
 import Scholarship from "../models/Scholarship";
 import Sponsor from "../models/Sponsor";
 import User from "../models/Users";
+import ScholarshipApplication from "../models/ScholarshipApplication";
 import { containerClient } from "../config/azure";
 import { BlobSASPermissions, generateBlobSASQueryParameters, StorageSharedKeyCredential } from "@azure/storage-blob";
+import { fn, col } from "sequelize";
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -412,9 +414,27 @@ export const getSponsorScholarships = async (req: AuthenticatedRequest, res: Res
           model: Sponsor,
           as: 'sponsor',
           attributes: ['sponsor_id', 'organization_name'],
+        },
+        {
+          model: ScholarshipApplication,
+          as: 'scholarship_applications',
+          attributes: [],
         }
       ],
+      attributes: {
+        include: [
+          [
+            fn('COUNT', col('scholarship_applications.scholarship_application_id')),
+            'applications_count'
+          ]
+        ]
+      },
+      group: [
+        'Scholarship.scholarship_id',
+        'sponsor.sponsor_id'
+      ],
       order: [['created_at', 'DESC']],
+      subQuery: false,
     });
 
     // Format the response with applications count
@@ -435,7 +455,7 @@ export const getSponsorScholarships = async (req: AuthenticatedRequest, res: Res
         required_documents: scholarshipData.required_documents,
         custom_form_fields: scholarshipData.custom_form_fields || null,
         image_url: scholarshipData.image_url,
-        applications_count: 0, 
+        applications_count: parseInt(scholarshipData.applications_count) || 0,
         created_at: scholarshipData.created_at,
         updated_at: scholarshipData.updated_at,
         sponsor: {
@@ -469,8 +489,26 @@ export const getScholarshipById = async (req: AuthenticatedRequest, res: Respons
           model: Sponsor,
           as: 'sponsor',
           attributes: ['sponsor_id', 'organization_name'],
+        },
+        {
+          model: ScholarshipApplication,
+          as: 'scholarship_applications',
+          attributes: [],
         }
-      ]
+      ],
+      attributes: {
+        include: [
+          [
+            fn('COUNT', col('scholarship_applications.scholarship_application_id')),
+            'applications_count'
+          ]
+        ]
+      },
+      group: [
+        'Scholarship.scholarship_id',
+        'sponsor.sponsor_id'
+      ],
+      subQuery: false,
     });
 
     if (!scholarship) {
@@ -480,7 +518,7 @@ export const getScholarshipById = async (req: AuthenticatedRequest, res: Respons
       });
     }
 
-    const scholarshipData = scholarship.toJSON();
+    const scholarshipData = scholarship.toJSON() as any;
 
     return res.status(200).json({
       success: true,
@@ -499,12 +537,12 @@ export const getScholarshipById = async (req: AuthenticatedRequest, res: Respons
         required_documents: scholarshipData.required_documents,
         custom_form_fields: scholarshipData.custom_form_fields || null,
         image_url: scholarshipData.image_url,
-        applications_count: 0,
+        applications_count: parseInt(scholarshipData.applications_count || '0') || 0,
         created_at: scholarshipData.created_at,
         updated_at: scholarshipData.updated_at,
         sponsor: {
-          sponsor_id: (scholarship as any).sponsor?.sponsor_id,
-          organization_name: (scholarship as any).sponsor?.organization_name,
+          sponsor_id: scholarshipData.sponsor?.sponsor_id,
+          organization_name: scholarshipData.sponsor?.organization_name,
         }
       }
     });

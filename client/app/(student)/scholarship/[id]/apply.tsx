@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   Pressable,
-  Alert,
   Animated,
   Platform,
   TextInput,
@@ -16,6 +15,9 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Dropdown } from 'react-native-element-dropdown';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import Header from '@/components/header';
 import { scholarshipService, CustomFormField } from '@/services/scholarship-creation.service';
 import { scholarshipApplicationService } from '@/services/scholarship-application.service';
@@ -29,12 +31,10 @@ const getCustomFormFields = (scholarship: any): CustomFormField[] => {
     return [];
   }
 
-  // If it's already an array, return it
   if (Array.isArray(scholarship.custom_form_fields)) {
     return scholarship.custom_form_fields;
   }
 
-  // If it's a string, try to parse it
   if (typeof scholarship.custom_form_fields === 'string') {
     try {
       const parsed = JSON.parse(scholarship.custom_form_fields);
@@ -45,9 +45,7 @@ const getCustomFormFields = (scholarship: any): CustomFormField[] => {
     }
   }
 
-  // If it's an object with a fields property or similar
   if (typeof scholarship.custom_form_fields === 'object') {
-    // Check if it has a fields property
     if (Array.isArray(scholarship.custom_form_fields.fields)) {
       return scholarship.custom_form_fields.fields;
     }
@@ -56,23 +54,133 @@ const getCustomFormFields = (scholarship: any): CustomFormField[] => {
   return [];
 };
 
+// Dynamic schema builder based on custom form fields
+const buildValidationSchema = (fields: CustomFormField[]) => {
+  const schemaObject: Record<string, z.ZodTypeAny> = {};
+
+  fields.forEach((field, index) => {
+    const fieldKey = `${field.label}-${index}`;
+    
+    switch (field.type) {
+      case 'text':
+      case 'textarea':
+        schemaObject[fieldKey] = field.required
+          ? z.string().min(1, `${field.label} is required`)
+          : z.string().optional();
+        break;
+
+      case 'email':
+        schemaObject[fieldKey] = field.required
+          ? z.string().min(1, `${field.label} is required`).regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, `${field.label} must be a valid email`)
+          : z.string().regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, `${field.label} must be a valid email`).optional().or(z.literal(''));
+        break;
+
+      case 'phone':
+        const phoneValidation = z.string().refine((val) => {
+          if (!val) return true;
+          const phoneDigits = val.replace(/\D/g, '');
+          return (
+            (phoneDigits.length === 11 && phoneDigits.startsWith('09')) ||
+            (phoneDigits.length === 12 && phoneDigits.startsWith('63')) ||
+            (phoneDigits.length === 10 && phoneDigits.startsWith('02'))
+          );
+        }, `${field.label} must be a valid Philippine phone number`);
+        
+        schemaObject[fieldKey] = field.required
+          ? phoneValidation.min(1, `${field.label} is required`)
+          : phoneValidation.optional();
+        break;
+
+      case 'number':
+        schemaObject[fieldKey] = field.required
+          ? z.string().min(1, `${field.label} is required`).refine((val) => !isNaN(Number(val)), `${field.label} must be a valid number`)
+          : z.string().refine((val) => !val || !isNaN(Number(val)), `${field.label} must be a valid number`).optional();
+        break;
+
+      case 'date':
+        schemaObject[fieldKey] = field.required
+          ? z.string().min(1, `${field.label} is required`)
+          : z.string().optional();
+        break;
+
+      case 'dropdown':
+        if (field.options && field.options.length > 0) {
+          schemaObject[fieldKey] = field.required
+            ? z.enum([field.options[0], ...field.options.slice(1)], { message: `${field.label} is required `})
+            : z.enum([field.options[0], ...field.options.slice(1)]).optional().or(z.literal(''));
+        } else {
+          schemaObject[fieldKey] = field.required
+            ? z.string().min(1, `${field.label} is required`)
+            : z.string().optional();
+        }
+        break;
+
+      case 'checkbox':
+        if (field.options && field.options.length > 0) {
+          const checkboxValidation = z.array(z.enum([field.options[0], ...field.options.slice(1)]));
+          schemaObject[fieldKey] = field.required
+            ? checkboxValidation.min(1, `${field.label} requires at least one selection`)
+            : checkboxValidation.optional();
+        } else {
+          schemaObject[fieldKey] = field.required
+            ? z.array(z.string()).min(1, `${field.label} requires at least one selection`)
+            : z.array(z.string()).optional();
+        }
+        break;
+
+      case 'file':
+        // File validation is handled separately through customFormFiles state
+        schemaObject[fieldKey] = z.any().optional();
+        break;
+
+      default:
+        schemaObject[fieldKey] = field.required
+          ? z.string().min(1, `${field.label} is required`)
+          : z.string().optional();
+    }
+  });
+
+  return z.object(schemaObject);
+};
+
 export default function ScholarshipApplyPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [scholarship, setScholarship] = useState<any>(null);
-  const [documents, setDocuments] = useState<DocumentAsset[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [toastTitle, setToastTitle] = useState('');
   const [toastMessage, setToastMessage] = useState('');
   
-  // Custom form fields state
-  const [customFormValues, setCustomFormValues] = useState<Record<string, any>>({});
+  // Custom form files state (managed separately from react-hook-form)
   const [customFormFiles, setCustomFormFiles] = useState<Record<string, DocumentAsset[]>>({});
   const [datePickers, setDatePickers] = useState<Record<string, boolean>>({});
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Get custom form fields
+  const customFields = getCustomFormFields(scholarship);
+
+  // Initialize react-hook-form with dynamic schema
+  const validationSchema = buildValidationSchema(customFields);
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    setValue,
+  } = useForm({
+    resolver: zodResolver(validationSchema),
+    mode: 'onSubmit',
+    defaultValues: customFields.reduce((acc, field, index) => {
+      const fieldKey = `${field.label}-${index}`;
+      acc[fieldKey] = field.type === 'checkbox' ? [] : '';
+      return acc;
+    }, {} as Record<string, any>),
+  });
 
   const showToast = (type: 'success' | 'error', title: string, message: string) => {
     setToastType(type);
@@ -81,8 +189,6 @@ export default function ScholarshipApplyPage() {
     setToastVisible(true);
     setTimeout(() => setToastVisible(false), 3000);
   };
-
-  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const animateIn = useCallback(() => {
     Animated.timing(fadeAnim, {
@@ -99,11 +205,15 @@ export default function ScholarshipApplyPage() {
       setLoading(true);
       const res = await scholarshipService.getScholarshipById(String(id));
       if (res.success && res.scholarship) {
-        console.log('Scholarship fetched:', res.scholarship);
-        console.log('Custom form fields:', res.scholarship.custom_form_fields);
-        console.log('Type:', typeof res.scholarship.custom_form_fields);
-        console.log('Is array?:', Array.isArray(res.scholarship.custom_form_fields));
         setScholarship(res.scholarship);
+        // Reset form when scholarship data is loaded
+        const fields = getCustomFormFields(res.scholarship);
+        const defaultValues = fields.reduce((acc, field, index) => {
+          const fieldKey = `${field.label}-${index}`;
+          acc[fieldKey] = field.type === 'checkbox' ? [] : '';
+          return acc;
+        }, {} as Record<string, any>);
+        reset(defaultValues);
       } else {
         setError(res.message || 'Failed to load scholarship');
       }
@@ -114,7 +224,7 @@ export default function ScholarshipApplyPage() {
       setLoading(false);
       animateIn();
     }
-  }, [id, animateIn]);
+  }, [id, animateIn, reset]);
 
   useEffect(() => {
     fetchDetails();
@@ -131,87 +241,26 @@ export default function ScholarshipApplyPage() {
     return `${size} B`;
   };
 
-  const handleSubmit = useCallback(async () => {
+  const onSubmit = async (formData: Record<string, any>) => {
     if (!id) {
       showToast('error', 'Error', 'We could not find this scholarship. Please try again later.');
       return;
     }
 
-    // Validate custom form fields
-    const customFields = getCustomFormFields(scholarship);
-    const validationErrors: string[] = [];
-
+    // Validate file fields separately
+    const fileValidationErrors: string[] = [];
     customFields.forEach((field: CustomFormField, index: number) => {
       const fieldKey = `${field.label}-${index}`;
-      
-      if (field.required) {
-        if (field.type === 'file') {
-          const files = customFormFiles[fieldKey] || [];
-          if (files.length === 0) {
-            validationErrors.push(`${field.label} is required`);
-          }
-        } else if (field.type === 'checkbox') {
-          const value = customFormValues[fieldKey];
-          if (!Array.isArray(value) || value.length === 0) {
-            validationErrors.push(`${field.label} requires at least one selection`);
-          }
-        } else {
-          const value = customFormValues[fieldKey];
-          if (!value || (typeof value === 'string' && value.trim() === '')) {
-            validationErrors.push(`${field.label} is required`);
-          }
-        }
-      }
-      
-      const value = customFormValues[fieldKey];
-      
-      if (value && typeof value === 'string' && value.trim() !== '') {
-        switch (field.type) {
-          case 'email':
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(value.trim())) {
-              validationErrors.push(`${field.label} must be a valid email address`);
-            }
-            break;
-          
-          case 'phone':
-            const phoneDigits = value.replace(/\D/g, '');
-            const isValidPH = (
-              (phoneDigits.length === 11 && phoneDigits.startsWith('09')) ||
-              (phoneDigits.length === 12 && phoneDigits.startsWith('63')) ||
-              (phoneDigits.length === 10 && phoneDigits.startsWith('02'))
-            );
-            if (!isValidPH) {
-              validationErrors.push(`${field.label} must be a valid Philippine phone number`);
-            }
-            break;
-          
-          case 'number':
-            if (isNaN(Number(value))) {
-              validationErrors.push(`${field.label} must be a valid number`);
-            }
-            break;
-          
-          case 'dropdown':
-            if (field.options && !field.options.includes(value)) {
-              validationErrors.push(`${field.label} has an invalid selection`);
-            }
-            break;
-        }
-      }
-      
-      if (field.type === 'checkbox' && Array.isArray(value) && value.length > 0) {
-        const invalidOptions = value.filter(v => !field.options?.includes(v));
-        if (invalidOptions.length > 0) {
-          validationErrors.push(`${field.label} contains invalid selections`);
+      if (field.type === 'file' && field.required) {
+        const files = customFormFiles[fieldKey] || [];
+        if (files.length === 0) {
+          fileValidationErrors.push(`${field.label} is required`);
         }
       }
     });
 
-    if (validationErrors.length > 0) {
-      const displayErrors = validationErrors.slice(0, 3);
-      const errorMessage = displayErrors.join('\n') + 
-        (validationErrors.length > 3 ? `\n... and ${validationErrors.length - 3} more` : '');
+    if (fileValidationErrors.length > 0) {
+      const errorMessage = fileValidationErrors.join('\n');
       showToast('error', 'Validation Error', errorMessage);
       return;
     }
@@ -219,9 +268,8 @@ export default function ScholarshipApplyPage() {
     setSubmitting(true);
 
     try {
-      // Submit the application with non-file data
-      const formResponse = { ...customFormValues };
-      
+      // Remove file fields from form data
+      const formResponse = { ...formData };
       customFields.forEach((field: CustomFormField, index: number) => {
         const fieldKey = `${field.label}-${index}`;
         if (field.type === 'file') {
@@ -229,13 +277,10 @@ export default function ScholarshipApplyPage() {
         }
       });
 
-
       const submitResult = await scholarshipApplicationService.submitApplication(
         String(id),
         formResponse
       );
-
-      console.log('Submit result:', submitResult);
 
       if (!submitResult.success) {
         showToast('error', 'Submission Failed', submitResult.message);
@@ -253,16 +298,12 @@ export default function ScholarshipApplyPage() {
 
       // Upload files for each file field
       const fileUploadPromises: Promise<any>[] = [];
-      const fileFieldsWithFiles: string[] = [];
       
       customFields.forEach((field: CustomFormField, index: number) => {
         const fieldKey = `${field.label}-${index}`;
         if (field.type === 'file') {
           const files = customFormFiles[fieldKey] || [];
           if (files.length > 0) {
-            console.log(`Preparing to upload ${files.length} file(s) for field: ${fieldKey}`);
-            fileFieldsWithFiles.push(fieldKey);
-            
             const mappedFiles = files.map(file => ({
               uri: file.uri,
               name: file.name || 'untitled',
@@ -274,13 +315,7 @@ export default function ScholarshipApplyPage() {
               applicationId,
               fieldKey,
               mappedFiles
-            ).then(result => {
-              console.log(`Upload result for ${fieldKey}:`, result);
-              return result;
-            }).catch(error => {
-              console.error(`Upload error for ${fieldKey}:`, error);
-              return { success: false, message: error.message };
-            });
+            );
             
             fileUploadPromises.push(uploadPromise);
           }
@@ -288,12 +323,9 @@ export default function ScholarshipApplyPage() {
       });
 
       if (fileUploadPromises.length > 0) {
-        console.log(`Uploading files for ${fileUploadPromises.length} field(s)...`);
         const uploadResults = await Promise.all(fileUploadPromises);
-        
-        console.log('All upload results:', uploadResults);
-        
         const failedUploads = uploadResults.filter(result => !result.success);
+        
         if (failedUploads.length > 0) {
           showToast(
             'error',
@@ -303,10 +335,6 @@ export default function ScholarshipApplyPage() {
           setSubmitting(false);
           return;
         }
-        
-        console.log('All files uploaded successfully!');
-      } else {
-        console.log('No files to upload');
       }
 
       showToast('success', 'Success', 'Your application has been submitted!');
@@ -321,20 +349,12 @@ export default function ScholarshipApplyPage() {
     } finally {
       setSubmitting(false);
     }
-  }, [id, scholarship, customFormValues, customFormFiles, router]);
+  };
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'No deadline';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  };
-
-  // Custom form field handlers
-  const updateCustomFormValue = (fieldLabel: string, value: any) => {
-    setCustomFormValues(prev => ({
-      ...prev,
-      [fieldLabel]: value,
-    }));
   };
 
   const handleCustomFileUpload = useCallback(async (fieldLabel: string) => {
@@ -383,25 +403,23 @@ export default function ScholarshipApplyPage() {
     }));
   };
 
-  const handleDateChange = (fieldLabel: string, event: any, selectedDate?: Date) => {
-    // On Android, the picker closes automatically after selection
+  const handleDateChange = (fieldLabel: string, onChange: any, event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
       setDatePickers(prev => ({ ...prev, [fieldLabel]: false }));
     }
     
-    // Update the value if a date was selected
     if (selectedDate && event.type !== 'dismissed') {
       const formattedDate = selectedDate.toISOString().split('T')[0];
-      updateCustomFormValue(fieldLabel, formattedDate);
+      onChange(formattedDate);
     }
   };
 
   // Render custom form field based on type
   const renderCustomFormField = (field: CustomFormField, index: number) => {
     const fieldKey = `${field.label}-${index}`;
-    const value = customFormValues[fieldKey] || '';
     const files = customFormFiles[fieldKey] || [];
     const showDatePicker = datePickers[fieldKey] || false;
+    const fieldError = errors[fieldKey];
 
     return (
       <View key={fieldKey} style={styles.customFieldContainer}>
@@ -413,78 +431,111 @@ export default function ScholarshipApplyPage() {
         </View>
 
         {field.type === 'text' && (
-          <TextInput
-            style={styles.customFieldInput}
-            value={value}
-            onChangeText={(text) => updateCustomFormValue(fieldKey, text)}
-            placeholder={`Enter ${field.label.toLowerCase()}`}
-            placeholderTextColor="#9CA3AF"
+          <Controller
+            control={control}
+            name={fieldKey}
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                style={[styles.customFieldInput, fieldError && styles.inputError]}
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder={`Enter ${field.label.toLowerCase()}`}
+                placeholderTextColor="#9CA3AF"
+              />
+            )}
           />
         )}
 
         {field.type === 'textarea' && (
-          <TextInput
-            style={[styles.customFieldInput, styles.customFieldTextArea]}
-            value={value}
-            onChangeText={(text) => updateCustomFormValue(fieldKey, text)}
-            placeholder={`Enter ${field.label.toLowerCase()}`}
-            placeholderTextColor="#9CA3AF"
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
+          <Controller
+            control={control}
+            name={fieldKey}
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                style={[styles.customFieldInput, styles.customFieldTextArea, fieldError && styles.inputError]}
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder={`Enter ${field.label.toLowerCase()}`}
+                placeholderTextColor="#9CA3AF"
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            )}
           />
         )}
 
         {field.type === 'number' && (
-          <TextInput
-            style={styles.customFieldInput}
-            value={value}
-            onChangeText={(text) => updateCustomFormValue(fieldKey, text)}
-            placeholder={`Enter ${field.label.toLowerCase()}`}
-            placeholderTextColor="#9CA3AF"
-            keyboardType="numeric"
+          <Controller
+            control={control}
+            name={fieldKey}
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                style={[styles.customFieldInput, fieldError && styles.inputError]}
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder={`Enter ${field.label.toLowerCase()}`}
+                placeholderTextColor="#9CA3AF"
+                keyboardType="numeric"
+              />
+            )}
           />
         )}
 
         {field.type === 'date' && (
-          <View>
-            <Pressable
-              style={styles.customFieldDateInput}
-              onPress={() => setDatePickers(prev => ({ ...prev, [fieldKey]: true }))}
-            >
-              <MaterialIcons name="calendar-today" size={18} color="#6B7280" />
-              <Text style={[styles.customFieldDateText, !value && styles.placeholderText]}>
-                {value ? formatDate(value) : `Select ${field.label.toLowerCase()}`}
-              </Text>
-            </Pressable>
-            {showDatePicker && (
-              <DateTimePicker
-                value={value ? new Date(value) : new Date()}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={(event, date) => handleDateChange(fieldKey, event, date)}
-              />
+          <Controller
+            control={control}
+            name={fieldKey}
+            render={({ field: { onChange, value } }) => (
+              <View>
+                <Pressable
+                  style={[styles.customFieldDateInput, fieldError && styles.inputError]}
+                  onPress={() => setDatePickers(prev => ({ ...prev, [fieldKey]: true }))}
+                >
+                  <MaterialIcons name="calendar-today" size={18} color="#6B7280" />
+                  <Text style={[styles.customFieldDateText, !value && styles.placeholderText]}>
+                    {value ? formatDate(value) : `Select ${field.label.toLowerCase()}`}
+                  </Text>
+                </Pressable>
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={value ? new Date(value) : new Date()}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={(event, date) => handleDateChange(fieldKey, onChange, event, date)}
+                  />
+                )}
+              </View>
             )}
-          </View>
+          />
         )}
 
-        {field.type === 'dropdown' && field.options && (
-          <Dropdown
-            style={styles.customFieldDropdown}
-            placeholderStyle={styles.placeholderStyle}
-            selectedTextStyle={styles.selectedTextStyle}
-            iconStyle={styles.iconStyle}
-            containerStyle={styles.dropdownContainer}
-            itemContainerStyle={styles.itemContainer}
-            itemTextStyle={styles.itemText}
-            activeColor="#E0ECFF"
-            data={field.options.map(opt => ({ label: opt, value: opt }))}
-            maxHeight={300}
-            labelField="label"
-            valueField="value"
-            placeholder={`Select ${field.label.toLowerCase()}`}
-            value={value}
-            onChange={item => updateCustomFormValue(fieldKey, item.value)}
+        {field.type === 'dropdown' && field.options && field.options.length > 0 && (
+          <Controller
+            control={control}
+            name={fieldKey}
+            render={({ field: { onChange, value } }) => (
+              <Dropdown
+                style={[styles.customFieldDropdown, fieldError && styles.inputError]}
+                placeholderStyle={styles.placeholderStyle}
+                selectedTextStyle={styles.selectedTextStyle}
+                iconStyle={styles.iconStyle}
+                containerStyle={styles.dropdownContainer}
+                itemContainerStyle={styles.itemContainer}
+                itemTextStyle={styles.itemText}
+                activeColor="#E0ECFF"
+                data={(field.options || []).map(opt => ({ label: opt, value: opt }))}
+                maxHeight={300}
+                labelField="label"
+                valueField="value"
+                placeholder={`Select ${field.label.toLowerCase()}`}
+                value={value}
+                onChange={item => onChange(item.value)}
+              />
+            )}
           />
         )}
 
@@ -526,70 +577,89 @@ export default function ScholarshipApplyPage() {
         )}
 
         {field.type === 'email' && (
-          <TextInput
-            style={styles.customFieldInput}
-            value={value}
-            onChangeText={(text) => updateCustomFormValue(fieldKey, text)}
-            placeholder={`Enter ${field.label.toLowerCase()}`}
-            placeholderTextColor="#9CA3AF"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
+          <Controller
+            control={control}
+            name={fieldKey}
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                style={[styles.customFieldInput, fieldError && styles.inputError]}
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder={`Enter ${field.label.toLowerCase()}`}
+                placeholderTextColor="#9CA3AF"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            )}
           />
         )}
 
         {field.type === 'phone' && (
-          <TextInput
-            style={styles.customFieldInput}
-            value={value}
-            onChangeText={(text) => updateCustomFormValue(fieldKey, text)}
-            placeholder="09XX XXX XXXX"
-            placeholderTextColor="#9CA3AF"
-            keyboardType="phone-pad"
+          <Controller
+            control={control}
+            name={fieldKey}
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                style={[styles.customFieldInput, fieldError && styles.inputError]}
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder="09XX XXX XXXX"
+                placeholderTextColor="#9CA3AF"
+                keyboardType="phone-pad"
+              />
+            )}
           />
         )}
 
-        {field.type === 'checkbox' && field.options && (
-          <View>
-            {field.options.map((option, optIndex) => {
-              const selectedValues = Array.isArray(value) ? value : [];
-              const isChecked = selectedValues.includes(option);
-              
-              return (
-                <Pressable
-                  key={optIndex}
-                  style={styles.checkboxItem}
-                  onPress={() => {
-                    const currentValues = Array.isArray(value) ? [...value] : [];
-                    if (isChecked) {
-                      // Remove from array
-                      const newValues = currentValues.filter(v => v !== option);
-                      updateCustomFormValue(fieldKey, newValues);
-                    } else {
-                      // Add to array
-                      updateCustomFormValue(fieldKey, [...currentValues, option]);
-                    }
-                  }}
-                >
-                  <View style={[styles.checkbox, isChecked && styles.checkboxChecked]}>
-                    {isChecked && (
-                      <MaterialIcons name="check" size={16} color="#F0F7FF" />
-                    )}
-                  </View>
-                  <Text style={styles.checkboxLabel}>{option}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
+        {field.type === 'checkbox' && field.options && field.options.length > 0 && (
+          <Controller
+            control={control}
+            name={fieldKey}
+            render={({ field: { onChange, value } }) => (
+              <View>
+                {(field.options || []).map((option, optIndex) => {
+                  const selectedValues = Array.isArray(value) ? value : [];
+                  const isChecked = selectedValues.includes(option);
+                  
+                  return (
+                    <Pressable
+                      key={optIndex}
+                      style={styles.checkboxItem}
+                      onPress={() => {
+                        const currentValues = Array.isArray(value) ? [...value] : [];
+                        if (isChecked) {
+                          const newValues = currentValues.filter(v => v !== option);
+                          onChange(newValues);
+                        } else {
+                          onChange([...currentValues, option]);
+                        }
+                      }}
+                    >
+                      <View style={[styles.checkbox, isChecked && styles.checkboxChecked]}>
+                        {isChecked && (
+                          <MaterialIcons name="check" size={16} color="#F0F7FF" />
+                        )}
+                      </View>
+                      <Text style={styles.checkboxLabel}>{option}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+          />
+        )}
+
+        {fieldError && (
+          <Text style={styles.errorText}>{fieldError.message as string}</Text>
         )}
       </View>
     );
   };
 
   const showFooter = !loading && !error;
-
-  // Get custom form fields safely
-  const customFields = getCustomFormFields(scholarship);
 
   return (
     <View style={styles.container}>
@@ -603,7 +673,7 @@ export default function ScholarshipApplyPage() {
       ) : error ? (
         <View style={styles.center}>
           <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" />
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={styles.errorTextMain}>{error}</Text>
           <Pressable style={styles.retryButton} onPress={fetchDetails}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </Pressable>
@@ -675,18 +745,16 @@ export default function ScholarshipApplyPage() {
                 <Pressable
                   style={({ pressed }) => [
                     styles.submitButton,
-                    (submitting) && styles.submitButtonDisabled,
-                    pressed && !submitting && documents.length > 0 && styles.submitButtonPressed
+                    submitting && styles.submitButtonDisabled,
+                    pressed && !submitting && styles.submitButtonPressed
                   ]}
-                  onPress={handleSubmit}
+                  onPress={handleSubmit(onSubmit)}
                   disabled={submitting}
                 >
                   {submitting ? (
                     <ActivityIndicator size="small" color="#F0F7FF" />
                   ) : (
-                    <>
-                      <Text style={styles.submitButtonText}>Submit</Text>
-                    </>
+                    <Text style={styles.submitButtonText}>Submit</Text>
                   )}
                 </Pressable>
               </>
@@ -696,7 +764,7 @@ export default function ScholarshipApplyPage() {
           </Animated.ScrollView>
         </View>
       )}
-      {/* Toast */}
+      
       <Toast
         visible={toastVisible}
         type={toastType}
@@ -727,12 +795,18 @@ const styles = StyleSheet.create({
     color: '#5D6673',
     marginTop: 14,
   },
-  errorText: {
+  errorTextMain: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 16,
     color: '#5D6673',
     marginTop: 14,
     textAlign: 'center',
+  },
+  errorText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 11,
+    color: '#EF4444',
+    marginTop: 6,
   },
   retryButton: {
     backgroundColor: '#3A52A6',
@@ -817,9 +891,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     gap: 6,
   },
-  tagIcon: {
-    marginTop: -1,
-  },
   tagText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
@@ -831,83 +902,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6B7280',
     fontStyle: 'italic',
-  },
-  cardHeader: {
-    marginBottom: 16,
-  },
-  cardHeaderText: {
-    marginBottom: 12,
-  },
-  addButton: {
-    backgroundColor: '#3A52A6',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    shadowColor: '#3A52A6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  addButtonPressed: {
-    backgroundColor: '#2F4189',
-    transform: [{ scale: 0.98 }],
-  },
-  addButtonText: {
-    fontFamily: 'BreeSerif_400Regular',
-    fontSize: 12,
-    color: '#F0F7FF',
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-    paddingHorizontal: 20,
-    backgroundColor: '#F6F9FF',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#E0ECFF',
-    borderStyle: 'dashed',
-  },
-  emptyStateIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 40,
-    backgroundColor: '#E0ECFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  emptyStateTitle: {
-    fontFamily: 'BreeSerif_400Regular',
-    fontSize: 14,
-    color: '#3A52A6',
-    marginBottom: 8,
-  },
-  emptyStateText: {
-    fontFamily: 'BreeSerif_400Regular',
-    fontSize: 12,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 20,
-    maxWidth: 280,
-  },
-  documentList: {
-    gap: 12,
-  },
-  documentItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F6F9FF',
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    borderWidth: 1,
-    borderColor: '#E0ECFF',
   },
   documentIconContainer: {
     width: 38,
@@ -963,9 +957,6 @@ const styles = StyleSheet.create({
     padding: 4,
     marginLeft: 8,
   },
-  removeButtonPressed: {
-    opacity: 0.6,
-  },
   submitButton: {
     backgroundColor: '#EFA508',
     borderRadius: 12,
@@ -985,20 +976,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
   },
   submitButtonPressed: {
-    backgroundColor: '#2F4189',
+    backgroundColor: '#D69407',
     transform: [{ scale: 0.98 }],
   },
   submitButtonText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
     color: '#F0F7FF',
-  },
-  footerHint: {
-    fontFamily: 'BreeSerif_400Regular',
-    fontSize: 12,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginTop: 12,
   },
   customFieldsContainer: {
     marginTop: 16,
@@ -1028,6 +1012,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 12,
     color: '#111827',
+  },
+  inputError: {
+    borderColor: '#EF4444',
+    borderWidth: 1.5,
   },
   customFieldTextArea: {
     minHeight: 100,

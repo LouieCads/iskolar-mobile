@@ -7,6 +7,39 @@ import Toast from '@/components/toast';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { Dropdown } from 'react-native-element-dropdown';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+// Zod Schema 
+const editScholarshipSchema = z.object({
+  type: z.enum(['merit_based', 'skill_based'], { message: 'Please select a scholarship type' }).optional(),
+  purpose: z.enum(['allowance', 'tuition'], { message: 'Please select a purpose' }).optional(),
+  status: z.enum(['active', 'closed', 'archived'], { message: 'Please select a status' }),
+  title: z.string().min(1, 'Scholarship title is required').max(200, 'Title must be less than 200 characters'),
+  description: z.string().optional(),
+  totalAmount: z.string()
+    .min(1, 'Total amount is required')
+    .refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+      message: 'Please enter a valid amount greater than 0'
+    }),
+  totalSlot: z.string()
+    .min(1, 'Total slot is required')
+    .refine((val) => !isNaN(parseInt(val)) && parseInt(val) > 0, {
+      message: 'Please enter a valid slot number greater than 0'
+    }),
+  deadline: z.string().optional(),
+  criteria: z.array(z.string()).min(1, 'At least one eligibility criterion is required'),
+  documents: z.array(z.string()).min(1, 'At least one required document is required'),
+  customFormFields: z.array(z.object({
+    type: z.enum(['text', 'textarea', 'dropdown', 'checkbox', 'number', 'date', 'email', 'phone', 'file']),
+    label: z.string().min(1, 'Field label is required'),
+    required: z.boolean(),
+    options: z.array(z.string()).optional(),
+  })).min(1, 'At least one form field is required'),
+});
+
+type EditScholarshipFormData = z.infer<typeof editScholarshipSchema>;
 
 export default function EditScholarshipPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -15,16 +48,23 @@ export default function EditScholarshipPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [totalAmount, setTotalAmount] = useState('');
-  const [totalSlot, setTotalSlot] = useState('');
-  const [deadline, setDeadline] = useState('');
-  const [criteria, setCriteria] = useState('');
-  const [documents, setDocuments] = useState('');
-  const [type, setType] = useState('');
-  const [purpose, setPurpose] = useState('');
-  const [status, setStatus] = useState('');
+  const { control, handleSubmit, setValue, watch, formState: { errors }, reset } = useForm<EditScholarshipFormData>({
+    resolver: zodResolver(editScholarshipSchema),
+    defaultValues: {
+      type: undefined,
+      purpose: undefined,
+      status: 'active',
+      title: '',
+      description: '',
+      totalAmount: '',
+      totalSlot: '',
+      deadline: '',
+      criteria: [],
+      documents: [],
+      customFormFields: [],
+    },
+  });
+
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [newImageUri, setNewImageUri] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -34,8 +74,11 @@ export default function EditScholarshipPage() {
   const [toastTitle, setToastTitle] = useState('');
   const [toastMessage, setToastMessage] = useState('');
 
+  // For array inputs
+  const [criteriaInput, setCriteriaInput] = useState('');
+  const [documentsInput, setDocumentsInput] = useState('');
+
   // Custom form fields state
-  const [customFormFields, setCustomFormFields] = useState<CustomFormField[]>([]);
   const [showCustomFormModal, setShowCustomFormModal] = useState(false);
   const [editingFieldIndex, setEditingFieldIndex] = useState<number | null>(null);
   const [newFieldType, setNewFieldType] = useState<'text' | 'textarea' | 'dropdown' | 'checkbox' | 'number' | 'date' | 'email' | 'phone' | 'file'>('text');
@@ -43,6 +86,12 @@ export default function EditScholarshipPage() {
   const [newFieldRequired, setNewFieldRequired] = useState(false);
   const [dropdownOptions, setDropdownOptions] = useState<string[]>([]);
   const [dropdownOptionInput, setDropdownOptionInput] = useState('');
+
+  // Watch form values
+  const criteria = watch('criteria');
+  const documents = watch('documents');
+  const customFormFields = watch('customFormFields') || [];
+  const deadline = watch('deadline');
 
   const typeDropdownRotation = useRef(new Animated.Value(0)).current;
   const typeDropdownScale = useRef(new Animated.Value(1)).current;
@@ -102,18 +151,21 @@ export default function EditScholarshipPage() {
       const res = await scholarshipService.getScholarshipById(String(id));
       if (res.success && res.scholarship) {
         const s = res.scholarship as any;
-        setTitle(s.title || '');
-        setDescription(s.description || '');
-        setTotalAmount(String(s.total_amount ?? ''));
-        setTotalSlot(String(s.total_slot ?? ''));
-        setDeadline(s.application_deadline ? String(s.application_deadline) : '');
-        setCriteria(Array.isArray(s.criteria) ? s.criteria.join(',') : '');
-        setDocuments(Array.isArray(s.required_documents) ? s.required_documents.join(',') : '');
-        setType(s.type || '');
-        setPurpose(s.purpose || '');
-        setStatus(s.status || '');
+        
+        // Set form values using setValue
+        setValue('title', s.title || '');
+        setValue('description', s.description || '');
+        setValue('totalAmount', String(s.total_amount ?? ''));
+        setValue('totalSlot', String(s.total_slot ?? ''));
+        setValue('deadline', s.application_deadline ? String(s.application_deadline) : '');
+        setValue('criteria', Array.isArray(s.criteria) ? s.criteria : []);
+        setValue('documents', Array.isArray(s.required_documents) ? s.required_documents : []);
+        setValue('type', s.type || undefined);
+        setValue('purpose', s.purpose || undefined);
+        setValue('status', s.status || 'active');
+        setValue('customFormFields', s.custom_form_fields || []);
+        
         setImageUrl(s.image_url || null);
-        setCustomFormFields(s.custom_form_fields || []);
         if (s.application_deadline) setDate(new Date(s.application_deadline));
       } else {
         setError(res.message);
@@ -124,12 +176,13 @@ export default function EditScholarshipPage() {
       setLoading(false);
       animateIn();
     }
-  }, [id, animateIn]);
+  }, [id, animateIn, setValue]);
 
   useEffect(() => { fetchDetails(); }, [fetchDetails]);
 
-  const onSave = async () => {
+  const onSubmit = async (data: EditScholarshipFormData) => {
     if (!id) return;
+    
     try {
       setSaving(true);
       
@@ -140,24 +193,24 @@ export default function EditScholarshipPage() {
         );
         
         if (!upload.success) {
-          Alert.alert('Error', upload.message || 'Failed to upload image');
+          showToast('error', 'Error', upload.message || 'Failed to upload image');
           setSaving(false);
           return;
         }
       }
       
       const payload: any = {
-        title,
-        description,
-        total_amount: totalAmount ? Number(totalAmount) : undefined,
-        total_slot: totalSlot ? Number(totalSlot) : undefined,
-        application_deadline: deadline || undefined,
-        criteria: criteria ? criteria.split(',').map(s => s.trim()) : undefined,
-        required_documents: documents ? documents.split(',').map(s => s.trim()) : undefined,
-        type: type || undefined,
-        purpose: purpose || undefined,
-        status: status || undefined,
-        custom_form_fields: customFormFields.length > 0 ? customFormFields : undefined,
+        title: data.title,
+        description: data.description || undefined,
+        total_amount: parseFloat(data.totalAmount),
+        total_slot: parseInt(data.totalSlot),
+        application_deadline: data.deadline || undefined,
+        criteria: data.criteria,
+        required_documents: data.documents,
+        type: data.type || undefined,
+        purpose: data.purpose || undefined,
+        status: data.status,
+        custom_form_fields: data.customFormFields,
       };
       
       const res = await scholarshipService.updateScholarship(String(id), payload);
@@ -165,13 +218,37 @@ export default function EditScholarshipPage() {
         showToast('success', 'Success', 'Scholarship updated successfully!');
         setNewImageUri(null);
       } else {
-        Alert.alert('Error', res.message);
+        showToast('error', 'Error', res.message);
       }
     } catch (e) {
-      Alert.alert('Error', 'Failed to save changes');
+      showToast('error', 'Error', 'Failed to save changes');
     } finally {
       setSaving(false);
     }
+  };
+
+  const addCriterion = () => {
+    const trimmedInput = criteriaInput.trim();
+    if (trimmedInput) {
+      setValue('criteria', [...criteria, trimmedInput]);
+      setCriteriaInput('');
+    }
+  };
+
+  const removeCriterion = (index: number) => {
+    setValue('criteria', criteria.filter((_, i) => i !== index));
+  };
+
+  const addDocument = () => {
+    const trimmedInput = documentsInput.trim();
+    if (trimmedInput) {
+      setValue('documents', [...documents, trimmedInput]);
+      setDocumentsInput('');
+    }
+  };
+
+  const removeDocument = (index: number) => {
+    setValue('documents', documents.filter((_, i) => i !== index));
   };
 
   // Custom form field handlers
@@ -236,18 +313,19 @@ export default function EditScholarshipPage() {
     };
 
     if (editingFieldIndex !== null) {
-      setCustomFormFields(customFormFields.map((field, index) => 
+      const updatedFields = customFormFields.map((field, index) => 
         index === editingFieldIndex ? newField : field
-      ));
+      );
+      setValue('customFormFields', updatedFields);
     } else {
-      setCustomFormFields([...customFormFields, newField]);
+      setValue('customFormFields', [...customFormFields, newField]);
     }
 
     closeCustomFormModal();
   };
 
   const removeCustomFormField = (index: number) => {
-    setCustomFormFields(customFormFields.filter((_, i) => i !== index));
+    setValue('customFormFields', customFormFields.filter((_, i) => i !== index));
   };
 
   const typeItems = [
@@ -271,7 +349,7 @@ export default function EditScholarshipPage() {
     if (selectedDate) {
       setDate(selectedDate);
       const formattedDate = selectedDate.toISOString().split('T')[0];
-      setDeadline(formattedDate);
+      setValue('deadline', formattedDate);
     }
   };
 
@@ -354,19 +432,98 @@ export default function EditScholarshipPage() {
               </View>
             </Pressable>
           </View>
+          
           <View style={styles.card}>
-            <LabeledInput label="Title" value={title} onChangeText={setTitle} placeholder="Scholarship title" />
-            <LabeledInput label="Description" value={description} onChangeText={setDescription} placeholder="Brief description" multiline />
+            {/* Title */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Title</Text>
+              <Controller
+                control={control}
+                name="title"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    style={[styles.input, errors.title && styles.inputError]}
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    placeholder="Scholarship title"
+                    placeholderTextColor="#9aa3af"
+                  />
+                )}
+              />
+              {errors.title && (
+                <Text style={styles.errorText}>{errors.title.message}</Text>
+              )}
+            </View>
+
+            {/* Description */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Description</Text>
+              <Controller
+                control={control}
+                name="description"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    style={[styles.input, styles.inputMultiline]}
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    placeholder="Brief description"
+                    placeholderTextColor="#9aa3af"
+                    multiline
+                  />
+                )}
+              />
+            </View>
+
+            {/* Amount and Slots */}
             <View style={styles.row2}>
               <View style={{ flex: 1 }}>
-                <LabeledInput label="Amount (₱)" value={totalAmount} onChangeText={setTotalAmount} keyboardType="numeric" placeholder="0.00" />
+                <Text style={styles.label}>Amount (₱)</Text>
+                <Controller
+                  control={control}
+                  name="totalAmount"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                      style={[styles.input, errors.totalAmount && styles.inputError]}
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      keyboardType="numeric"
+                      placeholder="0.00"
+                      placeholderTextColor="#9aa3af"
+                    />
+                  )}
+                />
+                {errors.totalAmount && (
+                  <Text style={styles.errorText}>{errors.totalAmount.message}</Text>
+                )}
               </View>
               <View style={{ width: 10 }} />
               <View style={{ flex: 1 }}>
-                <LabeledInput label="Slots" value={totalSlot} onChangeText={setTotalSlot} keyboardType="numeric" placeholder="0" />
+                <Text style={styles.label}>Slots</Text>
+                <Controller
+                  control={control}
+                  name="totalSlot"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                      style={[styles.input, errors.totalSlot && styles.inputError]}
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      keyboardType="numeric"
+                      placeholder="0"
+                      placeholderTextColor="#9aa3af"
+                    />
+                  )}
+                />
+                {errors.totalSlot && (
+                  <Text style={styles.errorText}>{errors.totalSlot.message}</Text>
+                )}
               </View>
             </View>
             
+            {/* Deadline */}
             <Text style={styles.label}>Application Deadline</Text>
             <Pressable style={styles.dateInputContainer} onPress={() => setShowDatePicker(true)}>
               <Text style={styles.dateInputText}>{deadline ? formatDate(deadline) : 'Set application deadline'}</Text>
@@ -376,43 +533,160 @@ export default function EditScholarshipPage() {
               <DateTimePicker value={date} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={onChangeDate} minimumDate={new Date()} />
             )}
 
-            <LabeledInput label="Criteria (comma-separated)" value={criteria} onChangeText={setCriteria} placeholder="example: senior_high,stem" />
-            <LabeledInput label="Required Documents (comma-separated)" value={documents} onChangeText={setDocuments} placeholder="example: id,form_137" />
+            {/* Criteria */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Criteria</Text>
+              <View style={styles.arrayInputContainer}>
+                <TextInput
+                  style={[styles.arrayInput, errors.criteria && styles.inputError]}
+                  value={criteriaInput}
+                  onChangeText={setCriteriaInput}
+                  placeholder="Enter eligibility criterion"
+                  placeholderTextColor="#A0AEC0"
+                  onSubmitEditing={addCriterion}
+                  returnKeyType="done"
+                />
+                <Pressable style={styles.addButton} onPress={addCriterion}>
+                  <MaterialIcons name="add" size={20} color="#F0F7FF" />
+                </Pressable>
+              </View>
+              {errors.criteria && (
+                <Text style={styles.errorText}>{errors.criteria.message}</Text>
+              )}
+              {criteria.length > 0 && (
+                <View style={styles.tagsContainer}>
+                  {criteria.map((criterion, index) => (
+                    <View key={index} style={styles.tag}>
+                      <Text style={styles.tagText} numberOfLines={1}>{criterion}</Text>
+                      <Pressable onPress={() => removeCriterion(index)}>
+                        <MaterialIcons name="close" size={14} color="#111827" />
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
 
+            {/* Required Documents */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Required Documents</Text>
+              <View style={styles.arrayInputContainer}>
+                <TextInput
+                  style={[styles.arrayInput, errors.documents && styles.inputError]}
+                  value={documentsInput}
+                  onChangeText={setDocumentsInput}
+                  placeholder="Enter required document"
+                  placeholderTextColor="#A0AEC0"
+                  onSubmitEditing={addDocument}
+                  returnKeyType="done"
+                />
+                <Pressable style={styles.addButton} onPress={addDocument}>
+                  <MaterialIcons name="add" size={20} color="#F0F7FF" />
+                </Pressable>
+              </View>
+              {errors.documents && (
+                <Text style={styles.errorText}>{errors.documents.message}</Text>
+              )}
+              {documents.length > 0 && (
+                <View style={styles.tagsContainer}>
+                  {documents.map((document, index) => (
+                    <View key={index} style={styles.tag}>
+                      <Text style={styles.tagText} numberOfLines={1}>{document}</Text>
+                      <Pressable onPress={() => removeDocument(index)}>
+                        <MaterialIcons name="close" size={14} color="#111827" />
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            {/* Type and Purpose */}
             <View style={styles.row2}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.label}>Type</Text>
-                <Animated.View style={{ transform: [{ scale: typeDropdownScale }] }}>
-                  <Dropdown
-                    style={styles.dropdown}
-                    placeholderStyle={styles.placeholderStyle}
-                    selectedTextStyle={styles.selectedTextStyle}
-                    iconStyle={styles.iconStyle}
-                    containerStyle={styles.dropdownContainer}
-                    itemContainerStyle={styles.itemContainer}
-                    itemTextStyle={styles.itemText}
-                    activeColor="#E0ECFF"
-                    data={typeItems}
-                    maxHeight={300}
-                    labelField="label"
-                    valueField="value"
-                    placeholder="Select type"
-                    value={type}
-                    onChange={item => { setType(item.value); }}
-                    renderRightIcon={() => (
-                      <Animated.View style={{ transform: [{ rotate: typeIconRotate }] }}>
-                        <Ionicons name="chevron-down" size={18} color="#6B7280" />
-                      </Animated.View>
-                    )}
-                  />
-                </Animated.View>
+                <Controller
+                  control={control}
+                  name="type"
+                  render={({ field: { onChange, value } }) => (
+                    <Animated.View style={{ transform: [{ scale: typeDropdownScale }] }}>
+                      <Dropdown
+                        style={[styles.dropdown, errors.type && styles.inputError]}
+                        placeholderStyle={styles.placeholderStyle}
+                        selectedTextStyle={styles.selectedTextStyle}
+                        iconStyle={styles.iconStyle}
+                        containerStyle={styles.dropdownContainer}
+                        itemContainerStyle={styles.itemContainer}
+                        itemTextStyle={styles.itemText}
+                        activeColor="#E0ECFF"
+                        data={typeItems}
+                        maxHeight={300}
+                        labelField="label"
+                        valueField="value"
+                        placeholder="Select type"
+                        value={value}
+                        onChange={item => onChange(item.value)}
+                        renderRightIcon={() => (
+                          <Animated.View style={{ transform: [{ rotate: typeIconRotate }] }}>
+                            <Ionicons name="chevron-down" size={18} color="#6B7280" />
+                          </Animated.View>
+                        )}
+                      />
+                    </Animated.View>
+                  )}
+                />
+                {errors.type && (
+                  <Text style={styles.errorText}>{errors.type.message}</Text>
+                )}
               </View>
               <View style={{ width: 10 }} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.label}>Purpose</Text>
-                <Animated.View style={{ transform: [{ scale: purposeDropdownScale }] }}>
+                <Controller
+                  control={control}
+                  name="purpose"
+                  render={({ field: { onChange, value } }) => (
+                    <Animated.View style={{ transform: [{ scale: purposeDropdownScale }] }}>
+                      <Dropdown
+                        style={[styles.dropdown, errors.purpose && styles.inputError]}
+                        placeholderStyle={styles.placeholderStyle}
+                        selectedTextStyle={styles.selectedTextStyle}
+                        iconStyle={styles.iconStyle}
+                        containerStyle={styles.dropdownContainer}
+                        itemContainerStyle={styles.itemContainer}
+                        itemTextStyle={styles.itemText}
+                        activeColor="#E0ECFF"
+                        data={purposeItems}
+                        maxHeight={300}
+                        labelField="label"
+                        valueField="value"
+                        placeholder="Select purpose"
+                        value={value}
+                        onChange={item => onChange(item.value)}
+                        renderRightIcon={() => (
+                          <Animated.View style={{ transform: [{ rotate: purposeIconRotate }] }}>
+                            <Ionicons name="chevron-down" size={18} color="#6B7280" />
+                          </Animated.View>
+                        )}
+                      />
+                    </Animated.View>
+                  )}
+                />
+                {errors.purpose && (
+                  <Text style={styles.errorText}>{errors.purpose.message}</Text>
+                )}
+              </View>
+            </View>
+
+            {/* Status */}
+            <Text style={styles.label}>Status</Text>
+            <Controller
+              control={control}
+              name="status"
+              render={({ field: { onChange, value } }) => (
+                <Animated.View style={{ transform: [{ scale: statusDropdownScale }] }}>
                   <Dropdown
-                    style={styles.dropdown}
+                    style={[styles.dropdown, errors.status && styles.inputError]}
                     placeholderStyle={styles.placeholderStyle}
                     selectedTextStyle={styles.selectedTextStyle}
                     iconStyle={styles.iconStyle}
@@ -420,48 +694,25 @@ export default function EditScholarshipPage() {
                     itemContainerStyle={styles.itemContainer}
                     itemTextStyle={styles.itemText}
                     activeColor="#E0ECFF"
-                    data={purposeItems}
+                    data={statusItems}
                     maxHeight={300}
                     labelField="label"
                     valueField="value"
-                    placeholder="Select purpose"
-                    value={purpose}
-                    onChange={item => { setPurpose(item.value); }}
+                    placeholder="Select status"
+                    value={value}
+                    onChange={item => onChange(item.value)}
                     renderRightIcon={() => (
-                      <Animated.View style={{ transform: [{ rotate: purposeIconRotate }] }}>
+                      <Animated.View style={{ transform: [{ rotate: statusIconRotate }] }}>
                         <Ionicons name="chevron-down" size={18} color="#6B7280" />
                       </Animated.View>
                     )}
                   />
                 </Animated.View>
-              </View>
-            </View>
-
-            <Text style={styles.label}>Status</Text>
-            <Animated.View style={{ transform: [{ scale: statusDropdownScale }] }}>
-              <Dropdown
-                style={styles.dropdown}
-                placeholderStyle={styles.placeholderStyle}
-                selectedTextStyle={styles.selectedTextStyle}
-                iconStyle={styles.iconStyle}
-                containerStyle={styles.dropdownContainer}
-                itemContainerStyle={styles.itemContainer}
-                itemTextStyle={styles.itemText}
-                activeColor="#E0ECFF"
-                data={statusItems}
-                maxHeight={300}
-                labelField="label"
-                valueField="value"
-                placeholder="Select status"
-                value={status}
-                onChange={item => { setStatus(item.value); }}
-                renderRightIcon={() => (
-                  <Animated.View style={{ transform: [{ rotate: statusIconRotate }] }}>
-                    <Ionicons name="chevron-down" size={18} color="#6B7280" />
-                  </Animated.View>
-                )}
-              />
-            </Animated.View>
+              )}
+            />
+            {errors.status && (
+              <Text style={styles.errorText}>{errors.status.message}</Text>
+            )}
 
             {/* Custom Form Fields Section */}
             <View style={styles.customFormSection}>
@@ -525,7 +776,7 @@ export default function EditScholarshipPage() {
               )}
 
               <Pressable 
-                style={styles.addCustomFieldButton}
+                style={[styles.addCustomFieldButton, errors.customFormFields && styles.addCustomFieldButtonError]}
                 onPress={() => openCustomFormModal()}
               >
                 <MaterialIcons name="add-circle-outline" size={20} color="#3A52A6" />
@@ -535,10 +786,17 @@ export default function EditScholarshipPage() {
                     : 'Add Another Field'}
                 </Text>
               </Pressable>
+              {errors.customFormFields && (
+                <Text style={styles.errorText}>{errors.customFormFields.message}</Text>
+              )}
             </View>
           </View>
 
-          <Pressable style={[styles.saveBtn, saving && { opacity: 0.7 }]} onPress={onSave} disabled={saving}>
+          <Pressable 
+            style={[styles.saveBtn, saving && { opacity: 0.7 }]} 
+            onPress={handleSubmit(onSubmit)} 
+            disabled={saving}
+          >
             {saving ? <ActivityIndicator size="small" color="#F0F7FF" /> : <>
               <Ionicons name="save-outline" size={16} color="#F0F7FF" />
               <Text style={styles.saveText}>Save Changes</Text>
@@ -695,20 +953,6 @@ export default function EditScholarshipPage() {
   );
 }
 
-function LabeledInput({ label, multiline, ...props }: any) {
-  return (
-    <View style={{ marginBottom: 12 }}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        style={[styles.input, multiline && styles.inputMultiline]}
-        placeholderTextColor="#9aa3af"
-        {...props}
-        multiline={multiline}
-      />
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -754,10 +998,10 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontFamily: 'BreeSerif_400Regular',
-    fontSize: 16,
-    color: 'rgba(93, 102, 115, 1)',
-    marginTop: 14,
-    textAlign: 'center',
+    fontSize: 11,
+    color: '#EF4444',
+    marginTop: 4,
+    marginLeft: 2,
   },
   card: {
     backgroundColor: '#fff',
@@ -786,6 +1030,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
+  inputGroup: {
+    marginBottom: 12,
+  },
   label: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
@@ -803,6 +1050,9 @@ const styles = StyleSheet.create({
     color: '#111827',
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 13,
+  },
+  inputError: {
+    borderColor: '#EF4444',
   },
   inputMultiline: {
     minHeight: 92,
@@ -987,6 +1237,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     gap: 8,
+  },
+  addCustomFieldButtonError: {
+    borderColor: '#EF4444',
   },
   addCustomFieldText: {
     fontFamily: 'BreeSerif_400Regular',

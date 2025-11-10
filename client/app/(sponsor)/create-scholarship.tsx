@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, Platform, Animated, Modal, Image, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, Platform, Animated, Modal, Image, ActivityIndicator } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -7,17 +7,72 @@ import * as ImagePicker from 'expo-image-picker';
 import { scholarshipService, CustomFormField } from '@/services/scholarship-creation.service';
 import Toast from '@/components/toast';
 import Header from '@/components/header';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+// Zod Schema for Scholarship Creation
+const scholarshipSchema = z.object({
+  type: z.enum(['merit_based', 'skill_based'], { message: 'Please select a scholarship type' }).optional(),
+  purpose: z.enum(['allowance', 'tuition'], { message: 'Please select a purpose' }).optional(),
+  title: z.string().min(1, 'Scholarship title is required').max(200, 'Title must be less than 200 characters'),
+  description: z.string().optional(),
+  totalAmount: z.string()
+    .min(1, 'Total amount is required')
+    .refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+      message: 'Please enter a valid amount greater than 0'
+    }),
+  totalSlot: z.string()
+    .min(1, 'Total slot is required')
+    .refine((val) => !isNaN(parseInt(val)) && parseInt(val) > 0, {
+      message: 'Please enter a valid slot number greater than 0'
+    }),
+  deadline: z.string().optional(),
+  criteria: z.array(z.string()).min(1, 'At least one eligibility criterion is required'),
+  documents: z.array(z.string()).min(1, 'At least one required document is required'),
+  customFormFields: z.array(z.object({
+    type: z.enum(['text', 'textarea', 'dropdown', 'checkbox', 'number', 'date', 'email', 'phone', 'file']),
+    label: z.string().min(1, 'Field label is required'),
+    required: z.boolean(),
+    options: z.array(z.string()).optional(),
+  })).min(1, 'At least one form field is required'),
+});
+
+// Custom Form Field Schema
+const customFieldSchema = z.object({
+  type: z.enum(['text', 'textarea', 'dropdown', 'checkbox', 'number', 'date', 'email', 'phone', 'file']),
+  label: z.string().min(1, 'Field label is required'),
+  required: z.boolean(),
+  options: z.array(z.string()).optional(),
+}).refine((data) => {
+  if ((data.type === 'dropdown' || data.type === 'checkbox') && (!data.options || data.options.length === 0)) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'Dropdown and checkbox fields must have at least one option',
+  path: ['options'],
+});
+
+type ScholarshipFormData = z.infer<typeof scholarshipSchema>;
 
 export default function CreateScholarshipPage() {
-  const [type, setType] = useState('');
-  const [purpose, setPurpose] = useState('');
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [totalAmount, setTotalAmount] = useState('');
-  const [totalSlot, setTotalSlot] = useState('');
-  const [deadline, setDeadline] = useState('');
-  const [criteria, setCriteria] = useState<string[]>([]);
-  const [documents, setDocuments] = useState<string[]>([]);
+  const { control, handleSubmit, setValue, watch, formState: { errors }, reset } = useForm<ScholarshipFormData>({
+    resolver: zodResolver(scholarshipSchema),
+    defaultValues: {
+      type: undefined,
+      purpose: undefined,
+      title: '',
+      description: '',
+      totalAmount: '',
+      totalSlot: '',
+      deadline: '',
+      criteria: [],
+      documents: [],
+      customFormFields: [],
+    },
+  });
+
   const [criteriaInput, setCriteriaInput] = useState('');
   const [documentsInput, setDocumentsInput] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -32,7 +87,6 @@ export default function CreateScholarshipPage() {
   const [toastMessage, setToastMessage] = useState('');
   
   // Custom form fields state
-  const [customFormFields, setCustomFormFields] = useState<CustomFormField[]>([]);
   const [showCustomFormModal, setShowCustomFormModal] = useState(false);
   const [editingFieldIndex, setEditingFieldIndex] = useState<number | null>(null);
   const [newFieldType, setNewFieldType] = useState<'text' | 'textarea' | 'dropdown' | 'checkbox' | 'number' | 'date' | 'email' | 'phone' | 'file'>('text');
@@ -40,6 +94,13 @@ export default function CreateScholarshipPage() {
   const [newFieldRequired, setNewFieldRequired] = useState(false);
   const [dropdownOptions, setDropdownOptions] = useState<string[]>([]);
   const [dropdownOptionInput, setDropdownOptionInput] = useState('');
+
+  // Watch form values
+  const criteria = watch('criteria');
+  const documents = watch('documents');
+  const customFormFields = watch('customFormFields') || [];
+  const description = watch('description');
+  const deadline = watch('deadline');
 
   const showToast = (type: 'success' | 'error', title: string, message: string) => {
     setToastType(type);
@@ -108,7 +169,7 @@ export default function CreateScholarshipPage() {
     if (selectedDate) {
       setDate(selectedDate);
       const formattedDate = selectedDate.toISOString().split('T')[0];
-      setDeadline(formattedDate);
+      setValue('deadline', formattedDate);
     }
   };
 
@@ -170,48 +231,47 @@ export default function CreateScholarshipPage() {
   });
 
   const openDescriptionModal = () => {
-    setTempDescription(description);
+    setTempDescription(description || '');
     setShowDescriptionModal(true);
   };
 
   const saveDescription = () => {
-    setDescription(tempDescription);
+    setValue('description', tempDescription);
     setShowDescriptionModal(false);
   };
 
   const cancelDescription = () => {
-    setTempDescription(description);
+    setTempDescription(description || '');
     setShowDescriptionModal(false);
   };
 
   const addCriterion = () => {
     const trimmedInput = criteriaInput.trim();
     if (trimmedInput) {
-      setCriteria(prevCriteria => [...prevCriteria, trimmedInput]);
+      setValue('criteria', [...criteria, trimmedInput]);
       setCriteriaInput('');
     }
   };
 
   const removeCriterion = (index: number) => {
-    setCriteria(prevCriteria => prevCriteria.filter((_, i) => i !== index));
+    setValue('criteria', criteria.filter((_, i) => i !== index));
   };
 
   const addDocument = () => {
     const trimmedInput = documentsInput.trim();
     if (trimmedInput) {
-      setDocuments(prevDocuments => [...prevDocuments, trimmedInput]);
+      setValue('documents', [...documents, trimmedInput]);
       setDocumentsInput('');
     }
   };
 
   const removeDocument = (index: number) => {
-    setDocuments(prevDocuments => prevDocuments.filter((_, i) => i !== index));
+    setValue('documents', documents.filter((_, i) => i !== index));
   };
 
   // Custom form field handlers
   const openCustomFormModal = (index?: number) => {
     if (index !== undefined) {
-      // Editing existing field
       const field = customFormFields[index];
       setEditingFieldIndex(index);
       setNewFieldType(field.type);
@@ -220,7 +280,6 @@ export default function CreateScholarshipPage() {
       setDropdownOptions(field.options || []);
       setDropdownOptionInput('');
     } else {
-      // Adding new field
       setEditingFieldIndex(null);
       setNewFieldType('text');
       setNewFieldLabel('');
@@ -272,20 +331,19 @@ export default function CreateScholarshipPage() {
     };
 
     if (editingFieldIndex !== null) {
-      // Update existing field
-      setCustomFormFields(customFormFields.map((field, index) => 
+      const updatedFields = customFormFields.map((field, index) => 
         index === editingFieldIndex ? newField : field
-      ));
+      );
+      setValue('customFormFields', updatedFields);
     } else {
-      // Add new field
-      setCustomFormFields([...customFormFields, newField]);
+      setValue('customFormFields', [...customFormFields, newField]);
     }
 
     closeCustomFormModal();
   };
 
   const removeCustomFormField = (index: number) => {
-    setCustomFormFields(customFormFields.filter((_, i) => i !== index));
+    setValue('customFormFields', customFormFields.filter((_, i) => i !== index));
   };
 
   const pickImage = async () => {
@@ -313,47 +371,21 @@ export default function CreateScholarshipPage() {
     }
   };
 
-  const handleSubmit = async () => {
-    if (!title.trim()) {
-      showToast('error', 'Validation Error', 'Please enter a scholarship title');
-      return;
-    }
-
-    if (!totalAmount.trim() || isNaN(parseFloat(totalAmount))) {
-      showToast('error', 'Validation Error', 'Please enter a valid total amount');
-      return;
-    }
-
-    if (!totalSlot.trim() || isNaN(parseInt(totalSlot)) || parseInt(totalSlot) <= 0) {
-      showToast('error', 'Validation Error', 'Please enter a valid total slot');
-      return;
-    }
-
-    if (criteria.length === 0) {
-      showToast('error', 'Validation Error', 'Please add at least one eligibility criterion');
-      return;
-    }
-
-    if (documents.length === 0) {
-      showToast('error', 'Validation Error', 'Please add at least one required document');
-      return;
-    }
-
+  const onSubmit = async (data: ScholarshipFormData) => {
     setIsLoading(true);
 
     try {
-      // Create the scholarship
       const scholarshipData = {
-        type: type || undefined,
-        purpose: purpose || undefined,
-        title: title.trim(),
-        description: description.trim() || undefined,
-        total_amount: parseFloat(totalAmount),
-        total_slot: parseInt(totalSlot),
-        application_deadline: deadline || undefined,
-        criteria,
-        required_documents: documents,
-        custom_form_fields: customFormFields.length > 0 ? customFormFields : undefined,
+        type: data.type || undefined,
+        purpose: data.purpose || undefined,
+        title: data.title.trim(),
+        description: data.description?.trim() || undefined,
+        total_amount: parseFloat(data.totalAmount),
+        total_slot: parseInt(data.totalSlot),
+        application_deadline: data.deadline || undefined,
+        criteria: data.criteria,
+        required_documents: data.documents,
+        custom_form_fields: data.customFormFields && data.customFormFields.length > 0 ? data.customFormFields : undefined,
       };
 
       const result = await scholarshipService.createScholarship(scholarshipData);
@@ -367,21 +399,12 @@ export default function CreateScholarshipPage() {
 
         showToast('success', 'Success', 'Scholarship created successfully!');
 
-        // Reset
-        setType('');
-        setPurpose('');
-        setTitle('');
-        setDescription('');
-        setTotalAmount('');
-        setTotalSlot('');
-        setDeadline('');
-        setCriteria([]);
-        setDocuments([]);
-        setCriteriaInput('');
-        setDocumentsInput('');
+        // Reset form
+        reset();
         setImageUri(null);
         setDate(new Date());
-        setCustomFormFields([]);
+        setCriteriaInput('');
+        setDocumentsInput('');
       } else {
         showToast('error', 'Error', result.message || 'Failed to create scholarship');
       }
@@ -395,13 +418,11 @@ export default function CreateScholarshipPage() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <Header 
         title="Create Scholarship" 
         showSearch={false}
       />
 
-      {/* Scrollable Content */}
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -434,80 +455,108 @@ export default function CreateScholarshipPage() {
         <View style={styles.row}>
           <View style={styles.dropdownWrapper}>
             <Text style={styles.label}>Type</Text>
-            <Animated.View style={{ transform: [{ scale: typeDropdownScale }] }}>
-              <Dropdown
-                style={styles.dropdown}
-                placeholderStyle={styles.placeholderStyle}
-                selectedTextStyle={styles.selectedTextStyle}
-                iconStyle={styles.iconStyle}
-                containerStyle={styles.dropdownContainer}
-                itemContainerStyle={styles.itemContainer}
-                itemTextStyle={styles.itemText}
-                activeColor="#E0ECFF"
-                data={typeItems}
-                maxHeight={300}
-                labelField="label"
-                valueField="value"
-                placeholder="Select type"
-                value={type}
-                onChange={item => {
-                  setType(item.value);
-                  handleTypeDropdownBlur();
-                }}
-                onFocus={handleTypeDropdownFocus}
-                onBlur={handleTypeDropdownBlur}
-                renderRightIcon={() => (
-                  <Animated.View style={{ transform: [{ rotate: typeIconRotate }] }}>
-                    <MaterialIcons name="arrow-drop-down" size={20} color="#6B7280" />
-                  </Animated.View>
-                )}
-              />
-            </Animated.View>
+            <Controller
+              control={control}
+              name="type"
+              render={({ field: { onChange, value } }) => (
+                <Animated.View style={{ transform: [{ scale: typeDropdownScale }] }}>
+                  <Dropdown
+                    style={[styles.dropdown, errors.type && styles.inputError]}
+                    placeholderStyle={styles.placeholderStyle}
+                    selectedTextStyle={styles.selectedTextStyle}
+                    iconStyle={styles.iconStyle}
+                    containerStyle={styles.dropdownContainer}
+                    itemContainerStyle={styles.itemContainer}
+                    itemTextStyle={styles.itemText}
+                    activeColor="#E0ECFF"
+                    data={typeItems}
+                    maxHeight={300}
+                    labelField="label"
+                    valueField="value"
+                    placeholder="Select type"
+                    value={value}
+                    onChange={item => {
+                      onChange(item.value);
+                      handleTypeDropdownBlur();
+                    }}
+                    onFocus={handleTypeDropdownFocus}
+                    onBlur={handleTypeDropdownBlur}
+                    renderRightIcon={() => (
+                      <Animated.View style={{ transform: [{ rotate: typeIconRotate }] }}>
+                        <MaterialIcons name="arrow-drop-down" size={20} color="#6B7280" />
+                      </Animated.View>
+                    )}
+                  />
+                </Animated.View>
+              )}
+            />
+            {errors.type && (
+              <Text style={styles.errorText}>{errors.type.message}</Text>
+            )}
           </View>
 
           <View style={styles.dropdownWrapper}>
             <Text style={styles.label}>Purpose</Text>
-            <Animated.View style={{ transform: [{ scale: purposeDropdownScale }] }}>
-              <Dropdown
-                style={styles.dropdown}
-                placeholderStyle={styles.placeholderStyle}
-                selectedTextStyle={styles.selectedTextStyle}
-                iconStyle={styles.iconStyle}
-                containerStyle={styles.dropdownContainer}
-                itemContainerStyle={styles.itemContainer}
-                itemTextStyle={styles.itemText}
-                activeColor="#E0ECFF"
-                data={purposeItems}
-                maxHeight={300}
-                labelField="label"
-                valueField="value"
-                placeholder="Select purpose"
-                value={purpose}
-                onChange={item => {
-                  setPurpose(item.value);
-                  handlePurposeDropdownBlur();
-                }}
-                onFocus={handlePurposeDropdownFocus}
-                onBlur={handlePurposeDropdownBlur}
-                renderRightIcon={() => (
-                  <Animated.View style={{ transform: [{ rotate: purposeIconRotate }] }}>
-                    <MaterialIcons name="arrow-drop-down" size={20} color="#6B7280" />
-                  </Animated.View>
-                )}
-              />
-            </Animated.View>
+            <Controller
+              control={control}
+              name="purpose"
+              render={({ field: { onChange, value } }) => (
+                <Animated.View style={{ transform: [{ scale: purposeDropdownScale }] }}>
+                  <Dropdown
+                    style={[styles.dropdown, errors.purpose && styles.inputError]}
+                    placeholderStyle={styles.placeholderStyle}
+                    selectedTextStyle={styles.selectedTextStyle}
+                    iconStyle={styles.iconStyle}
+                    containerStyle={styles.dropdownContainer}
+                    itemContainerStyle={styles.itemContainer}
+                    itemTextStyle={styles.itemText}
+                    activeColor="#E0ECFF"
+                    data={purposeItems}
+                    maxHeight={300}
+                    labelField="label"
+                    valueField="value"
+                    placeholder="Select purpose"
+                    value={value}
+                    onChange={item => {
+                      onChange(item.value);
+                      handlePurposeDropdownBlur();
+                    }}
+                    onFocus={handlePurposeDropdownFocus}
+                    onBlur={handlePurposeDropdownBlur}
+                    renderRightIcon={() => (
+                      <Animated.View style={{ transform: [{ rotate: purposeIconRotate }] }}>
+                        <MaterialIcons name="arrow-drop-down" size={20} color="#6B7280" />
+                      </Animated.View>
+                    )}
+                  />
+                </Animated.View>
+              )}
+            />
+            {errors.purpose && (
+              <Text style={styles.errorText}>{errors.purpose.message}</Text>
+            )}
           </View>
         </View>
 
         {/* Title */}
         <View style={styles.inputGroup}>
-          <TextInput
-            style={styles.inputTitle}
-            value={title}
-            onChangeText={setTitle}
-            placeholder="Scholarship Title"
-            placeholderTextColor="#9CA3AF"
+          <Controller
+            control={control}
+            name="title"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                style={[styles.inputTitle, errors.title && styles.inputTitleError]}
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder="Scholarship Title"
+                placeholderTextColor="#9CA3AF"
+              />
+            )}
           />
+          {errors.title && (
+            <Text style={styles.errorText}>{errors.title.message}</Text>
+          )}
         </View>
 
         {/* Description */}
@@ -528,27 +577,47 @@ export default function CreateScholarshipPage() {
         {/* Total Amount */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Total Amount</Text>
-          <TextInput
-            style={styles.input}
-            value={totalAmount}
-            onChangeText={setTotalAmount}
-            placeholder="Enter total amount"
-            placeholderTextColor="#A0AEC0"
-            keyboardType="numeric"
+          <Controller
+            control={control}
+            name="totalAmount"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                style={[styles.input, errors.totalAmount && styles.inputError]}
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder="Enter total amount"
+                placeholderTextColor="#A0AEC0"
+                keyboardType="numeric"
+              />
+            )}
           />
+          {errors.totalAmount && (
+            <Text style={styles.errorText}>{errors.totalAmount.message}</Text>
+          )}
         </View>
 
         {/* Total Slot */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Total Slot</Text>
-          <TextInput
-            style={styles.input}
-            value={totalSlot}
-            onChangeText={setTotalSlot}
-            placeholder="Enter total slot"
-            placeholderTextColor="#A0AEC0"
-            keyboardType="numeric"
+          <Controller
+            control={control}
+            name="totalSlot"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                style={[styles.input, errors.totalSlot && styles.inputError]}
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder="Enter total slot"
+                placeholderTextColor="#A0AEC0"
+                keyboardType="numeric"
+              />
+            )}
           />
+          {errors.totalSlot && (
+            <Text style={styles.errorText}>{errors.totalSlot.message}</Text>
+          )}
         </View>
 
         {/* Application Deadline */}
@@ -580,7 +649,7 @@ export default function CreateScholarshipPage() {
           <Text style={styles.label}>Criteria</Text>
           <View style={styles.arrayInputContainer}>
             <TextInput
-              style={styles.arrayInput}
+              style={[styles.arrayInput, errors.criteria && styles.inputError]}
               value={criteriaInput}
               onChangeText={setCriteriaInput}
               placeholder="Enter eligibility criterion"
@@ -592,6 +661,9 @@ export default function CreateScholarshipPage() {
               <MaterialIcons name="add" size={20} color="#F0F7FF" />
             </Pressable>
           </View>
+          {errors.criteria && (
+            <Text style={styles.errorText}>{errors.criteria.message}</Text>
+          )}
           {criteria.length > 0 && (
             <View style={styles.tagsContainer}>
               {criteria.map((criterion, index) => (
@@ -611,7 +683,7 @@ export default function CreateScholarshipPage() {
           <Text style={styles.label}>Required Documents</Text>
           <View style={styles.arrayInputContainer}>
             <TextInput
-              style={styles.arrayInput}
+              style={[styles.arrayInput, errors.documents && styles.inputError]}
               value={documentsInput}
               onChangeText={setDocumentsInput}
               placeholder="Enter required document"
@@ -623,6 +695,9 @@ export default function CreateScholarshipPage() {
               <MaterialIcons name="add" size={20} color="#F0F7FF" />
             </Pressable>
           </View>
+          {errors.documents && (
+            <Text style={styles.errorText}>{errors.documents.message}</Text>
+          )}
           {documents.length > 0 && (
             <View style={styles.tagsContainer}>
               {documents.map((document, index) => (
@@ -699,7 +774,7 @@ export default function CreateScholarshipPage() {
           )}
 
           <Pressable 
-            style={styles.addCustomFieldButton}
+            style={[styles.addCustomFieldButton, errors.customFormFields && styles.addCustomFieldButtonError]}
             onPress={() => openCustomFormModal()}
           >
             <MaterialIcons name="add-circle-outline" size={20} color="#3A52A6" />
@@ -709,12 +784,15 @@ export default function CreateScholarshipPage() {
                 : 'Add Another Field'}
             </Text>
           </Pressable>
+          {errors.customFormFields && (
+            <Text style={styles.errorText}>{errors.customFormFields.message}</Text>
+          )}
         </View>
 
         {/* Create Button */}
         <Pressable 
           style={[styles.createButton, isLoading && styles.createButtonDisabled]} 
-          onPress={handleSubmit}
+          onPress={handleSubmit(onSubmit)}
           disabled={isLoading}
         >
           {isLoading ? (
@@ -929,20 +1007,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F0F7FF',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 60,
-    backgroundColor: '#F0F7FF',
-    gap: 8,
-  },
-  headerText: {
-    fontFamily: 'BreeSerif_400Regular',
-    fontSize: 18,
-    color: '#3A52A6',
-    flex: 1,
-  },
   scrollView: {
     flex: 1,
   },
@@ -1085,9 +1149,19 @@ const styles = StyleSheet.create({
     color: '#111827',
     paddingBottom: 8,
   },
-  textArea: {
-    height: 80,
-    paddingTop: 12,
+  inputError: {
+    borderColor: '#EF4444',
+  },
+  inputTitleError: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#EF4444',
+  },
+  errorText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 11,
+    color: '#EF4444',
+    marginTop: 4,
+    marginLeft: 2,
   },
   addDescriptionButton: {
     flexDirection: 'row',
@@ -1350,6 +1424,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     gap: 8,
+  },
+  addCustomFieldButtonError: {
+    borderColor: '#EF4444',
   },
   addCustomFieldText: {
     fontFamily: 'BreeSerif_400Regular',

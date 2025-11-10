@@ -269,18 +269,37 @@ export default function ScholarshipDetailsPage() {
             </View>
           )}
 
-          {/* Actions - Only show edit/delete if user owns this scholarship */}
+          {/* Actions  */}
           {isOwner && (
-            <View style={styles.actionsRow}>
-              <Pressable style={[styles.actionBtn, styles.editBtn]} onPress={onEdit}>
-                <Ionicons name="create-outline" size={16} color="#F0F7FF" />
-                <Text style={styles.actionText}>Edit</Text>
+            <>
+              {/* View Applicants Button */}
+              <Pressable 
+                style={styles.viewApplicantsBtn} 
+                onPress={() => router.push(`/(sponsor)/scholarship/${id}/applicants` as any)}
+              >
+                <View style={styles.viewApplicantsBtnContent}>
+                  <View style={styles.viewApplicantsLeft}>
+                    <Ionicons name="people" size={20} color="#3A52A6" />
+                    <Text style={styles.viewApplicantsText}>View Applicants</Text>
+                  </View>
+                  <View style={styles.applicantsCountBadge}>
+                    <Text style={styles.applicantsCountText}>{scholarship?.applications_count || 0}</Text>
+                  </View>
+                </View>
               </Pressable>
-              <Pressable style={[styles.actionBtn, styles.deleteBtn]} onPress={onDelete}>
-                <Ionicons name="trash-outline" size={16} color="#F0F7FF" />
-                <Text style={styles.actionText}>Delete</Text>
-              </Pressable>
-            </View>
+
+              {/* Edit and Delete Buttons */}
+              <View style={styles.actionsRow}>
+                <Pressable style={[styles.actionBtn, styles.editBtn]} onPress={onEdit}>
+                  <Ionicons name="create-outline" size={16} color="#F0F7FF" />
+                  <Text style={styles.actionText}>Edit</Text>
+                </Pressable>
+                <Pressable style={[styles.actionBtn, styles.deleteBtn]} onPress={onDelete}>
+                  <Ionicons name="trash-outline" size={16} color="#F0F7FF" />
+                  <Text style={styles.actionText}>Delete</Text>
+                </Pressable>
+              </View>
+            </>
           )}
 
           <View style={{ height: 20 }} />
@@ -523,6 +542,45 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 10,
     color: '#4B5563',
+  },
+  viewApplicantsBtn: {
+    backgroundColor: '#E0ECFF',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 14,
+    borderWidth: 2,
+    borderColor: '#3A52A6',
+  },
+  viewApplicantsBtnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  viewApplicantsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  viewApplicantsText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 14,
+    color: '#3A52A6',
+    fontWeight: '600',
+  },
+  applicantsCountBadge: {
+    backgroundColor: '#3A52A6',
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    borderRadius: 100,
+    minWidth: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  applicantsCountText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: '600',
   },
   actionsRow: {
     flexDirection: 'row',

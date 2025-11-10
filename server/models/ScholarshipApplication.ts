@@ -26,6 +26,10 @@ class ScholarshipApplication extends Model<ScholarshipApplicationAttributes, App
   public readonly applied_at!: Date;
   public readonly updated_at!: Date;
 
+  // Association properties
+  public readonly student?: Student;
+  public readonly scholarship?: Scholarship;
+
   static associate(models: any) {
     ScholarshipApplication.belongsTo(models.Student, {
       foreignKey: "student_id",

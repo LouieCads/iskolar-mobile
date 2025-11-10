@@ -4,6 +4,8 @@ import { v4 as uuidv4 } from "uuid";
 import ScholarshipApplication from "../models/ScholarshipApplication";
 import Scholarship from "../models/Scholarship";
 import Student from "../models/Student";
+import Sponsor from "../models/Sponsor";
+import User from "../models/Users";
 import { containerClient } from "../config/azure";
 import { BlobSASPermissions, generateBlobSASQueryParameters, StorageSharedKeyCredential } from "@azure/storage-blob";
 
@@ -301,7 +303,7 @@ export const uploadApplicationFiles = async (req: AuthenticatedRequest, res: Res
     res.status(200).json({
       success: true,
       message: "Files uploaded successfully",
-      file_urls: fileUrls, // Direct at root level
+      file_urls: fileUrls,
     });
   } catch (error) {
     console.error("Upload files error:", error);
@@ -347,9 +349,9 @@ export const getMyApplications = async (req: AuthenticatedRequest, res: Response
           as: "scholarship",
           include: [
             {
-              model: Student,
+              model: Sponsor,
               as: "sponsor",
-              attributes: ["sponsor_id", "organization_name", "logo_url"],
+              attributes: ["sponsor_id", "organization_name"],
             },
           ],
         },
@@ -360,7 +362,7 @@ export const getMyApplications = async (req: AuthenticatedRequest, res: Response
     res.status(200).json({
       success: true,
       message: "Applications fetched successfully",
-      applications, // Direct at root level
+      applications,
     });
   } catch (error) {
     console.error("Get applications error:", error);
@@ -406,9 +408,9 @@ export const getApplicationById = async (req: AuthenticatedRequest, res: Respons
           as: "scholarship",
           include: [
             {
-              model: Student,
+              model: Sponsor,
               as: "sponsor",
-              attributes: ["sponsor_id", "organization_name", "logo_url"],
+              attributes: ["sponsor_id", "organization_name"],
             },
           ],
         },
@@ -434,7 +436,7 @@ export const getApplicationById = async (req: AuthenticatedRequest, res: Respons
     res.status(200).json({
       success: true,
       message: "Application fetched successfully",
-      application, // Direct at root level
+      application,
     });
   } catch (error) {
     console.error("Get application error:", error);
@@ -501,12 +503,33 @@ export const checkApplicationExists = async (req: AuthenticatedRequest, res: Res
 export const getScholarshipApplications = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { scholarship_id } = req.params;
-    const sponsor_id = req.user?.id;
+    const user_id = req.user?.id;
+
+    if (!user_id) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    // Get the sponsor record from the user_id
+    const sponsor = await Sponsor.findOne({
+      where: { user_id: user_id }
+    });
+
+    if (!sponsor) {
+      res.status(404).json({
+        success: false,
+        message: "Sponsor profile not found",
+      });
+      return;
+    }
 
     const scholarship = await Scholarship.findOne({
       where: {
         scholarship_id,
-        sponsor_id,
+        sponsor_id: sponsor.sponsor_id,
       },
     });
 
@@ -524,7 +547,14 @@ export const getScholarshipApplications = async (req: AuthenticatedRequest, res:
         {
           model: Student,
           as: "student",
-          attributes: ["student_id", "first_name", "last_name", "email", "profile_image_url"],
+          attributes: ["student_id", "full_name", "gender", "date_of_birth", "contact_number"],
+          include: [
+            {
+              model: User,
+              as: "user",
+              attributes: ["email", "profile_url"],
+            },
+          ],
         },
       ],
       order: [["applied_at", "DESC"]],
@@ -533,7 +563,7 @@ export const getScholarshipApplications = async (req: AuthenticatedRequest, res:
     res.status(200).json({
       success: true,
       message: "Applications fetched successfully",
-      applications, // Direct at root level
+      applications,
     });
   } catch (error) {
     console.error("Get scholarship applications error:", error);
@@ -551,12 +581,33 @@ export const updateApplicationStatus = async (req: AuthenticatedRequest, res: Re
   try {
     const { application_id } = req.params;
     const { status, remarks } = req.body;
-    const sponsor_id = req.user?.id;
+    const user_id = req.user?.id;
+
+    if (!user_id) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+      return;
+    }
 
     if (!status || !['approved', 'denied'].includes(status)) {
       res.status(400).json({
         success: false,
         message: "Valid status (approved/denied) is required",
+      });
+      return;
+    }
+
+    // Get the sponsor record from the user_id
+    const sponsor = await Sponsor.findOne({
+      where: { user_id: user_id }
+    });
+
+    if (!sponsor) {
+      res.status(404).json({
+        success: false,
+        message: "Sponsor profile not found",
       });
       return;
     }
@@ -578,8 +629,8 @@ export const updateApplicationStatus = async (req: AuthenticatedRequest, res: Re
       return;
     }
 
-    const scholarship = application.scholarship_id as any;
-    if (scholarship.sponsor_id !== sponsor_id) {
+    const scholarship = application.scholarship as any;
+    if (scholarship.sponsor_id !== sponsor.sponsor_id) {
       res.status(403).json({
         success: false,
         message: "Unauthorized to update this application",
@@ -595,7 +646,7 @@ export const updateApplicationStatus = async (req: AuthenticatedRequest, res: Re
     res.status(200).json({
       success: true,
       message: "Application status updated successfully",
-      application, // Direct at root level
+      application,
     });
   } catch (error) {
     console.error("Update application status error:", error);

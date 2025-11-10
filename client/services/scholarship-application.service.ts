@@ -26,6 +26,17 @@ interface ScholarshipApplication {
   custom_form_response: Record<string, any>;
   applied_at: string;
   updated_at: string;
+  student?: {
+    student_id: string;
+    full_name: string;
+    gender?: string;
+    date_of_birth: string;
+    contact_number: string;
+    user: {
+      email: string;
+      profile_url?: string;
+    };
+  };
 }
 
 class ScholarshipApplicationService {
@@ -220,6 +231,74 @@ class ScholarshipApplicationService {
         success: false,
         exists: false,
         message: error instanceof Error ? error.message : 'Failed to check application',
+      };
+    }
+  }
+
+  /**
+   * Get all applications for a specific scholarship (sponsor-only)
+   */
+  async getScholarshipApplications(scholarshipId: string): Promise<{
+    success: boolean;
+    applications?: ScholarshipApplication[];
+    message: string;
+  }> {
+    try {
+      const response = await authService.authenticatedRequest(
+        `/scholarship-application/scholarship/${scholarshipId}`,
+        {
+          method: 'GET',
+        }
+      );
+
+      return {
+        success: response.success,
+        applications: response.data?.applications,
+        message: response.message || (response.success ? 'Applications fetched successfully' : 'Failed to fetch applications'),
+      };
+    } catch (error) {
+      console.error('Fetch scholarship applications error:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to fetch applications',
+      };
+    }
+  }
+
+  /**
+   * Update application status (sponsor-only)
+   */
+  async updateApplicationStatus(
+    applicationId: string,
+    status: 'approved' | 'denied',
+    remarks?: string
+  ): Promise<{
+    success: boolean;
+    application?: ScholarshipApplication;
+    message: string;
+  }> {
+    try {
+      const response = await authService.authenticatedRequest(
+        `/scholarship-application/${applicationId}/status`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            status,
+            remarks,
+          }),
+        }
+      );
+
+      return {
+        success: response.success,
+        application: response.data?.application,
+        message: response.message || (response.success ? 'Status updated successfully' : 'Failed to update status'),
+      };
+    } catch (error) {
+      console.error('Update application status error:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to update application status',
       };
     }
   }

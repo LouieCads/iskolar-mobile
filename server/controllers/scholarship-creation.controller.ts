@@ -334,7 +334,14 @@ export const getAllScholarships = async (req: Request, res: Response) => {
         {
           model: Sponsor,
           as: 'sponsor',
-          attributes: ['sponsor_id', 'organization_name'],
+          attributes: ['sponsor_id', 'organization_name', 'user_id'],
+          include: [
+            {
+              model: User,
+              as: 'user',
+              attributes: ['profile_url']
+            }
+          ]
         }
       ],
       order: [['created_at', 'DESC']],
@@ -361,6 +368,7 @@ export const getAllScholarships = async (req: Request, res: Response) => {
         updated_at: scholarshipData.updated_at,
         sponsor: {
           sponsor_id: scholarshipData.sponsor?.sponsor_id,
+          profile_url: scholarshipData.sponsor?.user?.profile_url,
           organization_name: scholarshipData.sponsor?.organization_name,
         }
       };

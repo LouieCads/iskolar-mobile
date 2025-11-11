@@ -148,7 +148,10 @@ export default function StudentHomePage() {
   };
 
   const handleCardPress = (applicationId: string) => {
-    // router.push(`/application/${applicationId}`);
+    router.push({
+      pathname: '/(student)/application/[id]',
+      params: { id: applicationId },
+    } as any);
   };
 
   const formatText = (text: string): string => {

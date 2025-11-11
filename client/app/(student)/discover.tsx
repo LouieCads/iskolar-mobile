@@ -10,7 +10,7 @@ import { scholarshipService } from '@/services/scholarship-creation.service';
 interface Sponsor {
   sponsor_id: string;
   organization_name: string;
-  logo_url?: string;
+  profile_url?: string;
   email?: string;
 }
 
@@ -205,6 +205,7 @@ export default function DiscoverPage() {
               scholarship_id={scholarship.scholarship_id}
               title={scholarship.title}
               imageUrl={scholarship.image_url}
+              profileUrl={scholarship.sponsor?.profile_url}
               sponsorName={scholarship.sponsor?.organization_name || 'Unknown Sponsor'}
               deadline={scholarship.application_deadline}
               amount={scholarship.total_amount}

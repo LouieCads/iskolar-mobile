@@ -10,6 +10,8 @@ import {
   Platform,
   TextInput,
   ScrollView,
+  Modal,
+  TouchableOpacity,
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
@@ -157,6 +159,8 @@ export default function ScholarshipApplyPage() {
   // Custom form files state (managed separately from react-hook-form)
   const [customFormFiles, setCustomFormFiles] = useState<Record<string, DocumentAsset[]>>({});
   const [datePickers, setDatePickers] = useState<Record<string, boolean>>({});
+  const [showSubmissionConfirmation, setShowSubmissionConfirmation] = useState(false);
+  const [pendingSubmitData, setPendingSubmitData] = useState<Record<string, any> | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -242,8 +246,15 @@ export default function ScholarshipApplyPage() {
   };
 
   const onSubmit = async (formData: Record<string, any>) => {
+    // Show confirmation modal instead of proceeding directly
+    setPendingSubmitData(formData);
+    setShowSubmissionConfirmation(true);
+  };
+
+  const processSubmission = async (formData: Record<string, any>) => {
     if (!id) {
       showToast('error', 'Error', 'We could not find this scholarship. Please try again later.');
+      setShowSubmissionConfirmation(false);
       return;
     }
 
@@ -262,10 +273,12 @@ export default function ScholarshipApplyPage() {
     if (fileValidationErrors.length > 0) {
       const errorMessage = fileValidationErrors.join('\n');
       showToast('error', 'Validation Error', errorMessage);
+      setShowSubmissionConfirmation(false);
       return;
     }
 
     setSubmitting(true);
+    setShowSubmissionConfirmation(false);
 
     try {
       const orderedResponseArray: Array<{ label: string; value: any }> = [];
@@ -773,6 +786,47 @@ export default function ScholarshipApplyPage() {
         </View>
       )}
       
+      {/* Submission Confirmation Modal */}
+      <Modal
+        visible={showSubmissionConfirmation}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowSubmissionConfirmation(false)}
+      >
+        <View style={styles.submissionModalOverlay}>
+          <View style={styles.submissionModalContent}>
+
+            <Text style={styles.submissionModalTitle}>Submit Application?</Text>
+
+            <Text style={styles.submissionModalMessage}>
+              Please review your information before submitting. Once submitted, you cannot modify your application.
+            </Text>
+
+            <View style={styles.submissionModalButtons}>
+              <TouchableOpacity 
+                style={styles.submissionModalCancelButton}
+                onPress={() => setShowSubmissionConfirmation(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.submissionModalCancelButtonText}>Review</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.submissionModalConfirmButton}
+                onPress={() => {
+                  if (pendingSubmitData) {
+                    processSubmission(pendingSubmitData);
+                  }
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.submissionModalConfirmButtonText}>Submit</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Toast
         visible={toastVisible}
         type={toastType}
@@ -1122,5 +1176,78 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderWidth: 1,
     borderColor: '#E0ECFF',
+  },
+  submissionModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  submissionModalContent: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  submissionModalTitle: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 16,
+    color: '#111827',
+    marginBottom: 6,
+    fontWeight: '600',
+  },
+  submissionModalMessage: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#4B5563',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  submissionModalButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+  },
+  submissionModalCancelButton: {
+    flex: 1,
+    backgroundColor: 'rgba(202, 205, 210, 1)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  submissionModalCancelButtonText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 14,
+    color: '#4B5563',
+    fontWeight: '600',
+  },
+  submissionModalConfirmButton: {
+    flex: 1,
+    backgroundColor: '#EFA508',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#EFA508',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  submissionModalConfirmButtonText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
 });

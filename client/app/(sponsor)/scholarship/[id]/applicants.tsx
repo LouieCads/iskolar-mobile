@@ -1,8 +1,9 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Alert, Animated, Image, Modal, Linking } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Animated, Image, Modal, Linking, TouchableOpacity, TextInput } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import Header from '@/components/header';
+import Toast from '@/components/toast';
 import { scholarshipService } from '@/services/scholarship-creation.service';
 import { scholarshipApplicationService } from '@/services/scholarship-application.service';
 
@@ -28,7 +29,6 @@ interface Applicant {
 
 export default function ApplicantsListPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
@@ -37,8 +37,27 @@ export default function ApplicantsListPage() {
   const [modalVisible, setModalVisible] = useState(false);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'denied'>('all');
   const [showDropdown, setShowDropdown] = useState(false);
+  
+  // Toast state
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const [toastTitle, setToastTitle] = useState('');
+  const [toastMessage, setToastMessage] = useState('');
+
+  // Confirmation modal state
+  const [confirmationModal, setConfirmationModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{ type: 'approve' | 'deny'; applicationId: string } | null>(null);
+  const [denialRemarks, setDenialRemarks] = useState('');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const showToast = (type: 'success' | 'error', title: string, message: string) => {
+    setToastType(type);
+    setToastTitle(title);
+    setToastMessage(message);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 3000);
+  };
 
   const animateIn = useCallback(() => {
     Animated.timing(fadeAnim, { 
@@ -107,14 +126,14 @@ export default function ApplicantsListPage() {
       );
 
       if (response.success) {
-        Alert.alert('Success', `Application ${newStatus} successfully`);
+        showToast('success', 'Success', `Application ${newStatus} successfully`);
         setModalVisible(false);
         fetchApplicants(); // Refresh list
       } else {
-        Alert.alert('Error', response.message);
+        showToast('error', 'Error', response.message);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to update application status');
+      showToast('error', 'Error', 'Failed to update application status');
     }
   };
 
@@ -140,11 +159,11 @@ export default function ApplicantsListPage() {
       if (supported) {
         await Linking.openURL(url);
       } else {
-        Alert.alert('Error', 'Cannot open this file type');
+        showToast('error', 'Error', 'Cannot open this file type');
       }
     } catch (error) {
       console.error('Error opening file:', error);
-      Alert.alert('Error', 'Failed to open file');
+      showToast('error', 'Error', 'Failed to open file');
     }
   };
 
@@ -456,21 +475,8 @@ export default function ApplicantsListPage() {
                       <Pressable
                         style={[styles.actionButton, styles.denyButton]}
                         onPress={() => {
-                          Alert.alert(
-                            'Deny Application',
-                            'Are you sure you want to deny this application?',
-                            [
-                              { text: 'Cancel', style: 'cancel' },
-                              {
-                                text: 'Deny',
-                                style: 'destructive',
-                                onPress: () => handleUpdateStatus(
-                                  selectedApplicant.scholarship_application_id,
-                                  'denied'
-                                )
-                              }
-                            ]
-                          );
+                          setPendingAction({ type: 'deny', applicationId: selectedApplicant.scholarship_application_id });
+                          setConfirmationModal(true);
                         }}
                       >
                         <Ionicons name="close-circle" size={20} color="#fff" />
@@ -479,20 +485,8 @@ export default function ApplicantsListPage() {
                       <Pressable
                         style={[styles.actionButton, styles.approveButton]}
                         onPress={() => {
-                          Alert.alert(
-                            'Approve Application',
-                            'Are you sure you want to approve this application?',
-                            [
-                              { text: 'Cancel', style: 'cancel' },
-                              {
-                                text: 'Approve',
-                                onPress: () => handleUpdateStatus(
-                                  selectedApplicant.scholarship_application_id,
-                                  'approved'
-                                )
-                              }
-                            ]
-                          );
+                          setPendingAction({ type: 'approve', applicationId: selectedApplicant.scholarship_application_id });
+                          setConfirmationModal(true);
                         }}
                       >
                         <Ionicons name="checkmark-circle" size={20} color="#fff" />
@@ -506,6 +500,96 @@ export default function ApplicantsListPage() {
           </View>
         </View>
       </Modal>
+
+      {/* Confirmation Modal */}
+      <Modal
+        visible={confirmationModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setConfirmationModal(false);
+          setDenialRemarks('');
+        }}
+      >
+        <View style={styles.confirmModalOverlay}>
+          <View style={styles.confirmModalContent}>
+            <Text style={styles.confirmModalTitle}>
+              {pendingAction?.type === 'approve' ? 'Approve Application' : 'Deny Application'}
+            </Text>
+
+            <Text style={styles.confirmModalMessage}>
+              {pendingAction?.type === 'approve' 
+                ? 'Are you sure you want to approve this application?'
+                : 'Are you sure you want to deny this application?'}
+            </Text>
+
+            {/* Remarks Input */}
+            {pendingAction?.type === 'deny' && (
+              <View style={styles.remarksInputContainer}>
+                <TextInput
+                  style={styles.remarksInput}
+                  placeholder="Enter reason for denial..."
+                  placeholderTextColor="#9CA3AF"
+                  multiline
+                  numberOfLines={4}
+                  value={denialRemarks}
+                  onChangeText={setDenialRemarks}
+                  textAlignVertical="top"
+                />
+                <Text style={styles.remarksInputHint}>
+                  This will be visible to the applicant (optional).
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.confirmModalButtons}>
+              <TouchableOpacity 
+                style={styles.confirmModalCancelButton}
+                onPress={() => {
+                  setConfirmationModal(false);
+                  setDenialRemarks('');
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.confirmModalCancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[
+                  styles.confirmModalConfirmButton,
+                  { backgroundColor: pendingAction?.type === 'approve' ? '#31D0AA' : '#EF4444' }
+                ]}
+                onPress={() => {
+                  if (pendingAction) {
+                    const statusValue = pendingAction.type === 'approve' ? 'approved' : 'denied';
+                    const remarks = pendingAction.type === 'deny' ? denialRemarks.trim() : undefined;
+                    handleUpdateStatus(
+                      pendingAction.applicationId,
+                      statusValue,
+                      remarks
+                    );
+                    setConfirmationModal(false);
+                    setDenialRemarks('');
+                  }
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.confirmModalConfirmButtonText}>
+                  {pendingAction?.type === 'approve' ? 'Approve' : 'Deny'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Toast */}
+      <Toast
+        visible={toastVisible}
+        type={toastType}
+        title={toastTitle}
+        message={toastMessage}
+      />
     </View>
   );
 }
@@ -918,5 +1002,101 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#fff',
     fontWeight: '600',
+  },
+  confirmModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  confirmModalContent: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  confirmModalTitle: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 16,
+    color: '#111827',
+    marginBottom: 6,
+    fontWeight: '600',
+  },
+  confirmModalMessage: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#4B5563',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 8,
+  },
+  confirmModalButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+  },
+  confirmModalCancelButton: {
+    flex: 1,
+    backgroundColor: 'rgba(202, 205, 210, 1)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmModalCancelButtonText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 14,
+    color: '#4B5563',
+    fontWeight: '600',
+  },
+  confirmModalConfirmButton: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  confirmModalConfirmButtonText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  remarksInputContainer: {
+    width: '100%',
+    marginBottom: 24,
+    borderRadius: 10,
+  },
+  remarksInput: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#111827',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 100,
+    maxHeight: 140,
+  },
+  remarksInputHint: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
 });

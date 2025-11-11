@@ -181,6 +181,7 @@ export default function DiscoverPage() {
       ) : (
         <ScrollView 
           style={styles.scrollView} 
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -228,7 +229,11 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 45,
   },
   centerContainer: {
     flex: 1,

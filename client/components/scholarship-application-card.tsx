@@ -2,21 +2,28 @@ import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
-interface ScholarshipCardProps {
+interface ScholarshipApplicationCardProps {
   scholarship_id: string;
   title: string;
   imageUrl?: string;
   sponsorName: string;
   deadline?: string;
-  amount: number;  
-  slots: number;   
+  amount: number;
+  slots: number;
   criteria: string[];
   documents: string[];
   tags: string[];
+  status: 'pending' | 'approved' | 'denied';
   onPress?: () => void;
 }
 
-export default function ScholarshipCard({
+const statusIconMap = {
+  pending: { name: 'time-outline', color: '#F7B801', label: 'Pending' },
+  approved: { name: 'checkmark-circle-outline', color: '#31D0AA', label: 'Approved' },
+  denied: { name: 'close-circle-outline', color: '#FF6B6B', label: 'Denied' },
+};
+
+export default function ScholarshipApplicationCard({
   scholarship_id,
   title,
   imageUrl,
@@ -27,8 +34,9 @@ export default function ScholarshipCard({
   criteria,
   documents,
   tags,
-  onPress
-}: ScholarshipCardProps) {
+  status,
+  onPress,
+}: ScholarshipApplicationCardProps) {
   const amountPerScholar = slots > 0 ? amount / slots : amount;
 
   const formatAmount = (value: number) => {
@@ -37,46 +45,50 @@ export default function ScholarshipCard({
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'No deadline';
-    
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
     });
   };
 
   const displayCriteria = criteria.slice(0, 2);
   const moreCriteria = criteria.length > 2 ? criteria.length - 2 : 0;
-  
   const displayDocuments = documents.slice(0, 2);
   const moreDocuments = documents.length > 2 ? documents.length - 2 : 0;
 
+  const statusIcon = statusIconMap[status];
+
   return (
     <View style={styles.container}>
-      <Pressable 
-        style={styles.card}
-        onPress={onPress}
-      >
+      <Pressable style={styles.card} onPress={onPress}>
         <LinearGradient
           colors={['#3A52A6', '#3A52A6', '#607EF2']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.cardHeader}
         >
-          <Image 
+          <Image
             source={
-              imageUrl 
-                ? { uri: imageUrl } 
-                : require('@/assets/images/iskolar-logo.png')
+              imageUrl ? { uri: imageUrl } : require('@/assets/images/iskolar-logo.png')
             }
             style={styles.cardImage}
             defaultSource={require('@/assets/images/iskolar-logo.png')}
           />
           <View style={styles.cardHeaderContent}>
-            <Text style={styles.cardTitle} numberOfLines={1} ellipsizeMode="tail">
-              {title}
-            </Text>
+            <View style={styles.headerRow}>
+              <Text style={styles.cardTitle} numberOfLines={1} ellipsizeMode="tail">
+                {title}
+              </Text>
+              <View style={styles.statusIconBox}>
+                <Ionicons
+                  name={statusIcon.name as any}
+                  size={21}
+                  color={statusIcon.color}
+                />
+              </View>
+            </View>
             {tags.length > 0 && (
               <View style={styles.tagContainer}>
                 {tags.map((tag, index) => (
@@ -94,9 +106,7 @@ export default function ScholarshipCard({
             </View>
             <View style={styles.infoRow}>
               <Ionicons name="calendar-outline" size={16} color="#F0F7FF" />
-              <Text style={styles.infoText}>
-                {formatDate(deadline)}
-              </Text>
+              <Text style={styles.infoText}>{formatDate(deadline)}</Text>
             </View>
           </View>
         </LinearGradient>
@@ -170,7 +180,8 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#F0F7FF',
     borderRadius: 14,
-    marginTop: 14,
+    marginTop: 8,
+    marginBottom: 21,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -193,11 +204,27 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     paddingHorizontal: 10,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
   cardTitle: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 20,
     color: '#F0F7FF',
-    marginBottom: 4,
+    flex: 1,
+    marginRight: 8,
+  },
+  statusIconBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusLabel: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    marginLeft: 2,
   },
   tagContainer: {
     flexDirection: 'row',

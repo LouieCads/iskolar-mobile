@@ -37,6 +37,22 @@ interface ScholarshipApplication {
       profile_url?: string;
     };
   };
+  scholarship?: {
+    scholarship_id: string;
+    title: string;
+    description: string;
+    total_amount: number;
+    total_slot: number;
+    application_deadline?: string;
+    criteria: string[];
+    required_documents: string[];
+    tags: string[];
+    image_url?: string;
+    sponsor: {
+      sponsor_id: string;
+      organization_name: string;
+    };
+  };
 }
 
 class ScholarshipApplicationService {

@@ -76,7 +76,7 @@ export default function ScholarshipManagementCard({
             defaultSource={require('@/assets/images/iskolar-logo.png')}
           />
           <View style={styles.cardHeaderContent}>
-            <Text style={styles.cardTitle} numberOfLines={2}>
+            <Text style={styles.cardTitle} numberOfLines={1} ellipsizeMode="tail">
               {title}
             </Text>
             {tags.length > 0 && (
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F7FF',
     borderRadius: 14,
     overflow: 'hidden',
-    marginBottom: 12,
+    marginBottom: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -203,9 +203,8 @@ const styles = StyleSheet.create({
   },
   cardHeaderContent: {
     flex: 1,
-    marginLeft: 16,
-    paddingTop: 8,
-    paddingRight: 12,
+    paddingTop: 6,
+    paddingHorizontal: 10,
   },
   cardTitle: {
     fontFamily: 'BreeSerif_400Regular',

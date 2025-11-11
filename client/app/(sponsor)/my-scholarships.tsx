@@ -202,6 +202,7 @@ export default function MyScholarshipsPage() {
       ) : (
         <ScrollView 
           style={styles.scrollView} 
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -252,11 +253,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F0F7FF',
-    paddingBottom: 28,
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: 16,
+    paddingBottom: 45,
   },
   sectionHeader: {
     paddingHorizontal: 16,

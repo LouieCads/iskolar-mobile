@@ -103,11 +103,18 @@ export const submitApplication = async (req: AuthenticatedRequest, res: Response
     const { scholarship_id, custom_form_response } = req.body;
     const user_id = req.user?.id; 
 
-    // Validate required fields
     if (!scholarship_id || !custom_form_response) {
       res.status(400).json({
         success: false,
         message: "Scholarship ID and custom form response are required",
+      });
+      return;
+    }
+
+    if (!Array.isArray(custom_form_response)) {
+      res.status(400).json({
+        success: false,
+        message: "Form response must be an array",
       });
       return;
     }
@@ -186,7 +193,6 @@ export const submitApplication = async (req: AuthenticatedRequest, res: Response
       status: "pending",
     });
 
-    // Ensure the response structure is correct
     res.status(201).json({
       success: true,
       message: "Application submitted successfully",
@@ -291,10 +297,14 @@ export const uploadApplicationFiles = async (req: AuthenticatedRequest, res: Res
       fileUrls.push(sasUrl);
     }
 
-    const updatedResponse = {
-      ...application.custom_form_response,
-      [field_key]: fileUrls,
-    };
+    // Update the specific field in the array
+    const currentResponse = application.custom_form_response as Array<{ label: string; value: any }>;
+    const updatedResponse = currentResponse.map(item => {
+      if (item.label === field_key) {
+        return { ...item, value: fileUrls };
+      }
+      return item;
+    });
 
     await application.update({
       custom_form_response: updatedResponse,

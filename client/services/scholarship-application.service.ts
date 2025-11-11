@@ -4,7 +4,7 @@ const EXPO_API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export interface ApplicationFormData {
   scholarship_id: string;
-  custom_form_response: Record<string, any>;
+  custom_form_response: Array<{ label: string; value: any }>; 
 }
 
 export interface ApplicationFileUpload {
@@ -23,7 +23,7 @@ interface ScholarshipApplication {
   scholarship_id: string;
   status: 'pending' | 'approved' | 'denied';
   remarks?: string;
-  custom_form_response: Record<string, any>;
+  custom_form_response: Array<{ label: string; value: any }>; 
   applied_at: string;
   updated_at: string;
   student?: {
@@ -45,7 +45,7 @@ class ScholarshipApplicationService {
    */
   async submitApplication(
     scholarshipId: string,
-    customFormResponse: Record<string, any>
+    customFormResponse: Array<{ label: string; value: any }> 
   ): Promise<{
     success: boolean;
     application?: ScholarshipApplication;

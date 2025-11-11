@@ -54,12 +54,11 @@ const getCustomFormFields = (scholarship: any): CustomFormField[] => {
   return [];
 };
 
-// Dynamic schema builder based on custom form fields
 const buildValidationSchema = (fields: CustomFormField[]) => {
   const schemaObject: Record<string, z.ZodTypeAny> = {};
 
   fields.forEach((field, index) => {
-    const fieldKey = `${field.label}-${index}`;
+    const fieldKey = field.label;
     
     switch (field.type) {
       case 'text':
@@ -176,7 +175,8 @@ export default function ScholarshipApplyPage() {
     resolver: zodResolver(validationSchema),
     mode: 'onSubmit',
     defaultValues: customFields.reduce((acc, field, index) => {
-      const fieldKey = `${field.label}-${index}`;
+      // Use only the label as the field key
+      const fieldKey = field.label;
       acc[fieldKey] = field.type === 'checkbox' ? [] : '';
       return acc;
     }, {} as Record<string, any>),
@@ -209,7 +209,7 @@ export default function ScholarshipApplyPage() {
         // Reset form when scholarship data is loaded
         const fields = getCustomFormFields(res.scholarship);
         const defaultValues = fields.reduce((acc, field, index) => {
-          const fieldKey = `${field.label}-${index}`;
+          const fieldKey = field.label;
           acc[fieldKey] = field.type === 'checkbox' ? [] : '';
           return acc;
         }, {} as Record<string, any>);
@@ -247,10 +247,10 @@ export default function ScholarshipApplyPage() {
       return;
     }
 
-    // Validate file fields separately
+    // Validate file fields 
     const fileValidationErrors: string[] = [];
     customFields.forEach((field: CustomFormField, index: number) => {
-      const fieldKey = `${field.label}-${index}`;
+      const fieldKey = field.label;
       if (field.type === 'file' && field.required) {
         const files = customFormFiles[fieldKey] || [];
         if (files.length === 0) {
@@ -268,18 +268,27 @@ export default function ScholarshipApplyPage() {
     setSubmitting(true);
 
     try {
-      // Remove file fields from form data
-      const formResponse = { ...formData };
+      const orderedResponseArray: Array<{ label: string; value: any }> = [];
+      
       customFields.forEach((field: CustomFormField, index: number) => {
-        const fieldKey = `${field.label}-${index}`;
+        const fieldKey = field.label;
+        
         if (field.type === 'file') {
-          delete formResponse[fieldKey];
+          orderedResponseArray.push({
+            label: fieldKey,
+            value: null, 
+          });
+        } else {
+          orderedResponseArray.push({
+            label: fieldKey,
+            value: formData[fieldKey],
+          });
         }
       });
 
       const submitResult = await scholarshipApplicationService.submitApplication(
         String(id),
-        formResponse
+        orderedResponseArray 
       );
 
       if (!submitResult.success) {
@@ -296,11 +305,11 @@ export default function ScholarshipApplyPage() {
         return;
       }
 
-      // Upload files for each file field
+      // Upload files 
       const fileUploadPromises: Promise<any>[] = [];
       
       customFields.forEach((field: CustomFormField, index: number) => {
-        const fieldKey = `${field.label}-${index}`;
+        const fieldKey = field.label;
         if (field.type === 'file') {
           const files = customFormFiles[fieldKey] || [];
           if (files.length > 0) {
@@ -414,15 +423,14 @@ export default function ScholarshipApplyPage() {
     }
   };
 
-  // Render custom form field based on type
   const renderCustomFormField = (field: CustomFormField, index: number) => {
-    const fieldKey = `${field.label}-${index}`;
+    const fieldKey = field.label; 
     const files = customFormFiles[fieldKey] || [];
     const showDatePicker = datePickers[fieldKey] || false;
     const fieldError = errors[fieldKey];
 
     return (
-      <View key={fieldKey} style={styles.customFieldContainer}>
+      <View key={`${fieldKey}-${index}`} style={styles.customFieldContainer}>
         <View style={styles.customFieldLabelContainer}>
           <Text style={styles.customFieldLabel}>
             {field.label}

@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Alert, Animated, Image, Modal } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Alert, Animated, Image, Modal, Linking } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import Header from '@/components/header';
 import { scholarshipService } from '@/services/scholarship-creation.service';
@@ -10,7 +10,7 @@ interface Applicant {
   scholarship_application_id: string;
   student_id: string;
   status: 'pending' | 'approved' | 'denied';
-  custom_form_response: Record<string, any>;
+  custom_form_response: Array<{ label: string; value: any }>; 
   applied_at: string;
   remarks?: string;
   student?: {
@@ -60,7 +60,7 @@ export default function ApplicantsListPage() {
         setScholarship(scholarshipRes.scholarship);
       }
 
-      // Fetch applicants (implement this in your service)
+      // Fetch applicants
       const response = await scholarshipApplicationService.getScholarshipApplications(String(id));
       if (response.success && response.applications) {
         setApplicants(response.applications);
@@ -132,6 +132,20 @@ export default function ApplicantsListPage() {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const handleFileOpen = async (url: string, fileName: string) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Error', 'Cannot open this file type');
+      }
+    } catch (error) {
+      console.error('Error opening file:', error);
+      Alert.alert('Error', 'Failed to open file');
+    }
   };
 
   const filteredApplicants = applicants.filter(app => 
@@ -355,27 +369,64 @@ export default function ApplicantsListPage() {
                   {/* Custom Form Response */}
                   <View style={styles.modalSection}>
                     <Text style={styles.sectionTitle}>Application Response</Text>
-                    {Object.entries(selectedApplicant.custom_form_response).map(([key, value]) => (
-                      <View key={key} style={styles.responseItem}>
-                        <Text style={styles.responseLabel}>
-                          {scholarship?.custom_form_fields?.find((f: any) => f.key === key)?.label || key}
-                        </Text>
-                        {Array.isArray(value) && typeof value[0] === 'string' && value[0].startsWith('http') ? (
-                          <View style={styles.fileList}>
-                            {value.map((url: string, idx: number) => (
-                              <View key={idx} style={styles.fileItem}>
-                                <Ionicons name="document-attach" size={16} color="#3A52A6" />
-                                <Text style={styles.fileText}>File {idx + 1}</Text>
-                              </View>
-                            ))}
-                          </View>
-                        ) : (
-                          <Text style={styles.responseValue}>
-                            {Array.isArray(value) ? value.join(', ') : String(value)}
-                          </Text>
-                        )}
-                      </View>
-                    ))}
+                    {Array.isArray(selectedApplicant.custom_form_response) ? (
+                      selectedApplicant.custom_form_response.map((item, index) => (
+                        <View key={index} style={styles.responseItem}>
+                          <Text style={styles.responseLabel}>{item.label}</Text>
+                          {Array.isArray(item.value) && item.value.length > 0 && typeof item.value[0] === 'string' && item.value[0].startsWith('http') ? (
+                            <View style={styles.fileList}>
+                              {item.value.map((url: string, idx: number) => (
+                                <Pressable 
+                                  key={idx} 
+                                  style={styles.fileItem}
+                                  onPress={() => handleFileOpen(url, `${item.label}_file_${idx + 1}`)}
+                                >
+                                  <Ionicons name="document-attach" size={16} color="#3A52A6" />
+                                  <Text style={styles.fileText}>
+                                    File {idx + 1}
+                                  </Text>
+                                  <Ionicons name="open-outline" size={14} color="#3A52A6" style={{ marginLeft: 4 }} />
+                                </Pressable>
+                              ))}
+                            </View>
+                          ) : item.value === null || item.value === '' ? (
+                            <Text style={[styles.responseValue, { fontStyle: 'italic', color: '#9CA3AF' }]}>
+                              No response provided
+                            </Text>
+                          ) : (
+                            <Text style={styles.responseValue}>
+                              {Array.isArray(item.value) ? item.value.join(', ') : String(item.value)}
+                            </Text>
+                          )}
+                        </View>
+                      ))
+                    ) : (
+                      // Fallback for old format (object-based responses)
+                      Object.entries(selectedApplicant.custom_form_response || {}).map(([key, value]) => (
+                        <View key={key} style={styles.responseItem}>
+                          <Text style={styles.responseLabel}>{key}</Text>
+                          {Array.isArray(value) && value.length > 0 && typeof value[0] === 'string' && value[0].startsWith('http') ? (
+                            <View style={styles.fileList}>
+                              {value.map((url: string, idx: number) => (
+                                <Pressable 
+                                  key={idx} 
+                                  style={styles.fileItem}
+                                  onPress={() => handleFileOpen(url, `file_${idx + 1}`)}
+                                >
+                                  <Ionicons name="document-attach" size={16} color="#3A52A6" />
+                                  <Text style={styles.fileText}>File {idx + 1}</Text>
+                                  <Ionicons name="open-outline" size={14} color="#3A52A6" style={{ marginLeft: 4 }} />
+                                </Pressable>
+                              ))}
+                            </View>
+                          ) : (
+                            <Text style={styles.responseValue}>
+                              {Array.isArray(value) ? value.join(', ') : String(value)}
+                            </Text>
+                          )}
+                        </View>
+                      ))
+                    )}
                   </View>
 
                   {/* Status & Remarks */}

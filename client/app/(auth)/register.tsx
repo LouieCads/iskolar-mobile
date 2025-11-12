@@ -34,6 +34,8 @@ const EXPO_API_URL = process.env.EXPO_PUBLIC_API_URL;
 export default function RegisterPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [toast, setToast] = useState({
     visible: false,
     type: 'success' as 'success' | 'error',
@@ -197,17 +199,30 @@ export default function RegisterPage() {
               control={control}
               name="password"
               render={({ field: { onChange, value } }) => (
-                <TextInput
-                  style={[styles.input, errors.password && styles.inputError]}
-                  placeholder="Enter password"
-                  placeholderTextColor="#9CA3AF"
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  value={value}
-                  onChangeText={onChange}
-                  editable={!loading}
-                />
+                <View style={styles.passwordInputWrapper}>
+                  <TextInput
+                    style={[styles.input, errors.password && styles.inputError]}
+                    placeholder="Enter password"
+                    placeholderTextColor="#9CA3AF"
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    value={value}
+                    onChangeText={onChange}
+                    editable={!loading}
+                  />
+                  <Pressable
+                    style={styles.eyeIcon}
+                    onPress={() => setShowPassword(!showPassword)}
+                    disabled={loading}
+                  >
+                    <MaterialIcons
+                      name={showPassword ? "visibility" : "visibility-off"}
+                      size={20}
+                      color="#718096"
+                    />
+                  </Pressable>
+                </View>
               )}
             />
             {errors.password && (
@@ -222,17 +237,30 @@ export default function RegisterPage() {
               control={control}
               name="confirmPassword"
               render={({ field: { onChange, value } }) => (
-                <TextInput
-                  style={[styles.input, errors.confirmPassword && styles.inputError]}
-                  placeholder="Confirm password"
-                  placeholderTextColor="#9CA3AF"
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  value={value}
-                  onChangeText={onChange}
-                  editable={!loading}
-                />
+                <View style={styles.passwordInputWrapper}>
+                  <TextInput
+                    style={[styles.input, errors.confirmPassword && styles.inputError]}
+                    placeholder="Confirm password"
+                    placeholderTextColor="#9CA3AF"
+                    secureTextEntry={!showConfirmPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    value={value}
+                    onChangeText={onChange}
+                    editable={!loading}
+                  />
+                  <Pressable
+                    style={styles.eyeIcon}
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    disabled={loading}
+                  >
+                    <MaterialIcons
+                      name={showConfirmPassword ? "visibility" : "visibility-off"}
+                      size={20}
+                      color="#718096"
+                    />
+                  </Pressable>
+                </View>
               )}
             />
             {errors.confirmPassword && (
@@ -328,6 +356,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginLeft: 4,
   },
+  passwordInputWrapper: {
+    position: 'relative',
+  },
   input: {
     backgroundColor: '#F0F7FF',
     borderRadius: 12,
@@ -338,6 +369,12 @@ const styles = StyleSheet.create({
     color: '#111827',
     borderWidth: 1,
     borderColor: '#C4CBD5',
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 12,
+    top: 10,
+    padding: 4,
   },
   inputError: {
     borderColor: '#EF4444',

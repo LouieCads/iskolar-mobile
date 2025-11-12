@@ -35,6 +35,8 @@ export default function ResetPasswordPage() {
   const email = (params.email as string)?.trim().toLowerCase().slice(0, 254);
 
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [toast, setToast] = useState({
     visible: false,
     type: 'success' as 'success' | 'error',
@@ -172,13 +174,24 @@ export default function ResetPasswordPage() {
                     style={[styles.input, errors.password && styles.inputError]}
                     placeholder="Enter new password"
                     placeholderTextColor="#9CA3AF"
-                    secureTextEntry
+                    secureTextEntry={!showPassword}
                     autoCapitalize="none"
                     autoCorrect={false}
                     value={value}
                     onChangeText={onChange}
                     editable={!loading}
                   />
+                  <Pressable
+                    style={styles.eyeIcon}
+                    onPress={() => setShowPassword(!showPassword)}
+                    disabled={loading}
+                  >
+                    <MaterialIcons
+                      name={showPassword ? "visibility" : "visibility-off"}
+                      size={20}
+                      color="#718096"
+                    />
+                  </Pressable>
                 </View>
               )}
             />
@@ -199,13 +212,24 @@ export default function ResetPasswordPage() {
                     style={[styles.input, errors.confirmPassword && styles.inputError]}
                     placeholder="Confirm new password"
                     placeholderTextColor="#9CA3AF"
-                    secureTextEntry
+                    secureTextEntry={!showConfirmPassword}
                     autoCapitalize="none"
                     autoCorrect={false}
                     value={value}
                     onChangeText={onChange}
                     editable={!loading}
                   />
+                  <Pressable
+                    style={styles.eyeIcon}
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    disabled={loading}
+                  >
+                    <MaterialIcons
+                      name={showConfirmPassword ? "visibility" : "visibility-off"}
+                      size={20}
+                      color="#718096"
+                    />
+                  </Pressable>
                 </View>
               )}
             />
@@ -316,6 +340,12 @@ const styles = StyleSheet.create({
     color: '#111827',
     borderWidth: 1,
     borderColor: '#C4CBD5',
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 12,
+    top: 10,
+    padding: 4,
   },
   inputError: {
     borderColor: '#EF4444',

@@ -42,6 +42,10 @@ interface Application {
     sponsor: {
       sponsor_id: string;
       organization_name: string;
+      user_id: string; 
+      user: {                   
+        profile_url?: string;
+      };
     };
   };
 }
@@ -321,6 +325,7 @@ export default function StudentHomePage() {
                   scholarship_id={application.scholarship.scholarship_id}
                   title={application.scholarship.title}
                   imageUrl={application.scholarship.image_url}
+                  profileUrl={application.scholarship.sponsor.user?.profile_url}
                   sponsorName={application.scholarship.sponsor.organization_name}
                   deadline={application.scholarship.application_deadline}
                   amount={application.scholarship.total_amount || 0}

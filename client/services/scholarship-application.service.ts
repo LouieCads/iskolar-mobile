@@ -39,6 +39,8 @@ interface ScholarshipApplication {
   };
   scholarship?: {
     scholarship_id: string;
+    type: string;        
+    purpose: string; 
     title: string;
     description: string;
     total_amount: number;
@@ -51,6 +53,10 @@ interface ScholarshipApplication {
     sponsor: {
       sponsor_id: string;
       organization_name: string;
+      user_id: string; 
+      user: {                   
+        profile_url?: string;
+      };
     };
   };
 }

@@ -421,7 +421,14 @@ export const getSponsorScholarships = async (req: AuthenticatedRequest, res: Res
         {
           model: Sponsor,
           as: 'sponsor',
-          attributes: ['sponsor_id', 'organization_name'],
+          attributes: ['sponsor_id', 'organization_name', 'user_id'],
+          include: [
+            {
+              model: User,
+              as: 'user',
+              attributes: ['user_id', 'profile_url']
+            }
+          ]
         },
         {
           model: ScholarshipApplication,
@@ -439,13 +446,17 @@ export const getSponsorScholarships = async (req: AuthenticatedRequest, res: Res
       },
       group: [
         'Scholarship.scholarship_id',
-        'sponsor.sponsor_id'
+        'sponsor.sponsor_id',
+        'sponsor.user_id',
+        'sponsor.organization_name',
+        'sponsor->user.user_id',
+        'sponsor->user.profile_url'
       ],
       order: [['created_at', 'DESC']],
       subQuery: false,
     });
 
-    // Format the response with applications count
+    // Format the response
     const formattedScholarships = scholarships.map((scholarship: any) => {
       const scholarshipData = scholarship.toJSON();
       return {
@@ -469,6 +480,7 @@ export const getSponsorScholarships = async (req: AuthenticatedRequest, res: Res
         sponsor: {
           sponsor_id: scholarshipData.sponsor?.sponsor_id,
           organization_name: scholarshipData.sponsor?.organization_name,
+          profile_url: scholarshipData.sponsor?.user?.profile_url,
         }
       };
     });

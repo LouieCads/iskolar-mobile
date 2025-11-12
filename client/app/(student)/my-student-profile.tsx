@@ -96,10 +96,8 @@ export default function MyStudentProfile() {
     try {
       setLoading(true);
       const result = await profileService.getProfile();
-      console.log('Profile fetch result:', result);
       
       if (result.success && result.profile) {
-        console.log('Profile data:', result.profile);
         setProfileData(result.profile);
         setEditedData({
           full_name: result.profile.full_name || '',
@@ -179,7 +177,6 @@ export default function MyStudentProfile() {
   const uploadProfilePicture = async (imageUri: string) => {
     try {
       setUploadingImage(true);
-      console.log('Starting profile picture upload for URI:', imageUri);
       
       const result = await profileService.uploadProfilePicture(imageUri);
       console.log('Upload result:', result);

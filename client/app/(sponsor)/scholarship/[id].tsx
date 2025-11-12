@@ -249,19 +249,10 @@ export default function ScholarshipDetailsPage() {
                       </View>
                       <Text style={styles.customFieldType}>
                         {getFieldTypeLabel(field.type)}
-                        {field.type === 'dropdown' && field.options && field.options.length > 0 && 
+                        {(field.type === 'dropdown' || field.type === 'checkbox') && field.options && field.options.length > 0 && 
                           ` • ${field.options.length} option${field.options.length !== 1 ? 's' : ''}`
                         }
                       </Text>
-                      {field.type === 'dropdown' && field.options && field.options.length > 0 && (
-                        <View style={styles.dropdownOptionsContainer}>
-                          {field.options.map((option: string, optIndex: number) => (
-                            <View key={optIndex} style={styles.dropdownOptionChip}>
-                              <Text style={styles.dropdownOptionText}>{option}</Text>
-                            </View>
-                          ))}
-                        </View>
-                      )}
                     </View>
                   </View>
                 ))}
@@ -523,25 +514,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 11,
     color: '#6B7280',
-  },
-  dropdownOptionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 8,
-  },
-  dropdownOptionChip: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  dropdownOptionText: {
-    fontFamily: 'BreeSerif_400Regular',
-    fontSize: 10,
-    color: '#4B5563',
   },
   viewApplicantsBtn: {
     backgroundColor: '#E0ECFF',

@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
   listContent: {
     paddingVertical: 16,
     paddingHorizontal: 24,
-    gap: 12,
+    gap: 8,
   },
   emptyState: {
     alignItems: 'center',
@@ -776,7 +776,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },

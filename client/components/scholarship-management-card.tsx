@@ -6,6 +6,7 @@ interface ScholarshipManagementCardProps {
   scholarship_id: string;
   title: string;
   imageUrl?: string;
+  profileUrl?: string;
   sponsorName: string;
   deadline?: string;
   amount: number;
@@ -21,6 +22,7 @@ export default function ScholarshipManagementCard({
   scholarship_id,
   title,
   imageUrl,
+  profileUrl,
   sponsorName,
   deadline,
   amount,
@@ -89,7 +91,13 @@ export default function ScholarshipManagementCard({
               </View>
             )}
             <View style={styles.infoRow}>
-              <Ionicons name="person-circle-outline" size={16} color="#F0F7FF" />
+              <Image 
+                source={
+                  profileUrl ? { uri: profileUrl } : require('@/assets/images/iskolar.png')
+                }
+                style={styles.profileImage}
+                defaultSource={require('@/assets/images/iskolar.png')}
+              />
               <Text style={styles.infoText} numberOfLines={1}>
                 {sponsorName}
               </Text>
@@ -198,6 +206,13 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderTopLeftRadius: 8,
+    backgroundColor: '#F0F7FF',
+    resizeMode: 'cover',
+  },
+  profileImage: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
     backgroundColor: '#F0F7FF',
     resizeMode: 'cover',
   },

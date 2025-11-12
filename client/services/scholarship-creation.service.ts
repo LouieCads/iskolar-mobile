@@ -24,9 +24,9 @@ export interface CustomFormField {
 
 interface Sponsor {
   sponsor_id: string;
-  profile_url?: string;
-  organization_name: string;
   email?: string;
+  organization_name: string;           
+  profile_url?: string;
 }
 
 interface Scholarship {

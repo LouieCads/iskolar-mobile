@@ -281,7 +281,7 @@ export default function ApplicationDetailsPage() {
                             <Pressable key={idx} style={styles.fileLink}>
                               <Ionicons name="document-outline" size={16} color="#3A52A6" />
                               <Text style={styles.fileLinkText} numberOfLines={1}>
-                                Uploaded File {idx + 1}
+                                File {idx + 1}
                               </Text>
                             </Pressable>
                           ))

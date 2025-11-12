@@ -91,7 +91,7 @@ export default function ScholarshipCard({
             <View style={styles.infoRow}>
               <Image 
                 source={
-                  imageUrl 
+                  profileUrl 
                     ? { uri: profileUrl } 
                     : require('@/assets/images/iskolar-logo.png')
                 }

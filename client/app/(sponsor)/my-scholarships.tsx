@@ -10,9 +10,9 @@ import CreateScholarshipButton from '@/components/create-scholarship-button';
 
 interface Sponsor {
   sponsor_id: string;
-  organization_name: string;
-  logo_url?: string;
   email?: string;
+  organization_name: string;            
+  profile_url?: string;
 }
 
 interface Scholarship {
@@ -226,7 +226,8 @@ export default function MyScholarshipsPage() {
               scholarship_id={scholarship.scholarship_id}
               title={scholarship.title}
               imageUrl={scholarship.image_url}
-              sponsorName={scholarship.sponsor?.organization_name || 'Your Organization'}
+              profileUrl={scholarship.sponsor?.profile_url}
+              sponsorName={scholarship.sponsor?.organization_name}
               deadline={scholarship.application_deadline}
               amount={scholarship.total_amount}
               slots={scholarship.total_slot}

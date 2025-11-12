@@ -361,7 +361,14 @@ export const getMyApplications = async (req: AuthenticatedRequest, res: Response
             {
               model: Sponsor,
               as: "sponsor",
-              attributes: ["sponsor_id", "organization_name"],
+              attributes: ['sponsor_id', 'organization_name', 'user_id'],
+              include: [
+                {
+                  model: User,
+                  as: 'user',
+                  attributes: ['profile_url']
+                }
+              ]
             },
           ],
         },
@@ -420,7 +427,14 @@ export const getApplicationById = async (req: AuthenticatedRequest, res: Respons
             {
               model: Sponsor,
               as: "sponsor",
-              attributes: ["sponsor_id", "organization_name"],
+              attributes: ['sponsor_id', 'organization_name', 'user_id'],
+              include: [
+                {
+                  model: User,
+                  as: 'user',
+                  attributes: ['profile_url']
+                }
+              ],
             },
           ],
         },

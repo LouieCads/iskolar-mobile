@@ -91,10 +91,8 @@ export default function MySponsorProfile() {
     try {
       setLoading(true);
       const result = await profileService.getProfile();
-      console.log('Profile fetch result:', result);
       
       if (result.success && result.profile) {
-        console.log('Profile data:', result.profile);
         setProfileData(result.profile);
         setEditedData({
           organization_name: result.profile.organization_name || '',
@@ -174,7 +172,6 @@ export default function MySponsorProfile() {
   const uploadProfilePicture = async (imageUri: string) => {
     try {
       setUploadingImage(true);
-      console.log('Starting profile picture upload for URI:', imageUri);
       
       const result = await profileService.uploadProfilePicture(imageUri);
       console.log('Upload result:', result);

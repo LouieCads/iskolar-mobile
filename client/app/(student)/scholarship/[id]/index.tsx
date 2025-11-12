@@ -14,6 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import Header from '@/components/header';
 import { scholarshipService } from '@/services/scholarship-creation.service';
 import { authService } from '@/services/auth.service';
+import { scholarshipApplicationService } from '@/services/scholarship-application.service';
+import Toast from '@/components/toast';
 
 export default function ScholarshipDetailsPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -23,6 +25,12 @@ export default function ScholarshipDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [scholarship, setScholarship] = useState<any>(null);
   const [isStudent, setIsStudent] = useState(false);
+  // Toast state for user feedback (e.g. when user already applied)
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastType, setToastType] = useState<'success' | 'error'>('error');
+  const [toastTitle, setToastTitle] = useState('');
+  const [toastMessage, setToastMessage] = useState('');
+  const toastTimerRef = useRef<any>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(8)).current;
@@ -74,6 +82,13 @@ export default function ScholarshipDetailsPage() {
     fetchRole();
   }, []);
 
+  // Cleanup toast timer on unmount
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
   const amountPerScholar = scholarship?.total_slot > 0
     ? scholarship.total_amount / scholarship.total_slot
     : scholarship?.total_amount;
@@ -90,12 +105,36 @@ export default function ScholarshipDetailsPage() {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
-  const handleApplyPress = useCallback(() => {
+  const handleApplyPress = useCallback(async () => {
     if (!id) return;
-    router.push({
-      pathname: '/(student)/scholarship/[id]/apply',
-      params: { id: String(id) },
-    } as any);
+
+    try {
+      const res = await scholarshipApplicationService.checkApplicationExists(String(id));
+
+      if (res.success && res.exists) {
+        setToastType('error');
+        setToastTitle('Already Applied');
+        setToastMessage('You have already applied for this scholarship.');
+        setToastVisible(true);
+
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = setTimeout(() => setToastVisible(false), 2000);
+        return;
+      }
+
+      router.push({
+        pathname: '/(student)/scholarship/[id]/apply',
+        params: { id: String(id) },
+      } as any);
+    } catch (err) {
+      console.error('Error checking existing application:', err);
+      setToastType('error');
+      setToastTitle('Error');
+      setToastMessage('Failed to check application status. Please try again.');
+      setToastVisible(true);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => setToastVisible(false), 2000);
+    }
   }, [id, router]);
 
   const showApplyButton = !loading && !error && !roleLoading && isStudent;
@@ -218,6 +257,15 @@ export default function ScholarshipDetailsPage() {
           </Animated.ScrollView>
         </View>
       )}
+
+      {/* Toast component for feedback (e.g. already applied) */}
+      <Toast
+        visible={toastVisible}
+        type={toastType}
+        title={toastTitle}
+        message={toastMessage}
+      />
+
     </View>
   );
 }

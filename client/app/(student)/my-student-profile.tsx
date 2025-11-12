@@ -182,7 +182,7 @@ export default function MyStudentProfile() {
       console.log('Upload result:', result);
       
       if (result.success) {
-        showToast('success', 'Success', 'Profile picture updated successfully');
+        showToast('success', 'Success', 'Profile picture updated!');
         if (profileData) {
           setProfileData({ ...profileData, profile_url: result.profile_url });
         }
@@ -232,7 +232,7 @@ export default function MyStudentProfile() {
       const result = await profileService.updateProfile(editedData);
       
       if (result.success) {
-        showToast('success', 'Success', 'Profile updated successfully');
+        showToast('success', 'Success', 'Profile updated!');
         await fetchProfile();
         setIsEditing(false);
       } else {

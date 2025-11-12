@@ -85,7 +85,7 @@ class ScholarshipApplicationService {
       return {
         success: response.success,
         application: response.data?.application,
-        message: response.message || (response.success ? 'Application submitted successfully' : 'Failed to submit application'),
+        message: response.message || (response.success ? 'Application submitted!' : 'Failed to submit application'),
       };
     } catch (error) {
       console.error('Submit application error:', error);
@@ -156,7 +156,7 @@ class ScholarshipApplicationService {
       return {
         success: response.ok,
         file_urls: result.file_urls,
-        message: result.message || (response.ok ? 'Files uploaded successfully' : 'Failed to upload files'),
+        message: result.message || (response.ok ? 'Files uploaded!' : 'Failed to upload files'),
       };
     } catch (error) {
       console.error('File upload error:', error);
@@ -314,7 +314,7 @@ class ScholarshipApplicationService {
       return {
         success: response.success,
         application: response.data?.application,
-        message: response.message || (response.success ? 'Status updated successfully' : 'Failed to update status'),
+        message: response.message || (response.success ? 'Status updated!' : 'Failed to update status'),
       };
     } catch (error) {
       console.error('Update application status error:', error);
@@ -355,7 +355,7 @@ class ScholarshipApplicationService {
         success: response.success,
         updated_count: response.data?.updated_count,
         applications: response.data?.applications,
-        message: response.message || (response.success ? 'Applications updated successfully' : 'Failed to update applications'),
+        message: response.message || (response.success ? 'Applications updated!' : 'Failed to update applications'),
       };
     } catch (error) {
       console.error('Bulk update application status error:', error);

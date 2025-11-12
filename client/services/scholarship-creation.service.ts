@@ -121,7 +121,7 @@ class ScholarshipService {
 
     return {
       success: response.success,
-      message: response.message || (response.success ? 'Scholarship deleted successfully' : 'Failed to delete scholarship')
+      message: response.message || (response.success ? 'Scholarship deleted' : 'Failed to delete scholarship')
     };
   }
 

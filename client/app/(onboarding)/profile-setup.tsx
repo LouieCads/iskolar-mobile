@@ -181,7 +181,7 @@ export default function ProfileSetupPage() {
         });
 
         if (result.success) {
-          showToast('success', 'Profile Created', 'Your student profile has been set up successfully');
+          showToast('success', 'Profile Created', 'Your profile has been set up successfully');
           setShowLoadingScreen(true);
           setTimeout(() => {
             router.replace('../(student)/home');
@@ -200,7 +200,7 @@ export default function ProfileSetupPage() {
         });
 
         if (result.success) {
-          showToast('success', 'Profile Created', 'Your sponsor profile has been set up successfully');
+          showToast('success', 'Profile Created', 'Your profile has been set up successfully');
           setShowLoadingScreen(true);
           setTimeout(() => {
             router.replace('../(sponsor)/my-scholarships');

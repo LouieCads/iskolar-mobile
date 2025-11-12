@@ -148,7 +148,7 @@ export default function ApplicantsListPage() {
       );
 
       if (response.success) {
-        showToast('success', 'Success', `${response.updated_count} application(s) ${bulkAction} successfully`);
+        showToast('success', 'Success', `${response.updated_count} application(s) ${bulkAction}`);
         setBulkActionModal(false);
         setBulkRemarks('');
         setSelectedApplicantIds(new Set());
@@ -171,7 +171,7 @@ export default function ApplicantsListPage() {
       );
 
       if (response.success) {
-        showToast('success', 'Success', `Application ${newStatus} successfully`);
+        showToast('success', 'Success', `Application ${newStatus}`);
         setModalVisible(false);
         fetchApplicants();
       } else {

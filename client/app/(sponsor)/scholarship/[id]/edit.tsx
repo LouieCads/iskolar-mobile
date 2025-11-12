@@ -215,7 +215,7 @@ export default function EditScholarshipPage() {
       
       const res = await scholarshipService.updateScholarship(String(id), payload);
       if (res.success) {
-        showToast('success', 'Success', 'Scholarship updated successfully!');
+        showToast('success', 'Success', 'Scholarship updated!');
         setNewImageUri(null);
       } else {
         showToast('error', 'Error', res.message);

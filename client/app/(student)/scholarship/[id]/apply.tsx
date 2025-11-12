@@ -179,7 +179,6 @@ export default function ScholarshipApplyPage() {
     resolver: zodResolver(validationSchema),
     mode: 'onSubmit',
     defaultValues: customFields.reduce((acc, field, index) => {
-      // Use only the label as the field key
       const fieldKey = field.label;
       acc[fieldKey] = field.type === 'checkbox' ? [] : '';
       return acc;
@@ -246,7 +245,6 @@ export default function ScholarshipApplyPage() {
   };
 
   const onSubmit = async (formData: Record<string, any>) => {
-    // Show confirmation modal instead of proceeding directly
     setPendingSubmitData(formData);
     setShowSubmissionConfirmation(true);
   };
@@ -313,7 +311,7 @@ export default function ScholarshipApplyPage() {
       const applicationId = submitResult.application?.scholarship_application_id;
 
       if (!applicationId) {
-        showToast('error', 'Error', 'Application created but ID not returned. Please contact support.');
+        showToast('error', 'Error', 'Application created but ID not returned.');
         setSubmitting(false);
         return;
       }
@@ -352,7 +350,7 @@ export default function ScholarshipApplyPage() {
           showToast(
             'error',
             'Upload Warning',
-            `Application submitted but ${failedUploads.length} file upload(s) failed. Please contact support.`
+            `Application submitted but ${failedUploads.length} file upload(s) failed.`
           );
           setSubmitting(false);
           return;

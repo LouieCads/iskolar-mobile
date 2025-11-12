@@ -10,7 +10,7 @@ import { scholarshipApplicationService } from '@/services/scholarship-applicatio
 interface Applicant {
   scholarship_application_id: string;
   student_id: string;
-  status: 'pending' | 'approved' | 'denied';
+  status: 'pending' | 'shortlisted' | 'approved' | 'denied';
   custom_form_response: Array<{ label: string; value: any }>; 
   applied_at: string;
   remarks?: string;
@@ -35,8 +35,15 @@ export default function ApplicantsListPage() {
   const [scholarship, setScholarship] = useState<any>(null);
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'denied'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'shortlisted' | 'approved' | 'denied'>('all');
   const [showDropdown, setShowDropdown] = useState(false);
+  
+  // Bulk operations state
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedApplicantIds, setSelectedApplicantIds] = useState<Set<string>>(new Set());
+  const [bulkActionModal, setBulkActionModal] = useState(false);
+  const [bulkAction, setBulkAction] = useState<'shortlisted' | 'approved' | 'denied' | null>(null);
+  const [bulkRemarks, setBulkRemarks] = useState('');
   
   // Toast state
   const [toastVisible, setToastVisible] = useState(false);
@@ -46,7 +53,7 @@ export default function ApplicantsListPage() {
 
   // Confirmation modal state
   const [confirmationModal, setConfirmationModal] = useState(false);
-  const [pendingAction, setPendingAction] = useState<{ type: 'approve' | 'deny'; applicationId: string } | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ type: 'shortlisted' | 'approved' | 'deny'; applicationId: string } | null>(null);
   const [denialRemarks, setDenialRemarks] = useState('');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -73,13 +80,11 @@ export default function ApplicantsListPage() {
       setError(null);
       setLoading(true);
       
-      // Fetch scholarship details
       const scholarshipRes = await scholarshipService.getScholarshipById(String(id));
       if (scholarshipRes.success && scholarshipRes.scholarship) {
         setScholarship(scholarshipRes.scholarship);
       }
 
-      // Fetch applicants
       const response = await scholarshipApplicationService.getScholarshipApplications(String(id));
       if (response.success && response.applications) {
         setApplicants(response.applications);
@@ -99,25 +104,65 @@ export default function ApplicantsListPage() {
     fetchApplicants();
   }, [fetchApplicants]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'approved': return '#31D0AA';
-      case 'denied': return '#EF4444';
-      case 'pending': return '#F59E0B';
-      default: return '#6B7280';
+  const toggleBulkMode = () => {
+    setBulkMode(!bulkMode);
+    setSelectedApplicantIds(new Set());
+  };
+
+  const toggleApplicantSelection = (id: string) => {
+    const newSelected = new Set(selectedApplicantIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedApplicantIds(newSelected);
+  };
+
+  const selectAll = () => {
+    const allIds = new Set(filteredApplicants.map(app => app.scholarship_application_id));
+    setSelectedApplicantIds(allIds);
+  };
+
+  const deselectAll = () => {
+    setSelectedApplicantIds(new Set());
+  };
+
+  const handleBulkAction = (action: 'shortlisted' | 'approved' | 'denied') => {
+    if (selectedApplicantIds.size === 0) {
+      showToast('error', 'Error', 'Please select at least one applicant');
+      return;
+    }
+    setBulkAction(action);
+    setBulkActionModal(true);
+  };
+
+  const executeBulkAction = async () => {
+    if (!bulkAction || selectedApplicantIds.size === 0) return;
+
+    try {
+      const response = await scholarshipApplicationService.bulkUpdateApplicationStatus(
+        Array.from(selectedApplicantIds),
+        bulkAction,
+        bulkRemarks.trim() || undefined
+      );
+
+      if (response.success) {
+        showToast('success', 'Success', `${response.updated_count} application(s) ${bulkAction} successfully`);
+        setBulkActionModal(false);
+        setBulkRemarks('');
+        setSelectedApplicantIds(new Set());
+        setBulkMode(false);
+        fetchApplicants();
+      } else {
+        showToast('error', 'Error', response.message);
+      }
+    } catch (error) {
+      showToast('error', 'Error', 'Failed to update applications');
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'approved': return 'checkmark-circle';
-      case 'denied': return 'close-circle';
-      case 'pending': return 'time';
-      default: return 'help-circle';
-    }
-  };
-
-  const handleUpdateStatus = async (applicationId: string, newStatus: 'approved' | 'denied', remarks?: string) => {
+  const handleUpdateStatus = async (applicationId: string, newStatus: 'shortlisted' | 'approved' | 'denied', remarks?: string) => {
     try {
       const response = await scholarshipApplicationService.updateApplicationStatus(
         applicationId,
@@ -128,7 +173,7 @@ export default function ApplicantsListPage() {
       if (response.success) {
         showToast('success', 'Success', `Application ${newStatus} successfully`);
         setModalVisible(false);
-        fetchApplicants(); // Refresh list
+        fetchApplicants();
       } else {
         showToast('error', 'Error', response.message);
       }
@@ -137,7 +182,28 @@ export default function ApplicantsListPage() {
     }
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved': return '#31D0AA';
+      case 'denied': return '#EF4444';
+      case 'shortlisted': return '#8B5CF6';
+      case 'pending': return '#F59E0B';
+      default: return '#6B7280';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'approved': return 'checkmark-circle';
+      case 'denied': return 'close-circle';
+      case 'shortlisted': return 'star';
+      case 'pending': return 'time';
+      default: return 'help-circle';
+    }
+  };
+
   const openApplicantModal = (applicant: Applicant) => {
+    if (bulkMode) return; // Don't open modal in bulk mode
     setSelectedApplicant(applicant);
     setModalVisible(true);
   };
@@ -174,6 +240,7 @@ export default function ApplicantsListPage() {
   const statusCounts = {
     all: applicants.length,
     pending: applicants.filter(a => a.status === 'pending').length,
+    shortlisted: applicants.filter(a => a.status === 'shortlisted').length,
     approved: applicants.filter(a => a.status === 'approved').length,
     denied: applicants.filter(a => a.status === 'denied').length,
   };
@@ -200,7 +267,7 @@ export default function ApplicantsListPage() {
         </View>
       ) : (
         <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
-          {/* Scholarship Info Header with Filter */}
+          {/* Scholarship Info Header */}
           <View style={styles.scholarshipHeader}>
             <View style={styles.scholarshipTitleContainer}>
               <View style={styles.scholarshipInfo}>
@@ -233,7 +300,7 @@ export default function ApplicantsListPage() {
                 
                 {showDropdown && (
                   <View style={styles.dropdownMenu}>
-                    {(['all', 'pending', 'approved', 'denied'] as const).map((status) => (
+                    {(['all', 'pending', 'shortlisted', 'approved', 'denied'] as const).map((status) => (
                       <Pressable
                         key={status}
                         style={[
@@ -268,6 +335,78 @@ export default function ApplicantsListPage() {
                 )}
               </View>
             </View>
+
+            {/* Bulk Actions Toolbar */}
+            <View style={styles.bulkToolbar}>
+              <Pressable 
+                style={[styles.bulkModeButton, bulkMode && styles.bulkModeButtonActive]}
+                onPress={toggleBulkMode}
+              >
+                <Text style={[styles.bulkModeButtonText, bulkMode && styles.bulkModeButtonTextActive]}>
+                  {bulkMode ? 'Cancel' : 'Bulk Select'}
+                </Text>
+              </Pressable>
+
+              {bulkMode && (
+                <>
+                  <Pressable style={styles.selectAllButton} onPress={selectAll}>
+                    <Text style={styles.selectAllButtonText}>Select All</Text>
+                  </Pressable>
+                  <Pressable style={styles.selectAllButton} onPress={deselectAll}>
+                    <Text style={styles.selectAllButtonText}>Deselect</Text>
+                  </Pressable>
+                </>
+              )}
+            </View>
+
+            {/* Bulk Action Buttons */}
+            {bulkMode && selectedApplicantIds.size > 0 && (
+              <View style={styles.bulkActionBar}>
+                <Text style={styles.bulkActionCount}>
+                  {selectedApplicantIds.size} selected
+                </Text>
+                <View style={styles.bulkActionButtons}>
+                  {/* Show Deny button always (can deny at any status except already denied/approved) */}
+                  {filteredApplicants
+                    .filter(app => selectedApplicantIds.has(app.scholarship_application_id))
+                    .every(app => app.status !== 'denied' && app.status !== 'approved') && (
+                    <Pressable
+                      style={[styles.bulkActionBtn, styles.denyBtn]}
+                      onPress={() => handleBulkAction('denied')}
+                    >
+                      <Ionicons name="close-circle" size={16} color="#fff" />
+                      <Text style={styles.bulkActionBtnText}>Deny</Text>
+                    </Pressable>
+                  )}
+                  
+                  {/* Show Shortlist button only if ALL selected are pending */}
+                  {filteredApplicants
+                    .filter(app => selectedApplicantIds.has(app.scholarship_application_id))
+                    .every(app => app.status === 'pending') && (
+                    <Pressable
+                      style={[styles.bulkActionBtn, styles.shortlistBtn]}
+                      onPress={() => handleBulkAction('shortlisted')}
+                    >
+                      <Ionicons name="star" size={16} color="#fff" />
+                      <Text style={styles.bulkActionBtnText}>Shortlist</Text>
+                    </Pressable>
+                  )}
+                  
+                  {/* Show Approve button only if ALL selected are shortlisted */}
+                  {filteredApplicants
+                    .filter(app => selectedApplicantIds.has(app.scholarship_application_id))
+                    .every(app => app.status === 'shortlisted') && (
+                    <Pressable
+                      style={[styles.bulkActionBtn, styles.approveBtn]}
+                      onPress={() => handleBulkAction('approved')}
+                    >
+                      <Ionicons name="checkmark-circle" size={16} color="#fff" />
+                      <Text style={styles.bulkActionBtnText}>Approve</Text>
+                    </Pressable>
+                  )}
+                </View>
+              </View>
+            )}
           </View>
 
           {/* Applicants List */}
@@ -284,44 +423,65 @@ export default function ApplicantsListPage() {
             ) : (
               filteredApplicants.map((applicant) => {
                 if (!applicant.student) return null; 
+                const isSelected = selectedApplicantIds.has(applicant.scholarship_application_id);
                 
                 return (
                 <Pressable
                   key={applicant.scholarship_application_id}
-                  style={styles.applicantCard}
-                  onPress={() => openApplicantModal(applicant)}
+                  style={[
+                    styles.applicantCard,
+                    isSelected && styles.applicantCardSelected
+                  ]}
+                  onPress={() => {
+                    if (bulkMode) {
+                      toggleApplicantSelection(applicant.scholarship_application_id);
+                    } else {
+                      openApplicantModal(applicant);
+                    }
+                  }}
                 >
-                  {/* Profile Image & Basic Info */}
-                  <View style={styles.applicantHeader}>
-                    <Image
-                      source={
-                        applicant.student.user.profile_url
-                          ? { uri: applicant.student.user.profile_url }
-                          : require('@/assets/images/iskolar.png')
-                      }
-                      style={styles.avatar}
-                    />
-                    <View style={styles.applicantInfo}>
-                      <Text style={styles.applicantName}>
-                        {applicant.student.full_name}
-                        <Ionicons 
-                          name={getStatusIcon(applicant.status) as any} 
-                          size={16} 
-                          color={getStatusColor(applicant.status)} 
-                        />
-                      </Text>
-                      <Text style={styles.applicantEmail}>
-                        {applicant.student.user.email}
+                  {/* Checkbox in bulk mode */}
+                  {bulkMode && (
+                    <View style={styles.checkboxContainer}>
+                      <MaterialIcons 
+                        name={isSelected ? "check-box" : "check-box-outline-blank"} 
+                        size={22} 
+                        color={isSelected ? "#3A52A6" : "#9CA3AF"} 
+                      />
+                    </View>
+                  )}
+
+                  <View style={styles.applicantContent}>
+                    <View style={styles.applicantHeader}>
+                      <Image
+                        source={
+                          applicant.student.user.profile_url
+                            ? { uri: applicant.student.user.profile_url }
+                            : require('@/assets/images/iskolar.png')
+                        }
+                        style={styles.avatar}
+                      />
+                      <View style={styles.applicantInfo}>
+                        <Text style={styles.applicantName}>
+                          {applicant.student.full_name}
+                          <Ionicons 
+                            name={getStatusIcon(applicant.status) as any} 
+                            size={16} 
+                            color={getStatusColor(applicant.status)} 
+                          />
+                        </Text>
+                        <Text style={styles.applicantEmail}>
+                          {applicant.student.user.email}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.applicantFooter}>
+                      <Ionicons name="calendar-outline" size={14} color="#6B7280" />
+                      <Text style={styles.appliedDate}>
+                        {formatDate(applicant.applied_at)}
                       </Text>
                     </View>
-                  </View>
-
-                  {/* Applied Date */}
-                  <View style={styles.applicantFooter}>
-                    <Ionicons name="calendar-outline" size={14} color="#6B7280" />
-                    <Text style={styles.appliedDate}>
-                      {formatDate(applicant.applied_at)}
-                    </Text>
                   </View>
                 </Pressable>
               )})
@@ -342,7 +502,6 @@ export default function ApplicantsListPage() {
             <ScrollView showsVerticalScrollIndicator={false}>
               {selectedApplicant && selectedApplicant.student && (
                 <>
-                  {/* Modal Header */}
                   <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>Application Details</Text>
                     <Pressable onPress={() => setModalVisible(false)}>
@@ -350,7 +509,6 @@ export default function ApplicantsListPage() {
                     </Pressable>
                   </View>
 
-                  {/* Student Profile */}
                   <View style={styles.modalSection}>
                     <View style={styles.profileHeader}>
                       <Image
@@ -385,7 +543,6 @@ export default function ApplicantsListPage() {
                     </View>
                   </View>
 
-                  {/* Custom Form Response */}
                   <View style={styles.modalSection}>
                     <Text style={styles.sectionTitle}>Application Response</Text>
                     {Array.isArray(selectedApplicant.custom_form_response) ? (
@@ -401,9 +558,7 @@ export default function ApplicantsListPage() {
                                   onPress={() => handleFileOpen(url, `${item.label}_file_${idx + 1}`)}
                                 >
                                   <Ionicons name="document-attach" size={16} color="#3A52A6" />
-                                  <Text style={styles.fileText}>
-                                    File {idx + 1}
-                                  </Text>
+                                  <Text style={styles.fileText}>File {idx + 1}</Text>
                                   <Ionicons name="open-outline" size={14} color="#3A52A6" style={{ marginLeft: 4 }} />
                                 </Pressable>
                               ))}
@@ -420,7 +575,6 @@ export default function ApplicantsListPage() {
                         </View>
                       ))
                     ) : (
-                      // Fallback for old format (object-based responses)
                       Object.entries(selectedApplicant.custom_form_response || {}).map(([key, value]) => (
                         <View key={key} style={styles.responseItem}>
                           <Text style={styles.responseLabel}>{key}</Text>
@@ -448,7 +602,6 @@ export default function ApplicantsListPage() {
                     )}
                   </View>
 
-                  {/* Status & Remarks */}
                   <View style={styles.modalSection}>
                     <Text style={styles.sectionTitle}>Status</Text>
                     <View style={[styles.currentStatusBadge, { backgroundColor: getStatusColor(selectedApplicant.status) + '20' }]}>
@@ -469,8 +622,7 @@ export default function ApplicantsListPage() {
                     )}
                   </View>
 
-                  {/* Action Buttons */}
-                  {selectedApplicant.status === 'pending' && (
+                  {selectedApplicant.status !== 'approved' && selectedApplicant.status !== 'denied' && (
                     <View style={styles.actionButtons}>
                       <Pressable
                         style={[styles.actionButton, styles.denyButton]}
@@ -482,21 +634,106 @@ export default function ApplicantsListPage() {
                         <Ionicons name="close-circle" size={20} color="#fff" />
                         <Text style={styles.actionButtonText}>Deny</Text>
                       </Pressable>
-                      <Pressable
-                        style={[styles.actionButton, styles.approveButton]}
-                        onPress={() => {
-                          setPendingAction({ type: 'approve', applicationId: selectedApplicant.scholarship_application_id });
-                          setConfirmationModal(true);
-                        }}
-                      >
-                        <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                        <Text style={styles.actionButtonText}>Approve</Text>
-                      </Pressable>
+                      {selectedApplicant.status === 'pending' && (
+                        <Pressable
+                          style={[styles.actionButton, styles.shortlistButton]}
+                          onPress={() => {
+                            setPendingAction({ type: 'shortlisted', applicationId: selectedApplicant.scholarship_application_id });
+                            setConfirmationModal(true);
+                          }}
+                        >
+                          <Ionicons name="star" size={20} color="#fff" />
+                          <Text style={styles.actionButtonText}>Shortlist</Text>
+                        </Pressable>
+                      )}
+                      {selectedApplicant.status === 'shortlisted' && (
+                        <Pressable
+                          style={[styles.actionButton, styles.approveButton]}
+                          onPress={() => {
+                            setPendingAction({ type: 'approved', applicationId: selectedApplicant.scholarship_application_id });
+                            setConfirmationModal(true);
+                          }}
+                        >
+                          <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                          <Text style={styles.actionButtonText}>Approve</Text>
+                        </Pressable>
+                      )}
                     </View>
                   )}
                 </>
               )}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Bulk Action Confirmation Modal */}
+      <Modal
+        visible={bulkActionModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setBulkActionModal(false);
+          setBulkRemarks('');
+        }}
+      >
+        <View style={styles.confirmModalOverlay}>
+          <View style={styles.confirmModalContent}>
+            <Text style={styles.confirmModalTitle}>
+              Bulk {bulkAction?.charAt(0).toUpperCase()}{bulkAction?.slice(1)} Applications
+            </Text>
+
+            <Text style={styles.confirmModalMessage}>
+              Are you sure you want to {bulkAction} {selectedApplicantIds.size} application(s)?
+            </Text>
+
+            {bulkAction === 'denied' && (
+              <View style={styles.remarksInputContainer}>
+                <TextInput
+                  style={styles.remarksInput}
+                  placeholder="Enter reason for denial (optional)..."
+                  placeholderTextColor="#9CA3AF"
+                  multiline
+                  numberOfLines={4}
+                  value={bulkRemarks}
+                  onChangeText={setBulkRemarks}
+                  textAlignVertical="top"
+                />
+                <Text style={styles.remarksInputHint}>
+                  This will be visible to all selected applicants.
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.confirmModalButtons}>
+              <TouchableOpacity 
+                style={styles.confirmModalCancelButton}
+                onPress={() => {
+                  setBulkActionModal(false);
+                  setBulkRemarks('');
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.confirmModalCancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[
+                  styles.confirmModalConfirmButton,
+                  { backgroundColor: 
+                    bulkAction === 'approved' ? '#31D0AA' : 
+                    bulkAction === 'shortlisted' ? '#8B5CF6' :
+                    '#EF4444' 
+                  }
+                ]}
+                onPress={executeBulkAction}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.confirmModalConfirmButtonText}>
+                  Confirm
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -514,16 +751,19 @@ export default function ApplicantsListPage() {
         <View style={styles.confirmModalOverlay}>
           <View style={styles.confirmModalContent}>
             <Text style={styles.confirmModalTitle}>
-              {pendingAction?.type === 'approve' ? 'Approve Application' : 'Deny Application'}
+              {pendingAction?.type === 'approved' ? 'Approve Application' : 
+               pendingAction?.type === 'shortlisted' ? 'Shortlist Application' : 
+               'Deny Application'}
             </Text>
 
             <Text style={styles.confirmModalMessage}>
-              {pendingAction?.type === 'approve' 
+              {pendingAction?.type === 'approved' 
                 ? 'Are you sure you want to approve this application?'
+                : pendingAction?.type === 'shortlisted'
+                ? 'Are you sure you want to shortlist this application?'
                 : 'Are you sure you want to deny this application?'}
             </Text>
 
-            {/* Remarks Input */}
             {pendingAction?.type === 'deny' && (
               <View style={styles.remarksInputContainer}>
                 <TextInput
@@ -557,15 +797,19 @@ export default function ApplicantsListPage() {
               <TouchableOpacity 
                 style={[
                   styles.confirmModalConfirmButton,
-                  { backgroundColor: pendingAction?.type === 'approve' ? '#31D0AA' : '#EF4444' }
+                  { backgroundColor: 
+                    pendingAction?.type === 'approved' ? '#31D0AA' : 
+                    pendingAction?.type === 'shortlisted' ? '#8B5CF6' :
+                    '#EF4444' 
+                  }
                 ]}
                 onPress={() => {
                   if (pendingAction) {
-                    const statusValue = pendingAction.type === 'approve' ? 'approved' : 'denied';
+                    const statusValue = pendingAction.type === 'deny' ? 'denied' : pendingAction.type;
                     const remarks = pendingAction.type === 'deny' ? denialRemarks.trim() : undefined;
                     handleUpdateStatus(
                       pendingAction.applicationId,
-                      statusValue,
+                      statusValue as 'approved' | 'shortlisted' | 'denied',
                       remarks
                     );
                     setConfirmationModal(false);
@@ -575,14 +819,16 @@ export default function ApplicantsListPage() {
                 activeOpacity={0.8}
               >
                 <Text style={styles.confirmModalConfirmButtonText}>
-                  {pendingAction?.type === 'approve' ? 'Approve' : 'Deny'}
+                  {pendingAction?.type === 'approved' ? 'Approve' : 
+                   pendingAction?.type === 'shortlisted' ? 'Shortlist' : 
+                   'Deny'}
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-
+      
       {/* Toast */}
       <Toast
         visible={toastVisible}
@@ -732,7 +978,6 @@ const styles = StyleSheet.create({
   },
   dropdownItemTextActive: {
     color: '#3A52A6',
-    fontWeight: '600',
   },
   filterBadge: {
     backgroundColor: '#E5E7EB',
@@ -752,6 +997,90 @@ const styles = StyleSheet.create({
   },
   filterBadgeTextActive: {
     color: '#3A52A6',
+  },
+  bulkToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  bulkModeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 22,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#3A52A6',
+  },
+  bulkModeButtonActive: {
+    backgroundColor: '#3A52A6',
+  },
+  bulkModeButtonText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#3A52A6',
+  },
+  bulkModeButtonTextActive: {
+    color: '#fff',
+  },
+  selectAllButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  selectAllButtonText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 11,
+    color: '#6B7280',
+  },
+  bulkActionBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  bulkActionCount: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#111827',
+  },
+  bulkActionButtons: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  bulkActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  shortlistBtn: {
+    backgroundColor: '#8B5CF6',
+  },
+  approveBtn: {
+    backgroundColor: '#31D0AA',
+  },
+  denyBtn: {
+    backgroundColor: '#EF4444',
+  },
+  bulkActionBtnText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 11,
+    color: '#fff',
   },
   listContainer: {
     flex: 1,
@@ -773,14 +1102,28 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   applicantCard: {
+    flexDirection: 'row',
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  applicantCardSelected: {
+    borderColor: '#3A52A6',
+    backgroundColor: '#EFF6FF',
+  },
+  checkboxContainer: {
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  applicantContent: {
+    flex: 1,
   },
   applicantHeader: {
     flexDirection: 'row',
@@ -821,17 +1164,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
     color: '#6B7280',
-  },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  statusBadgeText: {
-    fontFamily: 'BreeSerif_400Regular',
-    fontSize: 11,
-    fontWeight: '600',
   },
   modalOverlay: {
     flex: 1,
@@ -882,11 +1214,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     marginBottom: 2,
-  },
-  modalContact: {
-    fontFamily: 'BreeSerif_400Regular',
-    fontSize: 14,
-    color: '#6B7280',
   },
   infoGrid: {
     flexDirection: 'row',
@@ -957,7 +1284,6 @@ const styles = StyleSheet.create({
   currentStatusText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
-    fontWeight: '600',
   },
   remarksBox: {
     marginTop: 12,
@@ -993,6 +1319,9 @@ const styles = StyleSheet.create({
   approveButton: {
     backgroundColor: '#31D0AA',
   },
+  shortlistButton: {
+    backgroundColor: '#8B5CF6',
+  },
   denyButton: {
     backgroundColor: '#EF4444',
   },
@@ -1000,7 +1329,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
     color: '#fff',
-    fontWeight: '600',
   },
   confirmModalOverlay: {
     flex: 1,
@@ -1027,7 +1355,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#111827',
     marginBottom: 6,
-    fontWeight: '600',
   },
   confirmModalMessage: {
     fontFamily: 'BreeSerif_400Regular',
@@ -1054,7 +1381,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
     color: '#4B5563',
-    fontWeight: '600',
   },
   confirmModalConfirmButton: {
     flex: 1,
@@ -1071,7 +1397,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
     color: '#FFFFFF',
-    fontWeight: '600',
   },
   remarksInputContainer: {
     width: '100%',

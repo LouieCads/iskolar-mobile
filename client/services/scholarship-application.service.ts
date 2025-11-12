@@ -292,7 +292,7 @@ class ScholarshipApplicationService {
    */
   async updateApplicationStatus(
     applicationId: string,
-    status: 'approved' | 'denied',
+    status: 'shortlisted' |'approved' | 'denied',
     remarks?: string
   ): Promise<{
     success: boolean;
@@ -321,6 +321,47 @@ class ScholarshipApplicationService {
       return {
         success: false,
         message: error instanceof Error ? error.message : 'Failed to update application status',
+      };
+    }
+  }
+
+  /**
+   * Bulk update application statuses (sponsor-only)
+   */
+  async bulkUpdateApplicationStatus(
+    applicationIds: string[],
+    status: 'shortlisted' | 'approved' | 'denied',
+    remarks?: string
+  ): Promise<{
+    success: boolean;
+    updated_count?: number;
+    applications?: any[];
+    message: string;
+  }> {
+    try {
+      const response = await authService.authenticatedRequest(
+        '/scholarship-application/bulk/status',
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            application_ids: applicationIds,
+            status,
+            remarks,
+          }),
+        }
+      );
+
+      return {
+        success: response.success,
+        updated_count: response.data?.updated_count,
+        applications: response.data?.applications,
+        message: response.message || (response.success ? 'Applications updated successfully' : 'Failed to update applications'),
+      };
+    } catch (error) {
+      console.error('Bulk update application status error:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to update application statuses',
       };
     }
   }

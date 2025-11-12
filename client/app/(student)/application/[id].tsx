@@ -423,7 +423,6 @@ const styles = StyleSheet.create({
   statusValue: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 16,
-    fontWeight: '600',
     textTransform: 'capitalize',
   },
   remarksText: {
@@ -512,7 +511,6 @@ const styles = StyleSheet.create({
   metricValue: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
-    fontWeight: '600',
   },
   metricSubtext: {
     fontFamily: 'BreeSerif_400Regular',
@@ -532,7 +530,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
     color: '#5D6673',
-    fontWeight: '600',
     marginBottom: 8,
   },
   bodyText: {
@@ -575,7 +572,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 13,
     color: '#5D6673',
-    fontWeight: '600',
     marginBottom: 6,
   },
   formValue: {
@@ -648,7 +644,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
     color: '#5D6673',
-    fontWeight: '600',
     marginBottom: 2,
   },
   timelineDate: {

@@ -1202,7 +1202,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#111827',
     marginBottom: 6,
-    fontWeight: '600',
   },
   submissionModalMessage: {
     fontFamily: 'BreeSerif_400Regular',
@@ -1229,7 +1228,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
     color: '#4B5563',
-    fontWeight: '600',
   },
   submissionModalConfirmButton: {
     flex: 1,
@@ -1248,6 +1246,5 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
     color: '#FFFFFF',
-    fontWeight: '600',
   },
 });

@@ -447,7 +447,6 @@ const styles = StyleSheet.create({
   },
   dropdownItemTextActive: {
     color: '#3A52A6',
-    fontWeight: '600',
   },
   filterBadge: {
     backgroundColor: '#E5E7EB',
@@ -467,7 +466,6 @@ const styles = StyleSheet.create({
   },
   filterBadgeTextActive: {
     color: '#3A52A6',
-    fontWeight: '600',
   },
   scrollView: {
     flex: 1,

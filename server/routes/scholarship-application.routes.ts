@@ -8,6 +8,7 @@ import {
   checkApplicationExists,
   getScholarshipApplications,
   updateApplicationStatus,
+  bulkUpdateApplicationStatus,
   upload,
 } from "../controllers/scholarship-application.controller";
 
@@ -73,8 +74,20 @@ router.get(
 );
 
 /**
+ * @route   PUT /scholarship-application/bulk/status
+ * @desc    Bulk update application statuses (approve/deny/shortlist multiple applications)
+ * @access  Private (Sponsor - scholarship owner)
+ * @note    MUST come before /:application_id/status to avoid route collision
+ */
+router.put(
+  "/bulk/status",
+  authenticateToken,
+  bulkUpdateApplicationStatus
+);
+
+/**
  * @route   PUT /scholarship-application/:application_id/status
- * @desc    Update application status (approve/deny)
+ * @desc    Update application status (approve/deny/shortlist)
  * @access  Private (Sponsor - scholarship owner)
  */
 router.put(

@@ -537,7 +537,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
     color: '#3A52A6',
-    fontWeight: '600',
   },
   applicantsCountBadge: {
     backgroundColor: '#3A52A6',
@@ -552,7 +551,6 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
     color: '#fff',
-    fontWeight: '600',
   },
   actionsRow: {
     flexDirection: 'row',

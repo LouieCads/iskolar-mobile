@@ -7,7 +7,7 @@ interface ScholarshipApplicationAttributes {
   scholarship_application_id: string;
   student_id: string;
   scholarship_id: string;
-  status?: "pending" | "approved" | "denied";
+  status?: "pending" | "shortlisted" | "approved" | "denied";
   remarks?: string;
   custom_form_response: any
   applied_at?: Date;
@@ -20,7 +20,7 @@ class ScholarshipApplication extends Model<ScholarshipApplicationAttributes, App
   public scholarship_application_id!: string;
   public student_id!: string;
   public scholarship_id!: string;
-  public status?: "pending" | "approved" | "denied";
+  public status?: "pending" | "shortlisted" | "approved" | "denied";
   public remarks?: string;
   public custom_form_response!: any;
   public readonly applied_at!: Date;
@@ -70,7 +70,7 @@ ScholarshipApplication.init(
       onUpdate: "CASCADE",
     },
     status: {
-      type: DataTypes.ENUM("pending", "approved", "denied"),
+      type: DataTypes.ENUM("pending", "shortlisted", "approved", "denied"),
       allowNull: true,
       defaultValue: "pending",
     },

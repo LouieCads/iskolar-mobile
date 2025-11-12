@@ -615,10 +615,10 @@ export const updateApplicationStatus = async (req: AuthenticatedRequest, res: Re
       return;
     }
 
-    if (!status || !['approved', 'denied'].includes(status)) {
+    if (!status || !['shortlisted', 'approved', 'denied'].includes(status)) {
       res.status(400).json({
         success: false,
-        message: "Valid status (approved/denied) is required",
+        message: "Valid status (shortlisted/approved/denied) is required",
       });
       return;
     }
@@ -677,6 +677,118 @@ export const updateApplicationStatus = async (req: AuthenticatedRequest, res: Re
     res.status(500).json({
       success: false,
       message: error instanceof Error ? error.message : "Failed to update application status",
+    });
+  }
+};
+
+/**
+ * Bulk update application statuses (sponsor-only)
+ */
+export const bulkUpdateApplicationStatus = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { application_ids, status, remarks } = req.body;
+    const user_id = req.user?.id;
+
+    if (!user_id) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    if (!application_ids || !Array.isArray(application_ids) || application_ids.length === 0) {
+      res.status(400).json({
+        success: false,
+        message: "Application IDs array is required",
+      });
+      return;
+    }
+
+    if (!status || !['shortlisted', 'approved', 'denied'].includes(status)) {
+      res.status(400).json({
+        success: false,
+        message: "Valid status (shortlisted/approved/denied) is required",
+      });
+      return;
+    }
+
+    const sponsor = await Sponsor.findOne({
+      where: { user_id: user_id }
+    });
+
+    if (!sponsor) {
+      res.status(404).json({
+        success: false,
+        message: "Sponsor profile not found",
+      });
+      return;
+    }
+
+    // Fetch all applications and verify ownership
+    const applications = await ScholarshipApplication.findAll({
+      where: { 
+        scholarship_application_id: application_ids 
+      },
+      include: [
+        {
+          model: Scholarship,
+          as: "scholarship",
+        },
+      ],
+    });
+
+    if (applications.length === 0) {
+      res.status(404).json({
+        success: false,
+        message: "No applications found",
+      });
+      return;
+    }
+
+    // Verify all scholarships belong to the sponsor
+    const unauthorizedApp = applications.find((app) => {
+      const scholarship = app.scholarship as any;
+      return scholarship.sponsor_id !== sponsor.sponsor_id;
+    });
+
+    if (unauthorizedApp) {
+      res.status(403).json({
+        success: false,
+        message: "Unauthorized to update one or more applications",
+      });
+      return;
+    }
+
+    // Bulk update
+    await ScholarshipApplication.update(
+      {
+        status,
+        remarks: remarks || null,
+      },
+      {
+        where: {
+          scholarship_application_id: application_ids,
+        },
+      }
+    );
+
+    // Fetch updated applications
+    const updatedApplications = await ScholarshipApplication.findAll({
+      where: { scholarship_application_id: application_ids },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `${updatedApplications.length} application(s) updated successfully`,
+      updated_count: updatedApplications.length,
+      applications: updatedApplications,
+    });
+  } catch (error) {
+    console.error("Bulk update application status error:", error);
+    res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to update application statuses",
     });
   }
 };

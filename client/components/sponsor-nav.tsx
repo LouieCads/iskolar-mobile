@@ -1,11 +1,13 @@
 // components/SponsorNav.tsx
 import { View, Pressable, StyleSheet } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
+import React, { useState } from 'react';
 import { Octicons  } from '@expo/vector-icons';
 
 export default function SponsorNav() {
   const router = useRouter();
   const pathname = usePathname();
+  const [activeRoute, setActiveRoute] = useState<string | null>(pathname);
 
   const navItems = [
     { name: 'my-scholarships', icon: 'home' as const, route: '/(sponsor)/my-scholarships' as const },
@@ -13,7 +15,7 @@ export default function SponsorNav() {
     { name: 'profile', icon: 'person' as const, route: '/(sponsor)/my-sponsor-profile' as const },
   ];
 
-  const isActive = (route: string) => pathname === route;
+  const isActive = (route: string) => activeRoute === route;
 
   return (
     <View style={styles.container}>
@@ -23,13 +25,16 @@ export default function SponsorNav() {
           <Pressable
             key={item.name}
             style={[styles.navItem, active && styles.navItemActive]}
-            onPress={() => router.push(item.route)}
+            onPress={() => {
+              setActiveRoute(item.route);
+              router.push(item.route);
+            }}
           >
             <View style={styles.iconWrapper}>
               <Octicons
                 name={item.icon}
                 size={23}
-                color={active ? '#EFA508' : '#6B7280'}
+                color={active ? '#3A52A6' : '#6B7280'}
               />
             </View>
           </Pressable>
@@ -49,7 +54,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     backgroundColor: '#F0F7FF',
-    paddingVertical: 3,
+    paddingVertical: 6,
     paddingHorizontal: 20,
     borderTopWidth: 1,
     borderTopColor: '#E5E5E5',
@@ -60,10 +65,9 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   navItemActive: {
-    backgroundColor: '#EFA508',
+    backgroundColor: '#e0efffff',
     borderRadius: 50,
-    width: 55,
-    height: 55,
+    padding: 8,
   },
   iconWrapper: {
     alignItems: 'center',

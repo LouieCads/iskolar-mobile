@@ -1,11 +1,13 @@
 // components/StudentNav.tsx
 import { View, Pressable, StyleSheet } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
+import React, { useState } from 'react';
 import { Octicons  } from '@expo/vector-icons';
 
 export default function StudentNav() {
   const router = useRouter();
   const pathname = usePathname();
+  const [activeRoute, setActiveRoute] = useState<string | null>(pathname);
 
   const navItems = [
     { name: 'home', icon: 'home' as const, route: '/(student)/home' as const },
@@ -13,7 +15,7 @@ export default function StudentNav() {
     { name: 'profile', icon: 'person' as const, route: '/(student)/my-student-profile' as const },
   ];
 
-  const isActive = (route: string) => pathname === route;
+  const isActive = (route: string) => activeRoute === route;
 
   return (
     <View style={styles.container}>
@@ -23,7 +25,10 @@ export default function StudentNav() {
           <Pressable
             key={item.name}
             style={[styles.navItem, active && styles.navItemActive]}
-            onPress={() => router.push(item.route)}
+            onPress={() => {
+              setActiveRoute(item.route);
+              router.push(item.route);
+            }}
           >
             <View style={styles.iconWrapper}>
               <Octicons
@@ -49,7 +54,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     backgroundColor: '#F0F7FF',
-    paddingVertical: 3,
+    paddingVertical: 6,
     paddingHorizontal: 20,
     borderTopWidth: 1,
     borderTopColor: '#E5E5E5',
@@ -60,10 +65,9 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   navItemActive: {
-    backgroundColor: '#3A52A6',
+    backgroundColor: '#e0efffff',
     borderRadius: 50,
-    width: 55,
-    height: 55,
+    padding: 8,
   },
   iconWrapper: {
     alignItems: 'center',

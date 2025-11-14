@@ -13,6 +13,7 @@ export default function ScholarshipDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [scholarship, setScholarship] = useState<any>(null);
   const [isOwner, setIsOwner] = useState(false);
+  const [actionPermissions, setActionPermissions] = useState<any>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(8)).current;
@@ -35,10 +36,13 @@ export default function ScholarshipDetailsPage() {
       if (res.success && res.scholarship) {
         setScholarship(res.scholarship);
         
+        // Get action permissions based on status
+        const permissions = scholarshipService.getActionPermissions(res.scholarship.status);
+        setActionPermissions(permissions);
+        
         // Check ownership
         const profileRes = await profileService.getProfile();
         if (profileRes.success && profileRes.profile) {
-          // Check if the current user's sponsor_id matches the scholarship's sponsor_id
           const userSponsorId = profileRes.profile.sponsor_id;
           setIsOwner(res.scholarship.sponsor_id === userSponsorId);
         }
@@ -107,6 +111,38 @@ export default function ScholarshipDetailsPage() {
     ]);
   };
 
+  const onArchive = async () => {
+    if (!id) return;
+    Alert.alert('Archive Scholarship', 'Are you sure you want to archive this scholarship? It will no longer be visible in your active list.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Archive', style: 'default', onPress: async () => {
+          const res = await scholarshipService.archiveScholarship(String(id));
+          if (res.success) {
+            router.back();
+          } else {
+            Alert.alert('Error', res.message);
+          }
+        }
+      }
+    ]);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active':
+        return '#31D0AA';
+      case 'closed':
+        return '#FF6B6B';
+      case 'archived':
+        return '#F59E0B';
+      case 'suspended':
+        return '#9CA3AF';
+      default:
+        return '#31D0AA';
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Header 
@@ -134,11 +170,12 @@ export default function ScholarshipDetailsPage() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.statusBadge}>
-            <View style={[styles.statusDot, { backgroundColor: '#31D0AA' }]} />
-            <Text style={styles.statusText}>{scholarship?.status || 'Active'}</Text>
+            <View style={[styles.statusDot, { backgroundColor: getStatusColor(scholarship?.status) }]} />
+            <Text style={[styles.statusText, { color: getStatusColor(scholarship?.status) }]}>
+              {scholarship?.status || 'Active'}
+            </Text>
           </View>
 
-          {/* Hero/Image Card */}
           <View style={styles.heroCard}>
             <Image
               source={scholarship?.image_url ? { uri: scholarship.image_url } : require('@/assets/images/iskolar-logo.png')}
@@ -147,7 +184,6 @@ export default function ScholarshipDetailsPage() {
             />
           </View>
 
-          {/* Title & Meta */}
           <View style={styles.card}>
             <Text style={styles.titleText}>{scholarship?.title}</Text>
             <View style={styles.metaRow}>
@@ -160,7 +196,6 @@ export default function ScholarshipDetailsPage() {
             </View>
           </View>
 
-          {/* Metrics Row */}
           <View style={styles.row}> 
             <View style={[styles.metricBox, { borderColor: '#FF6B6B' }]}>
               <Text style={styles.metricLabel}>Applications</Text>
@@ -179,7 +214,6 @@ export default function ScholarshipDetailsPage() {
             </View>
           </View>
 
-          {/* Description */}
           {scholarship?.description ? (
             <View style={styles.card}>
               <Text style={styles.label}>Description</Text>
@@ -187,7 +221,6 @@ export default function ScholarshipDetailsPage() {
             </View>
           ) : null}
 
-          {/* Criteria */}
           {Array.isArray(scholarship?.criteria) && scholarship.criteria.length > 0 && (
             <View style={styles.card}>
               <Text style={styles.label}>Criteria</Text>
@@ -199,7 +232,6 @@ export default function ScholarshipDetailsPage() {
             </View>
           )}
 
-          {/* Required Documents */}
           {Array.isArray(scholarship?.required_documents) && scholarship.required_documents.length > 0 && (
             <View style={styles.card}>
               <Text style={styles.label}>Required Documents</Text>
@@ -211,7 +243,6 @@ export default function ScholarshipDetailsPage() {
             </View>
           )}
 
-          {/* Custom Form Fields - Only visible to owner */}
           {isOwner && Array.isArray(scholarship?.custom_form_fields) && scholarship.custom_form_fields.length > 0 && (
             <View style={styles.card}>
               <View style={styles.sectionHeader}>
@@ -260,10 +291,8 @@ export default function ScholarshipDetailsPage() {
             </View>
           )}
 
-          {/* Actions  */}
-          {isOwner && (
+          {isOwner && actionPermissions && (
             <>
-              {/* View Applicants Button */}
               <Pressable 
                 style={styles.viewApplicantsBtn} 
                 onPress={() => router.push(`/(sponsor)/scholarship/${id}/applicants` as any)}
@@ -279,16 +308,41 @@ export default function ScholarshipDetailsPage() {
                 </View>
               </Pressable>
 
-              {/* Edit and Delete Buttons */}
+              {actionPermissions.isClosed && (
+                <View style={styles.closedWarningBanner}>
+                  <Ionicons name="lock-closed" size={16} color="#EF4444" />
+                  <Text style={styles.closedWarningText}>
+                    Scholarship is closed. You can only archive and manage applications.
+                  </Text>
+                </View>
+              )}
+
               <View style={styles.actionsRow}>
-                <Pressable style={[styles.actionBtn, styles.editBtn]} onPress={onEdit}>
-                  <Ionicons name="create-outline" size={16} color="#F0F7FF" />
-                  <Text style={styles.actionText}>Edit</Text>
-                </Pressable>
-                <Pressable style={[styles.actionBtn, styles.deleteBtn]} onPress={onDelete}>
-                  <Ionicons name="trash-outline" size={16} color="#F0F7FF" />
-                  <Text style={styles.actionText}>Delete</Text>
-                </Pressable>
+                {actionPermissions.canEdit ? (
+                  <Pressable style={[styles.actionBtn, styles.editBtn]} onPress={onEdit}>
+                    <Ionicons name="create-outline" size={16} color="#F0F7FF" />
+                    <Text style={styles.actionText}>Edit</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable style={[styles.actionBtn, styles.editBtnDisabled]} disabled>
+                    <Ionicons name="create-outline" size={16} color="#999" />
+                    <Text style={styles.actionTextDisabled}>Edit</Text>
+                  </Pressable>
+                )}
+                
+                {actionPermissions.canDelete ? (
+                  <Pressable style={[styles.actionBtn, styles.deleteBtn]} onPress={onDelete}>
+                    <Ionicons name="trash-outline" size={16} color="#F0F7FF" />
+                    <Text style={styles.actionText}>Delete</Text>
+                  </Pressable>
+                ) : null}
+                
+                {actionPermissions.canArchive && (
+                  <Pressable style={[styles.actionBtn, styles.archiveBtn]} onPress={onArchive}>
+                    <Ionicons name="archive-outline" size={16} color="#F0F7FF" />
+                    <Text style={styles.actionText}>Archive</Text>
+                  </Pressable>
+                )}
               </View>
             </>
           )}
@@ -366,7 +420,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 13,
-    color: '#31D0AA',
     textTransform: 'capitalize',
   },
   heroCard: {
@@ -576,5 +629,34 @@ const styles = StyleSheet.create({
     color: '#F0F7FF',
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
+  },
+  actionTextDisabled: {
+    color: '#999',
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 14,
+  },
+  editBtnDisabled: {
+    backgroundColor: '#E5E7EB',
+  },
+  archiveBtn: {
+    backgroundColor: '#F59E0B',
+  },
+  closedWarningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 14,
+    gap: 10,
+  },
+  closedWarningText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 11,
+    color: '#DC2626',
+    flex: 1,
+    lineHeight: 18,
   },
 });

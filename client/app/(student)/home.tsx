@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#3A52A6',
     position: 'absolute',
-    top: 2,
+    top: 2.2,
     left: -5.7,
     zIndex: 2,
     shadowColor: '#607EF2',
@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
   },
   applicationDateTextTimeline: {
     fontFamily: 'BreeSerif_400Regular',
-    fontSize: 12,
+    fontSize: 13,
     color: '#111827',
   },
 });

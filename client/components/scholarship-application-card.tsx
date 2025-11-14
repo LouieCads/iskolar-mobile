@@ -14,12 +14,13 @@ interface ScholarshipApplicationCardProps {
   criteria: string[];
   documents: string[];
   tags: string[];
-  status: 'pending' | 'approved' | 'denied';
+  status: 'pending' | 'shortlisted' | 'approved' | 'denied';
   onPress?: () => void;
 }
 
 const statusIconMap = {
   pending: { name: 'time-outline', color: '#F7B801', label: 'Pending' },
+  shortlisted: { name: 'star', color: '#a91cbfff', label: 'Shortlisted' },
   approved: { name: 'checkmark-circle-outline', color: '#31D0AA', label: 'Approved' },
   denied: { name: 'close-circle-outline', color: '#FF6B6B', label: 'Denied' },
 };

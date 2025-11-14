@@ -171,7 +171,7 @@ export default function ApplicantsListPage() {
       );
 
       if (response.success) {
-        showToast('success', 'Success', `Application ${newStatus}`);
+        showToast('success', 'Success', `Applicant ${newStatus}`);
         setModalVisible(false);
         fetchApplicants();
       } else {

@@ -21,7 +21,7 @@ interface ScholarshipApplication {
   scholarship_application_id: string;
   student_id: string;
   scholarship_id: string;
-  status: 'pending' | 'approved' | 'denied';
+  status: 'pending' | 'shortlisted' | 'approved' | 'denied';
   remarks?: string;
   custom_form_response: Array<{ label: string; value: any }>; 
   applied_at: string;

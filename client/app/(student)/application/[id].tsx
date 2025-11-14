@@ -18,7 +18,7 @@ interface Application {
   scholarship_application_id: string;
   student_id: string;
   scholarship_id: string;
-  status: 'pending' | 'approved' | 'denied';
+  status: 'pending' | 'shortlisted' | 'approved' | 'denied';
   remarks?: string;
   custom_form_response: Array<{ label: string; value: any }>;
   applied_at: string;
@@ -45,12 +45,14 @@ interface Application {
 
 const statusIconMap = {
   pending: { name: 'time-outline', color: '#F7B801', label: 'Pending' },
+  shortlisted: { name: 'star', color: '#a91cbfff', label: 'Shortlisted' },
   approved: { name: 'checkmark-circle-outline', color: '#31D0AA', label: 'Approved' },
   denied: { name: 'close-circle-outline', color: '#FF6B6B', label: 'Denied' },
 };
 
 const statusColorMap = {
   pending: '#FEF3C7',
+  shortlisted: '#FFF4E5',
   approved: '#ECFDF5',
   denied: '#FEF2F2',
 };

@@ -8,6 +8,7 @@ import {
   getScholarshipById,
   updateScholarship,
   deleteScholarship,
+  archiveScholarship,
   upload 
 } from "../controllers/scholarship-creation.controller";
 
@@ -28,7 +29,10 @@ router.post("/create", authenticateToken, createScholarship);
 // Update scholarship (sponsor-only)
 router.put("/:scholarship_id", authenticateToken, updateScholarship);
 
-// Delete scholarship (sponsor-only)
+// Archive scholarship (sponsor-only, only when deadline passed)
+router.post("/:scholarship_id/archive", authenticateToken, archiveScholarship);
+
+// Delete scholarship (sponsor-only, only before deadline)
 router.delete("/:scholarship_id", authenticateToken, deleteScholarship);
 
 // Upload scholarship image 

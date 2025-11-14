@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   Animated,
   Image,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '@/components/header';
@@ -25,7 +24,6 @@ export default function ScholarshipDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [scholarship, setScholarship] = useState<any>(null);
   const [isStudent, setIsStudent] = useState(false);
-  // Toast state for user feedback (e.g. when user already applied)
   const [toastVisible, setToastVisible] = useState(false);
   const [toastType, setToastType] = useState<'success' | 'error'>('error');
   const [toastTitle, setToastTitle] = useState('');
@@ -82,7 +80,6 @@ export default function ScholarshipDetailsPage() {
     fetchRole();
   }, []);
 
-  // Cleanup toast timer on unmount
   useEffect(() => {
     return () => {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -105,39 +102,56 @@ export default function ScholarshipDetailsPage() {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
+  const isClosed = useCallback(() => {
+    return scholarship?.status === 'closed';
+  }, [scholarship?.status]);
+
   const handleApplyPress = useCallback(async () => {
-    if (!id) return;
+    if (!id || !scholarship) return;
+      
+    // Check if user has already applied
+    const res = await scholarshipApplicationService.checkApplicationExists(String(id));
 
-    try {
-      const res = await scholarshipApplicationService.checkApplicationExists(String(id));
-
-      if (res.success && res.exists) {
-        setToastType('error');
-        setToastTitle('Already Applied');
-        setToastMessage('You have already applied for this scholarship.');
-        setToastVisible(true);
-
-        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-        toastTimerRef.current = setTimeout(() => setToastVisible(false), 2000);
-        return;
-      }
-
-      router.push({
-        pathname: '/(student)/scholarship/[id]/apply',
-        params: { id: String(id) },
-      } as any);
-    } catch (err) {
-      console.error('Error checking existing application:', err);
+    if (res.success && res.exists) {
       setToastType('error');
-      setToastTitle('Error');
-      setToastMessage('Failed to check application status. Please try again.');
+      setToastTitle('Already Applied');
+      setToastMessage('You have already applied for this scholarship.');
       setToastVisible(true);
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-      toastTimerRef.current = setTimeout(() => setToastVisible(false), 2000);
-    }
-  }, [id, router]);
 
-  const showApplyButton = !loading && !error && !roleLoading && isStudent;
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+      toastTimerRef.current = setTimeout(() => {
+        setToastVisible(false);
+      }, 3000);
+      return;
+    }
+
+    // Check if scholarship is closed
+    if (isClosed()) {
+      setToastType('error');
+      setToastTitle('Scholarship Closed');
+      setToastMessage('This scholarship is no longer accepting applications.');
+      setToastVisible(true);
+      
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+      toastTimerRef.current = setTimeout(() => {
+        setToastVisible(false);
+      }, 3000);
+      return;
+    }
+
+    router.push({
+      pathname: '/(student)/scholarship/[id]/apply',
+      params: { id: String(id) },
+    } as any);
+    
+  }, [id, scholarship, router, isClosed]);
+
+  // Show Apply button only if not closed and user is a student
+  const showApplyButton = !loading && !error && !roleLoading && isStudent && !isClosed();
 
   return (
     <View style={styles.container}>
@@ -170,8 +184,16 @@ export default function ScholarshipDetailsPage() {
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.statusBadge}>
-              <View style={[styles.statusDot, { backgroundColor: '#31D0AA' }]} />
-              <Text style={styles.statusText}>{scholarship?.status || 'Active'}</Text>
+              <View style={[
+                styles.statusDot, 
+                { backgroundColor: scholarship?.status === 'closed' ? '#FF6B6B' : '#31D0AA' }
+              ]} />
+              <Text style={[
+                styles.statusText,
+                { color: scholarship?.status === 'closed' ? '#FF6B6B' : '#31D0AA' }
+              ]}>
+                {scholarship?.status || 'Active'}
+              </Text>
             </View>
 
             <View style={styles.heroCard}>
@@ -253,12 +275,20 @@ export default function ScholarshipDetailsPage() {
               </Pressable>
             )}
 
+            {isClosed() && isStudent && (
+              <View style={styles.closedBanner}>
+                <Ionicons name="lock-closed" size={16} color="#DC2626" />
+                <Text style={styles.closedBannerText}>
+                  This scholarship is no longer accepting applications.
+                </Text>
+              </View>
+            )}
+
             <View style={{ height: 24 }} />
           </Animated.ScrollView>
         </View>
       )}
 
-      {/* Toast component for feedback (e.g. already applied) */}
       <Toast
         visible={toastVisible}
         type={toastType}
@@ -346,7 +376,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 13,
-    color: '#31D0AA',
     textTransform: 'capitalize',
   },
   heroCard: {
@@ -456,9 +485,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
   },
-  tagIcon: {
-    marginTop: -1,
-  },
   tagText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
@@ -488,5 +514,24 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
     color: '#F0F7FF',
+  },
+  closedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    marginBottom: 20,
+    gap: 10,
+  },
+  closedBannerText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 11,
+    color: '#DC2626',
+    flex: 1,
+    lineHeight: 18,
   },
 });

@@ -347,6 +347,11 @@ export const getAllScholarships = async (req: Request, res: Response) => {
       order: [['created_at', 'DESC']],
     });
 
+    // Auto-close scholarships if deadline passed
+    for (const scholarship of scholarships) {
+      await scholarship.autoCloseIfDeadlinePassed();
+    }
+
     // Format the response
     const formattedScholarships = scholarships.map((scholarship: any) => {
       const scholarshipData = scholarship.toJSON();
@@ -456,6 +461,11 @@ export const getSponsorScholarships = async (req: AuthenticatedRequest, res: Res
       subQuery: false,
     });
 
+    // Auto-close scholarships if deadline passed
+    for (const scholarship of scholarships) {
+      await scholarship.autoCloseIfDeadlinePassed();
+    }
+
     // Format the response
     const formattedScholarships = scholarships.map((scholarship: any) => {
       const scholarshipData = scholarship.toJSON();
@@ -538,6 +548,9 @@ export const getScholarshipById = async (req: AuthenticatedRequest, res: Respons
       });
     }
 
+    // Auto-close if deadline passed
+    await scholarship.autoCloseIfDeadlinePassed();
+
     const scholarshipData = scholarship.toJSON() as any;
 
     return res.status(200).json({
@@ -619,6 +632,9 @@ export const updateScholarship = async (req: AuthenticatedRequest, res: Response
       });
     }
 
+    // Auto-close if deadline passed
+    await scholarship.autoCloseIfDeadlinePassed();
+
     const {
       type,
       purpose,
@@ -632,6 +648,24 @@ export const updateScholarship = async (req: AuthenticatedRequest, res: Response
       custom_form_fields,
       status,
     } = req.body as any;
+
+    if (scholarship.status === 'closed') {
+      // Only allow status updates (for archiving)
+      if (typeof status !== 'undefined') {
+        scholarship.status = status;
+        await scholarship.save();
+        return res.status(200).json({
+          success: true,
+          message: 'Scholarship status updated!',
+          scholarship: scholarship.toJSON()
+        });
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: 'Scholarship is closed. Only status updates are allowed.'
+        });
+      }
+    }
 
     let criteriaArray: string[] | undefined = undefined;
     let documentsArray: string[] | undefined = undefined;
@@ -722,6 +756,17 @@ export const deleteScholarship = async (req: AuthenticatedRequest, res: Response
       return res.status(403).json({ success: false, message: "You don't have permission to delete this scholarship." });
     }
 
+    // Auto-close if deadline passed
+    await scholarship.autoCloseIfDeadlinePassed();
+
+    // Check if scholarship is closed
+    if (scholarship.status === 'closed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Scholarship is closed. Deletion is not allowed.'
+      });
+    }
+
     // Attempt delete of associated image if exists
     if (scholarship.image_url) {
       try {
@@ -741,6 +786,61 @@ export const deleteScholarship = async (req: AuthenticatedRequest, res: Response
   } catch (error) {
     console.error('Error deleting scholarship:', error);
     return res.status(500).json({ success: false, message: 'Error deleting scholarship. Please try again later.' });
+  }
+};
+
+// Archive scholarship (sponsor only and must own)
+export const archiveScholarship = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { scholarship_id } = req.params as { scholarship_id: string };
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Authentication required.' });
+    }
+
+    const user = await User.findByPk(userId);
+    if (!user || user.role !== 'sponsor') {
+      return res.status(403).json({ success: false, message: 'Only sponsors can archive scholarships.' });
+    }
+
+    const sponsor = await Sponsor.findOne({ where: { user_id: userId } });
+    if (!sponsor) {
+      return res.status(404).json({ success: false, message: 'Sponsor profile not found.' });
+    }
+
+    const scholarship = await Scholarship.findByPk(scholarship_id);
+    if (!scholarship) {
+      return res.status(404).json({ success: false, message: 'Scholarship not found.' });
+    }
+
+    if (scholarship.sponsor_id !== sponsor.sponsor_id) {
+      return res.status(403).json({ success: false, message: "You don't have permission to archive this scholarship." });
+    }
+
+    // Auto-close if deadline passed
+    await scholarship.autoCloseIfDeadlinePassed();
+
+    // Check if scholarship is closed
+    if (scholarship.status !== 'closed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Archiving is only allowed for closed scholarships.'
+      });
+    }
+
+    // Update status to archived
+    scholarship.status = 'archived';
+    await scholarship.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Scholarship archived.',
+      scholarship: scholarship.toJSON()
+    });
+  } catch (error) {
+    console.error('Error archiving scholarship:', error);
+    return res.status(500).json({ success: false, message: 'Error archiving scholarship. Please try again later.' });
   }
 };
 

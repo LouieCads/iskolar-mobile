@@ -51,6 +51,30 @@ interface Scholarship {
 }
 
 class ScholarshipService {
+  /**
+   * Gets action permissions based on scholarship status
+   */
+  getActionPermissions(status: string): {
+    canEdit: boolean;
+    canDelete: boolean;
+    canArchive: boolean;
+    canAcceptApplications: boolean;
+    canViewApplications: boolean;
+    canUpdateApplicationStatus: boolean;
+    isClosed: boolean;
+  } {
+    const isClosed = status === 'closed';
+    return {
+      canEdit: !isClosed,
+      canDelete: !isClosed,
+      canArchive: isClosed,
+      canAcceptApplications: !isClosed,
+      canViewApplications: true,
+      canUpdateApplicationStatus: true,
+      isClosed: isClosed,
+    };
+  }
+
   async createScholarship(scholarshipData: ScholarshipData): Promise<{ 
     success: boolean; 
     scholarship?: any; 
@@ -122,6 +146,25 @@ class ScholarshipService {
     return {
       success: response.success,
       message: response.message || (response.success ? 'Scholarship deleted' : 'Failed to delete scholarship')
+    };
+  }
+
+  /**
+   * Archives a scholarship (only allowed when status is closed)
+   */
+  async archiveScholarship(scholarshipId: string): Promise<{
+    success: boolean;
+    scholarship?: any;
+    message: string;
+  }> {
+    const response = await authService.authenticatedRequest(`/scholarship/${scholarshipId}/archive`, {
+      method: 'POST'
+    });
+
+    return {
+      success: response.success,
+      scholarship: response.data?.scholarship,
+      message: response.message || (response.success ? 'Scholarship archived successfully' : 'Failed to archive scholarship')
     };
   }
 

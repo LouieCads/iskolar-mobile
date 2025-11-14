@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/database";
 import Sponsor from "./Sponsor";
+import { isDeadlinePassed, getScholarshipActionPermissions, ScholarshipActionPermissions } from "../utils/scholarship";
 
 interface ScholarshipAttributes {
   scholarship_id: string;
@@ -40,6 +41,30 @@ class Scholarship extends Model<ScholarshipAttributes, ScholarshipCreationAttrib
   public custom_form_fields!: any; 
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
+
+  /**
+   * Checks if this scholarship's deadline has passed
+   */
+  public isDeadlinePassed(): boolean {
+    return isDeadlinePassed(this.application_deadline);
+  }
+
+  /**
+   * Gets action permissions for this scholarship based on status
+   */
+  public getActionPermissions(): ScholarshipActionPermissions {
+    return getScholarshipActionPermissions(this.status ?? "active");
+  }
+
+  /**
+   * Auto-closes scholarship if deadline has passed
+   */
+  public async autoCloseIfDeadlinePassed(): Promise<void> {
+    if (this.isDeadlinePassed() && this.status === 'active') {
+      this.status = 'closed';
+      await this.save();
+    }
+  }
 
   static associate(models: any) {
     Scholarship.belongsTo(models.Sponsor, {

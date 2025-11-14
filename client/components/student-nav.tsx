@@ -1,16 +1,16 @@
 // components/StudentNav.tsx
 import { View, Pressable, StyleSheet } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
-import { MaterialCommunityIcons  } from '@expo/vector-icons';
+import { Octicons  } from '@expo/vector-icons';
 
 export default function StudentNav() {
   const router = useRouter();
   const pathname = usePathname();
 
   const navItems = [
-    { name: 'home', icon: 'home-outline' as const, route: '/(student)/home' as const },
-    { name: 'discover', icon: 'compass-outline' as const, route: '/(student)/discover' as const },
-    { name: 'profile', icon: 'account' as const, route: '/(student)/my-student-profile' as const },
+    { name: 'home', icon: 'home' as const, route: '/(student)/home' as const },
+    { name: 'discover', icon: 'globe' as const, route: '/(student)/discover' as const },
+    { name: 'profile', icon: 'person' as const, route: '/(student)/my-student-profile' as const },
   ];
 
   const isActive = (route: string) => pathname === route;
@@ -26,10 +26,10 @@ export default function StudentNav() {
             onPress={() => router.push(item.route)}
           >
             <View style={styles.iconWrapper}>
-              <MaterialCommunityIcons
+              <Octicons
                 name={item.icon}
-                size={26}
-                color={active ? '#EFA508' : '#F0F7FF'}
+                size={23}
+                color={active ? '#3A52A6' : '#6B7280'}
               />
             </View>
           </Pressable>
@@ -48,9 +48,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    backgroundColor: '#3A52A6',
+    backgroundColor: '#F0F7FF',
     paddingVertical: 3,
     paddingHorizontal: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
   },
   navItem: {
     alignItems: 'center',
@@ -58,7 +60,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   navItemActive: {
-    backgroundColor: '#EFA508',
+    backgroundColor: '#3A52A6',
     borderRadius: 50,
     width: 55,
     height: 55,

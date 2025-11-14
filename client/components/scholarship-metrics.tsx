@@ -54,11 +54,13 @@ export default function ScholarshipMetrics({ scholarships }: ScholarshipMetricsP
 
 const styles = StyleSheet.create({
   metricsContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: '#F0F7FF',
     paddingHorizontal: 20,
     paddingVertical: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
   },
   metItem: {
     flexDirection: 'row',

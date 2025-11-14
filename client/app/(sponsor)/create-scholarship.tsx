@@ -1005,7 +1005,7 @@ export default function CreateScholarshipPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F7FF',
+    backgroundColor: '#F8F9FC',
   },
   scrollView: {
     flex: 1,
@@ -1079,7 +1079,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dropdown: {
-    backgroundColor: '#F0F7FF',
+    backgroundColor: '#F8F9FC',
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#C4CBD5',
@@ -1101,7 +1101,7 @@ const styles = StyleSheet.create({
     height: 20,
   },
   dropdownContainer: {
-    backgroundColor: '#F0F7FF',
+    backgroundColor: '#F8F9FC',
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#C4CBD5',
@@ -1133,7 +1133,7 @@ const styles = StyleSheet.create({
   },
   input: {
     fontFamily: 'BreeSerif_400Regular',
-    backgroundColor: '#F0F7FF',
+    backgroundColor: '#F8F9FC',
     borderWidth: 1,
     borderColor: '#C4CBD5',
     borderRadius: 10,
@@ -1189,7 +1189,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     gap: 8,
-    backgroundColor: '#F0F7FF',
+    backgroundColor: '#F8F9FC',
     borderWidth: 1,
     borderColor: '#C4CBD5',
     borderRadius: 10,

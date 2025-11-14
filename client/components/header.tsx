@@ -110,13 +110,15 @@ export default function Header({
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: '#fff',
+    backgroundColor: '#F0F7FF',
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 6,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
   },
   logoContainer: {
     flexDirection: 'row',
@@ -136,7 +138,7 @@ const styles = StyleSheet.create({
   searchButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#F8F9FC',
     paddingLeft: 8,
     paddingRight: 50,
     paddingVertical: 6,
@@ -158,7 +160,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#F8F9FC',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 2,
@@ -171,7 +173,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 13,
-    color: '#333',
+    color: '#111827',
   },
   cancelButton: {
     paddingVertical: 8,

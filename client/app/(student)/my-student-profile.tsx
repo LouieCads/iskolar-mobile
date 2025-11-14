@@ -569,7 +569,7 @@ export default function MyStudentProfile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F7FF',
+    backgroundColor: '#F8F9FC',
   },
   header: {
     height: 215,
@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 200,
-    backgroundColor: '#F0F7FF',
+    backgroundColor: '#F8F9FC',
     borderTopLeftRadius: 900,
     borderTopRightRadius: 900,
     transform: [{ scaleX: 1.7 }],

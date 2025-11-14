@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   card: {
-    backgroundColor: '#F0F7FF',
+    backgroundColor: '#fff',
     borderRadius: 14,
     overflow: 'hidden',
     marginBottom: 14,

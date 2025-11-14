@@ -253,7 +253,7 @@ export default function MyScholarshipsPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F7FF',
+    backgroundColor: '#F8F9FC',
   },
   scrollView: {
     flex: 1,

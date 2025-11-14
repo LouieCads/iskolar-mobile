@@ -1,16 +1,16 @@
 // components/SponsorNav.tsx
 import { View, Pressable, StyleSheet } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
-import { MaterialCommunityIcons  } from '@expo/vector-icons';
+import { Octicons  } from '@expo/vector-icons';
 
 export default function SponsorNav() {
   const router = useRouter();
   const pathname = usePathname();
 
   const navItems = [
-    { name: 'my-scholarships', icon: 'home-outline' as const, route: '/(sponsor)/my-scholarships' as const },
-    { name: 'discover', icon: 'compass-outline' as const, route: '/(sponsor)/discover' as const },
-    { name: 'profile', icon: 'account' as const, route: '/(sponsor)/my-sponsor-profile' as const },
+    { name: 'my-scholarships', icon: 'home' as const, route: '/(sponsor)/my-scholarships' as const },
+    { name: 'discover', icon: 'globe' as const, route: '/(sponsor)/discover' as const },
+    { name: 'profile', icon: 'person' as const, route: '/(sponsor)/my-sponsor-profile' as const },
   ];
 
   const isActive = (route: string) => pathname === route;
@@ -26,10 +26,10 @@ export default function SponsorNav() {
             onPress={() => router.push(item.route)}
           >
             <View style={styles.iconWrapper}>
-              <MaterialCommunityIcons
+              <Octicons
                 name={item.icon}
-                size={26}
-                color={active ? '#EFA508' : '#F0F7FF'}
+                size={23}
+                color={active ? '#EFA508' : '#6B7280'}
               />
             </View>
           </Pressable>
@@ -48,9 +48,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    backgroundColor: '#3A52A6',
+    backgroundColor: '#F0F7FF',
     paddingVertical: 3,
     paddingHorizontal: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
   },
   navItem: {
     alignItems: 'center',

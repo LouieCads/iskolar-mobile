@@ -843,7 +843,7 @@ export default function ApplicantsListPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F7FF',
+    backgroundColor: '#F8F9FC',
   },
   center: {
     flex: 1,
@@ -914,7 +914,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F8F9FC',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -944,7 +944,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 40,
     right: 0,
-    backgroundColor: '#fff',
+    backgroundColor: '#F8F9FC',
     borderRadius: 8,
     marginTop: 4,
     borderWidth: 1,

@@ -348,7 +348,7 @@ export default function StudentHomePage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F7FF',
+    backgroundColor: '#F8F9FC',
   },
   headerContainer: {
     flexDirection: 'row',
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: '#F0F7FF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E5',
   },
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F8F9FC',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -408,13 +408,13 @@ const styles = StyleSheet.create({
   dropdownBadgeText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 10,
-    color: '#fff',
+    color: '#F8F9FC',
   },
   dropdownMenu: {
     position: 'absolute',
     top: 40,
     right: 0,
-    backgroundColor: '#fff',
+    backgroundColor: '#F8F9FC',
     borderRadius: 8,
     marginTop: 4,
     borderWidth: 1,
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: '#E5E5E5',
   },
   dropdownItemActive: {
     backgroundColor: '#EFF6FF',

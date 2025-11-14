@@ -956,7 +956,7 @@ export default function EditScholarshipPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F7FF',
+    backgroundColor: '#F8F9FC',
     paddingBottom: 28,
   },
   center: {
@@ -969,14 +969,16 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   topBar: {
-    height: 80,
+    height: 85,
     backgroundColor: '#3A52A6',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 12,
-    paddingTop: 28,
+    paddingTop: 30,
     elevation: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
   },
   backBtn: {
     width: 38,

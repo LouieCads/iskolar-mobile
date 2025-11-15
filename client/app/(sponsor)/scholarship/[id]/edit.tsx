@@ -93,6 +93,10 @@ export default function EditScholarshipPage() {
   const customFormFields = watch('customFormFields') || [];
   const deadline = watch('deadline');
 
+  // Save confirmation modal state
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const [pendingSaveData, setPendingSaveData] = useState<EditScholarshipFormData | null>(null);
+
   const typeDropdownRotation = useRef(new Animated.Value(0)).current;
   const typeDropdownScale = useRef(new Animated.Value(1)).current;
   const purposeDropdownRotation = useRef(new Animated.Value(0)).current;
@@ -792,9 +796,9 @@ export default function EditScholarshipPage() {
             </View>
           </View>
 
-          <Pressable 
-            style={[styles.saveBtn, saving && { opacity: 0.7 }]} 
-            onPress={handleSubmit(onSubmit)} 
+          <Pressable
+            style={({ pressed }) => [styles.saveBtn, saving && { opacity: 0.7 }, pressed && styles.saveBtnActive]}
+            onPress={handleSubmit((data) => { setPendingSaveData(data); setShowSaveConfirm(true); })}
             disabled={saving}
           >
             {saving ? <ActivityIndicator size="small" color="#F0F7FF" /> : <>
@@ -807,6 +811,37 @@ export default function EditScholarshipPage() {
       )}
 
       {/* Custom Form Field Modal */}
+      {/* Save confirmation modal */}
+      <Modal
+        visible={showSaveConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSaveConfirm(false)}
+      >
+        <View style={styles.submissionModalOverlay}>
+          <View style={styles.submissionModalContent}>
+            <Text style={styles.submissionModalTitle}>Save Changes</Text>
+            <Text style={styles.submissionModalMessage}>Do you want to save the changes you made to this scholarship?</Text>
+            <View style={styles.submissionModalButtons}>
+              <Pressable style={styles.submissionModalCancelButton} onPress={() => setShowSaveConfirm(false)}>
+                <Text style={styles.submissionModalCancelButtonText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={styles.submissionModalConfirmButton}
+                onPress={async () => {
+                  setShowSaveConfirm(false);
+                  if (pendingSaveData) {
+                    await onSubmit(pendingSaveData);
+                    setPendingSaveData(null);
+                  }
+                }}
+              >
+                <Text style={styles.submissionModalConfirmButtonText}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
       <Modal
         visible={showCustomFormModal}
         transparent={true}
@@ -1144,6 +1179,11 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
   },
+  saveBtnActive: {
+    transform: [{ scale: 0.985 }],
+    backgroundColor: '#d48d00',
+    opacity: 0.95,
+  },
   customFormSection: {
     marginTop: 16,
     paddingTop: 16,
@@ -1424,5 +1464,77 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
     color: '#111827',
+  },
+  submissionModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  submissionModalContent: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxWidth: 420,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  submissionModalTitle: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 16,
+    color: '#111827',
+    marginBottom: 8,
+  },
+  submissionModalMessage: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#4B5563',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 18,
+  },
+  submissionModalButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+  },
+  submissionModalCancelButton: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#C4CBD5',
+  },
+  submissionModalCancelButtonText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 14,
+    color: '#4B5563',
+  },
+  submissionModalConfirmButton: {
+    flex: 1,
+    backgroundColor: '#EFA508',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#EFA508',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  submissionModalConfirmButtonText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 14,
+    color: '#FFFFFF',
   },
 });

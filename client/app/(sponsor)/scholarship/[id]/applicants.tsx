@@ -261,7 +261,10 @@ export default function ApplicantsListPage() {
         <View style={styles.center}>
           <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" />
           <Text style={styles.errorText}>{error}</Text>
-          <Pressable style={styles.retryButton} onPress={fetchApplicants}>
+          <Pressable 
+            style={({ pressed }) => [styles.retryButton, pressed && styles.retryButtonPressed]}
+            onPress={fetchApplicants}
+          >
             <Text style={styles.retryButtonText}>Retry</Text>
           </Pressable>
         </View>
@@ -873,6 +876,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     marginTop: 16,
+  },
+  retryButtonPressed: {
+    opacity: 0.85,
   },
   retryButtonText: {
     fontFamily: 'BreeSerif_400Regular',

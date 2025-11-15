@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
 
 interface CreateScholarshipButtonProps {
   onPress: () => void;
@@ -22,6 +23,16 @@ export default function CreateScholarshipButton({
   right = 14,
   size = 54,
 }: CreateScholarshipButtonProps) {
+  const [isPressed, setIsPressed] = useState(false);
+
+  const handlePressIn = () => {
+    setIsPressed(true);
+  };
+
+  const handlePressOut = () => {
+    setIsPressed(false);
+  };
+
   return (
     <Pressable
       style={[
@@ -32,14 +43,31 @@ export default function CreateScholarshipButton({
           width: size,
           height: size,
           borderRadius: size / 2,
-          backgroundColor,
+          backgroundColor: isPressed ? adjustBrightness(backgroundColor, -20) : backgroundColor,
+          opacity: isPressed ? 0.85 : 1,
         },
       ]}
       onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
     >
       <Ionicons name={iconName} size={iconSize} color={iconColor} />
     </Pressable>
   );
+}
+
+// Helper function to adjust color brightness for pressed state
+function adjustBrightness(color: string, percent: number): string {
+  const num = parseInt(color.replace('#', ''), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = (num >> 16) + amt;
+  const G = (num >> 8 & 0x00FF) + amt;
+  const B = (num & 0x0000FF) + amt;
+  return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+    (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+    (B < 255 ? B < 1 ? 0 : B : 255))
+    .toString(16)
+    .slice(1);
 }
 
 const styles = StyleSheet.create({

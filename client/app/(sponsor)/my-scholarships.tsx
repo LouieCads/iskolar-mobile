@@ -178,7 +178,10 @@ export default function MyScholarshipsPage() {
         <View style={styles.centerContainer}>
           <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" />
           <Text style={styles.errorText}>{error}</Text>
-          <Pressable style={styles.retryButton} onPress={fetchScholarships}>
+          <Pressable 
+            style={({ pressed }) => [styles.retryButton, pressed && styles.retryButtonPressed]}
+            onPress={fetchScholarships}
+          >
             <Text style={styles.retryButtonText}>Retry</Text>
           </Pressable>
         </View>
@@ -193,7 +196,10 @@ export default function MyScholarshipsPage() {
           {searchQuery ? (
             <Text style={styles.searchHint}>Try different keywords</Text>
           ) : (
-            <Pressable style={styles.createButton} onPress={handleCreateScholarship}>
+            <Pressable 
+              style={({ pressed }) => [styles.createButton, pressed && styles.createButtonPressed]}
+              onPress={handleCreateScholarship}
+            >
               <Ionicons name="add-circle-outline" size={20} color="#fff" />
               <Text style={styles.createButtonText}>Create Scholarship</Text>
             </Pressable>
@@ -322,6 +328,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 16,
   },
+  retryButtonPressed: {
+    opacity: 0.85,
+  },
   retryButtonText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 16,
@@ -336,6 +345,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  createButtonPressed: {
+    opacity: 0.85,
   },
   createButtonText: {
     fontFamily: 'BreeSerif_400Regular',

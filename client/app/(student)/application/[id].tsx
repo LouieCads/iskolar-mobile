@@ -152,7 +152,10 @@ export default function ApplicationDetailsPage() {
         <View style={styles.center}>
           <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" />
           <Text style={styles.errorText}>{error}</Text>
-          <Pressable style={styles.retryButton} onPress={fetchApplicationDetails}>
+          <Pressable 
+            style={({ pressed }) => [styles.retryButton, pressed && styles.retryButtonPressed]}
+            onPress={fetchApplicationDetails}
+          >
             <Text style={styles.retryButtonText}>Retry</Text>
           </Pressable>
         </View>
@@ -392,6 +395,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
+  },
+  retryButtonPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.97 }],
   },
   retryButtonText: {
     fontFamily: 'BreeSerif_400Regular',

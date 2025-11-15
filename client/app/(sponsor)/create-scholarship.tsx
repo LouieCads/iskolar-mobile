@@ -791,7 +791,11 @@ export default function CreateScholarshipPage() {
 
         {/* Create Button */}
         <Pressable 
-          style={[styles.createButton, isLoading && styles.createButtonDisabled]} 
+          style={({ pressed }) => [
+            styles.createButton,
+            isLoading && styles.createButtonDisabled,
+            pressed && !isLoading && styles.createButtonPressed
+          ]}
           onPress={handleSubmit(onSubmit)}
           disabled={isLoading}
         >
@@ -831,10 +835,16 @@ export default function CreateScholarshipPage() {
             />
 
             <View style={styles.modalButtons}>
-              <Pressable style={styles.modalCancelButton} onPress={cancelDescription}>
+              <Pressable 
+                style={({ pressed }) => [styles.modalCancelButton, pressed && styles.modalCancelButtonPressed]}
+                onPress={cancelDescription}
+              >
                 <Text style={styles.modalCancelText}>Cancel</Text>
               </Pressable>
-              <Pressable style={styles.modalSaveButton} onPress={saveDescription}>
+              <Pressable 
+                style={({ pressed }) => [styles.modalSaveButton, pressed && styles.modalSaveButtonPressed]}
+                onPress={saveDescription}
+              >
                 <Text style={styles.modalSaveText}>Save</Text>
               </Pressable>
             </View>
@@ -978,10 +988,16 @@ export default function CreateScholarshipPage() {
 
             {/* Modal Buttons */}
             <View style={styles.modalButtons}>
-              <Pressable style={styles.modalCancelButton} onPress={closeCustomFormModal}>
+              <Pressable 
+                style={({ pressed }) => [styles.modalCancelButton, pressed && styles.modalCancelButtonPressed]}
+                onPress={closeCustomFormModal}
+              >
                 <Text style={styles.modalCancelText}>Cancel</Text>
               </Pressable>
-              <Pressable style={styles.modalSaveButton} onPress={saveCustomFormField}>
+              <Pressable 
+                style={({ pressed }) => [styles.modalSaveButton, pressed && styles.modalSaveButtonPressed]}
+                onPress={saveCustomFormField}
+              >
                 <Text style={styles.modalSaveText}>
                   {editingFieldIndex !== null ? 'Update' : 'Add'} Field
                 </Text>
@@ -1212,6 +1228,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 16,
   },
+  createButtonPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.97 }],
+  },
   createButtonDisabled: {
     opacity: 0.6,
   },
@@ -1277,6 +1297,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: 'center',
   },
+  modalCancelButtonPressed: {
+    opacity: 0.7,
+  },
   modalCancelText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
@@ -1288,6 +1311,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
+  },
+  modalSaveButtonPressed: {
+    opacity: 0.85,
   },
   modalSaveText: {
     fontFamily: 'BreeSerif_400Regular',

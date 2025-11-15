@@ -1,6 +1,7 @@
-import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Image, Pressable, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useState, useRef, useEffect } from 'react';
 
 interface ScholarshipCardProps {
   scholarship_id: string;
@@ -31,6 +32,29 @@ export default function ScholarshipCard({
   tags,
   onPress
 }: ScholarshipCardProps) {
+  const [isPressed, setIsPressed] = useState(false);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    setIsPressed(true);
+    Animated.spring(scaleAnim, {
+      toValue: 0.98,
+      useNativeDriver: true,
+      speed: 6,
+      bounciness: 2,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    setIsPressed(false);
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 6,
+      bounciness: 2,
+    }).start();
+  };
+
   const amountPerScholar = slots > 0 ? amount / slots : amount;
 
   const formatAmount = (value: number) => {
@@ -56,10 +80,16 @@ export default function ScholarshipCard({
 
   return (
     <View style={styles.container}>
-      <Pressable 
-        style={styles.card}
-        onPress={onPress}
-      >
+      <Animated.View style={[{ transform: [{ scale: scaleAnim }] }]}>
+        <Pressable 
+          style={({ pressed }) => [
+            styles.card,
+            isPressed && styles.cardPressed,
+          ]}
+          onPress={onPress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+        >
         <LinearGradient
           colors={['#3A52A6', '#3A52A6', '#607EF2']}
           start={{ x: 0, y: 0 }}
@@ -168,7 +198,8 @@ export default function ScholarshipCard({
             </View>
           )}
         </View>
-      </Pressable>
+        </Pressable>
+      </Animated.View>
     </View>
   );
 }
@@ -179,14 +210,23 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 14,
+    borderRadius: 16,
     marginTop: 14,
+    marginHorizontal: 2,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowColor: '#3A52A6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  cardPressed: {
+    shadowColor: '#3A52A6',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
+    transform: [{ scale: 0.98 }],
   },
   cardHeader: {
     flexDirection: 'row',

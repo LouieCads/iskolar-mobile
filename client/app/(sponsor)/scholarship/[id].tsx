@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Alert, Animated, Image } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Alert, Animated, Image, Modal } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import Header from '@/components/header';
 import { scholarshipService, CustomFormField } from '@/services/scholarship-creation.service';
@@ -14,6 +14,9 @@ export default function ScholarshipDetailsPage() {
   const [scholarship, setScholarship] = useState<any>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [actionPermissions, setActionPermissions] = useState<any>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [pressedButton, setPressedButton] = useState<string | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(8)).current;
@@ -96,36 +99,34 @@ export default function ScholarshipDetailsPage() {
 
   const onDelete = async () => {
     if (!id) return;
-    Alert.alert('Delete Scholarship', 'Are you sure you want to delete this scholarship?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete', style: 'destructive', onPress: async () => {
-          const res = await scholarshipService.deleteScholarship(String(id));
-          if (res.success) {
-            router.back();
-          } else {
-            Alert.alert('Error', res.message);
-          }
-        }
-      }
-    ]);
+    setShowDeleteConfirm(true);
+  };
+
+  const performDelete = async () => {
+    if (!id) return;
+    setShowDeleteConfirm(false);
+    const res = await scholarshipService.deleteScholarship(String(id));
+    if (res.success) {
+      router.back();
+    } else {
+      Alert.alert('Error', res.message);
+    }
   };
 
   const onArchive = async () => {
     if (!id) return;
-    Alert.alert('Archive Scholarship', 'Are you sure you want to archive this scholarship? It will no longer be visible in your active list.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Archive', style: 'default', onPress: async () => {
-          const res = await scholarshipService.archiveScholarship(String(id));
-          if (res.success) {
-            router.back();
-          } else {
-            Alert.alert('Error', res.message);
-          }
-        }
-      }
-    ]);
+    setShowArchiveConfirm(true);
+  };
+
+  const performArchive = async () => {
+    if (!id) return;
+    setShowArchiveConfirm(false);
+    const res = await scholarshipService.archiveScholarship(String(id));
+    if (res.success) {
+      router.back();
+    } else {
+      Alert.alert('Error', res.message);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -159,7 +160,10 @@ export default function ScholarshipDetailsPage() {
         <View style={styles.center}>
           <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" />
           <Text style={styles.errorText}>{error}</Text>
-          <Pressable style={styles.retryButton} onPress={fetchDetails}>
+          <Pressable 
+            style={({ pressed }) => [styles.retryButton, pressed && styles.retryButtonPressed]}
+            onPress={fetchDetails}
+          >
             <Text style={styles.retryButtonText}>Retry</Text>
           </Pressable>
         </View>
@@ -294,7 +298,10 @@ export default function ScholarshipDetailsPage() {
           {isOwner && actionPermissions && (
             <>
               <Pressable 
-                style={styles.viewApplicantsBtn} 
+                style={({ pressed }) => [
+                  styles.viewApplicantsBtn,
+                  pressed && styles.viewApplicantsBtnPressed
+                ]}
                 onPress={() => router.push(`/(sponsor)/scholarship/${id}/applicants` as any)}
               >
                 <View style={styles.viewApplicantsBtnContent}>
@@ -319,7 +326,14 @@ export default function ScholarshipDetailsPage() {
 
               <View style={styles.actionsRow}>
                 {actionPermissions.canEdit ? (
-                  <Pressable style={[styles.actionBtn, styles.editBtn]} onPress={onEdit}>
+                  <Pressable 
+                    style={({ pressed }) => [
+                      styles.actionBtn,
+                      styles.editBtn,
+                      pressed && styles.actionBtnPressed
+                    ]}
+                    onPress={onEdit}
+                  >
                     <Ionicons name="create-outline" size={16} color="#F0F7FF" />
                     <Text style={styles.actionText}>Edit</Text>
                   </Pressable>
@@ -331,14 +345,28 @@ export default function ScholarshipDetailsPage() {
                 )}
                 
                 {actionPermissions.canDelete ? (
-                  <Pressable style={[styles.actionBtn, styles.deleteBtn]} onPress={onDelete}>
+                  <Pressable 
+                    style={({ pressed }) => [
+                      styles.actionBtn,
+                      styles.deleteBtn,
+                      pressed && styles.actionBtnPressed
+                    ]}
+                    onPress={onDelete}
+                  >
                     <Ionicons name="trash-outline" size={16} color="#F0F7FF" />
                     <Text style={styles.actionText}>Delete</Text>
                   </Pressable>
                 ) : null}
                 
                 {actionPermissions.canArchive && (
-                  <Pressable style={[styles.actionBtn, styles.archiveBtn]} onPress={onArchive}>
+                  <Pressable 
+                    style={({ pressed }) => [
+                      styles.actionBtn,
+                      styles.archiveBtn,
+                      pressed && styles.actionBtnPressed
+                    ]}
+                    onPress={onArchive}
+                  >
                     <Ionicons name="archive-outline" size={16} color="#F0F7FF" />
                     <Text style={styles.actionText}>Archive</Text>
                   </Pressable>
@@ -350,6 +378,55 @@ export default function ScholarshipDetailsPage() {
           <View style={{ height: 20 }} />
         </Animated.ScrollView>
       )}
+        {/* Delete confirmation modal */}
+        <Modal
+          visible={showDeleteConfirm}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowDeleteConfirm(false)}
+        >
+          <View style={styles.submissionModalOverlay}>
+            <View style={styles.submissionModalContent}>
+              <Text style={styles.submissionModalTitle}>Delete Scholarship</Text>
+              <Text style={styles.submissionModalMessage}>
+                Are you sure you want to delete this scholarship? This action cannot be undone.
+              </Text>
+              <View style={styles.submissionModalButtons}>
+                <Pressable style={styles.submissionModalCancelButton} onPress={() => setShowDeleteConfirm(false)}>
+                  <Text style={styles.submissionModalCancelButtonText}>Cancel</Text>
+                </Pressable>
+                <Pressable style={[styles.submissionModalConfirmButton, { backgroundColor: '#EF4444' }]} onPress={performDelete}>
+                  <Text style={styles.submissionModalConfirmButtonText}>Delete</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Archive confirmation modal */}
+        <Modal
+          visible={showArchiveConfirm}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowArchiveConfirm(false)}
+        >
+          <View style={styles.submissionModalOverlay}>
+            <View style={styles.submissionModalContent}>
+              <Text style={styles.submissionModalTitle}>Archive Scholarship</Text>
+              <Text style={styles.submissionModalMessage}>
+                Are you sure you want to archive this scholarship? It will no longer be visible in your active list.
+              </Text>
+              <View style={styles.submissionModalButtons}>
+                <Pressable style={styles.submissionModalCancelButton} onPress={() => setShowArchiveConfirm(false)}>
+                  <Text style={styles.submissionModalCancelButtonText}>Cancel</Text>
+                </Pressable>
+                <Pressable style={styles.submissionModalConfirmButton} onPress={performArchive}>
+                  <Text style={styles.submissionModalConfirmButtonText}>Archive</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
     </View>
   );
 }
@@ -390,6 +467,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     marginTop: 16,
+  },
+  retryButtonPressed: {
+    opacity: 0.85,
   },
   retryButtonText: {
     fontFamily: 'BreeSerif_400Regular',
@@ -576,6 +656,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#3A52A6',
   },
+  viewApplicantsBtnPressed: {
+    backgroundColor: '#C5D9FF',
+    opacity: 0.9,
+  },
   viewApplicantsBtnContent: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -619,6 +703,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
+  actionBtnPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.97 }],
+  },
   editBtn: {
     backgroundColor: '#3A52A6',
   },
@@ -658,5 +746,77 @@ const styles = StyleSheet.create({
     color: '#DC2626',
     flex: 1,
     lineHeight: 18,
+  },
+  submissionModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  submissionModalContent: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxWidth: 420,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  submissionModalTitle: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 16,
+    color: '#111827',
+    marginBottom: 8,
+  },
+  submissionModalMessage: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#4B5563',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 18,
+  },
+  submissionModalButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+  },
+  submissionModalCancelButton: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#C4CBD5',
+  },
+  submissionModalCancelButtonText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 14,
+    color: '#4B5563',
+  },
+  submissionModalConfirmButton: {
+    flex: 1,
+    backgroundColor: '#EFA508',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#EFA508',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  submissionModalConfirmButtonText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 14,
+    color: '#FFFFFF',
   },
 });

@@ -69,13 +69,13 @@ export default function Header({
       {!searchVisible ? (
         <>
           <View style={styles.logoContainer}>
-            <Pressable onPress={handleLogoPress}>
+            <Pressable onPress={handleLogoPress} style={({ pressed }) => [pressed && styles.logoPressedState]}>
               <Image source={require('../assets/images/iskolar.png')} style={styles.image}/>
             </Pressable>
             <Text style={styles.logoText}>{title}</Text>
           </View>
           {showSearch && (
-            <Pressable style={styles.searchButton} onPress={handleSearchPress}>
+            <Pressable style={({ pressed }) => [styles.searchButton, pressed && styles.searchButtonPressed]} onPress={handleSearchPress}>
               <Ionicons name="search" size={20} color="#666" />
               <Text style={styles.searchText}>Search</Text>
             </Pressable>
@@ -94,12 +94,12 @@ export default function Header({
               autoFocus
             />
             {searchQuery.length > 0 && (
-              <Pressable onPress={() => handleSearchChange('')}>
+              <Pressable onPress={() => handleSearchChange('')} style={({ pressed }) => [pressed && styles.clearButtonPressed]}>
                 <Ionicons name="close-circle" size={20} color="#666" />
               </Pressable>
             )}
           </View>
-          <Pressable onPress={handleSearchClose} style={styles.cancelButton}>
+          <Pressable onPress={handleSearchClose} style={({ pressed }) => [styles.cancelButton, pressed && styles.cancelButtonPressed]}>
             <Text style={styles.cancelText}>Cancel</Text>
           </Pressable>
         </View>
@@ -145,6 +145,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     gap: 8,
   },
+  searchButtonPressed: {
+    opacity: 0.7,
+  },
+  logoPressedState: {
+    opacity: 0.7,
+  },
   searchText: {
     fontFamily: 'BreeSerif_400Regular',
     color: '#5D6673',
@@ -177,6 +183,12 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     paddingVertical: 8,
+  },
+  cancelButtonPressed: {
+    opacity: 0.7,
+  },
+  clearButtonPressed: {
+    opacity: 0.7,
   },
   cancelText: {
     fontFamily: 'BreeSerif_400Regular',

@@ -14,6 +14,7 @@ import Student from "./models/Student";
 import Sponsor from "./models/Sponsor";
 import Scholarship from "./models/Scholarship";
 import ScholarshipApplication from "./models/ScholarshipApplication";
+import SelectedScholar from "./models/SelectedScholar";
 
 dotenv.config();
 const app = express();
@@ -32,7 +33,8 @@ const models = {
   Student,
   Sponsor,
   Scholarship,
-  ScholarshipApplication
+  ScholarshipApplication,
+  SelectedScholar
 };
 
 // Call associate method for each model

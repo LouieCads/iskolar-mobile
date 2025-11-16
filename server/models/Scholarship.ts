@@ -75,6 +75,10 @@ class Scholarship extends Model<ScholarshipAttributes, ScholarshipCreationAttrib
       foreignKey: "scholarship_id",
       as: "scholarship_applications",
     });
+     Scholarship.hasMany(models.SelectedScholar, {
+      foreignKey: "scholarship_id",
+      as: "selected_scholars",
+    });
   }
 }
 

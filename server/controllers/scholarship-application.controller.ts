@@ -6,6 +6,7 @@ import Scholarship from "../models/Scholarship";
 import Student from "../models/Student";
 import Sponsor from "../models/Sponsor";
 import User from "../models/Users";
+import SelectedScholar from "../models/SelectedScholar";
 import { containerClient } from "../config/azure";
 import { BlobSASPermissions, generateBlobSASQueryParameters, StorageSharedKeyCredential } from "@azure/storage-blob";
 
@@ -698,6 +699,31 @@ export const updateApplicationStatus = async (req: AuthenticatedRequest, res: Re
       remarks: remarks || null,
     });
 
+    // Create SelectedScholar entry if application is approved
+    if (status === 'approved') {
+      try {
+        // Check if SelectedScholar entry already exists for this student-scholarship combination
+        const existingSelection = await SelectedScholar.findOne({
+          where: {
+            student_id: application.student_id,
+            scholarship_id: application.scholarship_id,
+          },
+        });
+
+        // Only create if it doesn't already exist
+        if (!existingSelection) {
+          await SelectedScholar.create({
+            student_id: application.student_id,
+            scholarship_id: application.scholarship_id,
+          });
+        }
+      } catch (error) {
+        console.error("Error creating SelectedScholar entry:", error);
+        // Don't fail the entire request if SelectedScholar creation fails
+        // Log the error but still return success for the application update
+      }
+    }
+
     res.status(200).json({
       success: true,
       message: "Application status updated successfully",
@@ -803,6 +829,33 @@ export const bulkUpdateApplicationStatus = async (req: AuthenticatedRequest, res
         },
       }
     );
+
+    // Create SelectedScholar entries if status is approved
+    if (status === 'approved') {
+      try {
+        for (const application of applications) {
+          // Check if SelectedScholar entry already exists
+          const existingSelection = await SelectedScholar.findOne({
+            where: {
+              student_id: application.student_id,
+              scholarship_id: application.scholarship_id,
+            },
+          });
+
+          // Only create if it doesn't already exist
+          if (!existingSelection) {
+            await SelectedScholar.create({
+              student_id: application.student_id,
+              scholarship_id: application.scholarship_id,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error creating SelectedScholar entries:", error);
+        // Don't fail the entire request if SelectedScholar creation fails
+        // Log the error but still return success for the bulk update
+      }
+    }
 
     // Fetch updated applications
     const updatedApplications = await ScholarshipApplication.findAll({

@@ -178,6 +178,32 @@ export const submitApplication = async (req: AuthenticatedRequest, res: Response
     });
 
     if (existingApplication) {
+      // Allow re-apply only if the previous application was denied.
+      if (existingApplication.status === 'denied') {
+        await existingApplication.update({
+          custom_form_response,
+          status: 'pending',
+          remarks: null as any,
+          applied_at: new Date(),
+        });
+
+        res.status(200).json({
+          success: true,
+          message: "Re-application submitted successfully",
+          application: {
+            scholarship_application_id: existingApplication.scholarship_application_id,
+            student_id: existingApplication.student_id,
+            scholarship_id: existingApplication.scholarship_id,
+            status: 'pending',
+            custom_form_response: existingApplication.custom_form_response,
+            applied_at: existingApplication.applied_at,
+            updated_at: existingApplication.updated_at,
+            remarks: existingApplication.remarks,
+          },
+        });
+        return;
+      }
+
       res.status(400).json({
         success: false,
         message: "You have already applied to this scholarship",
@@ -506,10 +532,15 @@ export const checkApplicationExists = async (req: AuthenticatedRequest, res: Res
       },
     });
 
+    // If an application exists but was denied, allow the student to re-apply.
+    const canReapply = !!application && application.status === 'denied';
+    const exists = !!application && !canReapply;
+
     res.status(200).json({
       success: true,
-      message: application ? "Application exists" : "No application found",
-      exists: !!application,
+      message: exists ? "Application exists" : (canReapply ? "Previous application denied - you may re-apply" : "No application found"),
+      exists,
+      can_reapply: canReapply,
       application: application || null,
     });
   } catch (error) {

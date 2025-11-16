@@ -9,6 +9,8 @@ import {
   Animated,
   Image,
   Pressable,
+  Linking,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '@/components/header';
@@ -131,6 +133,30 @@ export default function ApplicationDetailsPage() {
 
   const isFileField = (value: any): boolean => {
     return Array.isArray(value) && value.length > 0 && typeof value[0] === 'string' && value[0].startsWith('http');
+  };
+
+  const handleFileOpen = async (url: string, fileName: string) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Error', 'Cannot open this file type');
+      }
+    } catch (error) {
+      console.error('Error opening file:', error);
+      Alert.alert('Error', 'Failed to open file');
+    }
+  };
+
+  const getFileNameFromUrl = (url: string, defaultName: string = 'File'): string => {
+    try {
+      const urlParts = url.split('/');
+      const fileName = urlParts[urlParts.length - 1];
+      return fileName ? decodeURIComponent(fileName.split('?')[0]) : defaultName;
+    } catch {
+      return defaultName;
+    }
   };
 
   const statusIcon = application ? statusIconMap[application.status] : null;
@@ -282,19 +308,50 @@ export default function ApplicationDetailsPage() {
                     {isFileField(response.value) ? (
                       <View style={styles.filesContainer}>
                         {Array.isArray(response.value) ? (
-                          response.value.map((fileUrl: string, idx: number) => (
-                            <Pressable key={idx} style={styles.fileLink}>
-                              <Ionicons name="document-outline" size={16} color="#3A52A6" />
-                              <Text style={styles.fileLinkText} numberOfLines={1}>
-                                File {idx + 1}
-                              </Text>
-                            </Pressable>
-                          ))
+                          response.value.map((fileUrl: string, idx: number) => {
+                            const fileName = getFileNameFromUrl(fileUrl, `File ${idx + 1}`);
+                            return (
+                              <View key={idx} style={styles.fileItemContainer}>
+                                <View style={styles.fileContent}>
+                                  <Ionicons name="document-outline" size={16} color="#3A52A6" />
+                                  <View style={styles.fileInfo}>
+                                    <Text style={styles.fileName} numberOfLines={2}>
+                                      {response.label}
+                                    </Text>
+                                  </View>
+                                </View>
+                                <View style={styles.fileActions}>
+                                  <Pressable 
+                                    style={styles.fileActionButton}
+                                    onPress={() => handleFileOpen(fileUrl, fileName)}
+                                    hitSlop={8}
+                                  >
+                                    <Ionicons name="open-outline" size={16} color="#111827" />
+                                  </Pressable>
+                                </View>
+                              </View>
+                            );
+                          })
                         ) : (
-                          <Pressable style={styles.fileLink}>
-                            <Ionicons name="document-outline" size={16} color="#3A52A6" />
-                            <Text style={styles.fileLinkText}>Uploaded File</Text>
-                          </Pressable>
+                          <View style={styles.fileItemContainer}>
+                            <View style={styles.fileContent}>
+                              <Ionicons name="document-outline" size={16} color="#3A52A6" />
+                              <View style={styles.fileInfo}>
+                                <Text style={styles.fileName} numberOfLines={2}>
+                                  Uploaded File
+                                </Text>
+                              </View>
+                            </View>
+                            <View style={styles.fileActions}>
+                            <Pressable 
+                              style={styles.fileActionButton}
+                              onPress={() => handleFileOpen(response.value, 'File')}
+                              hitSlop={8}
+                            >
+                              <Ionicons name="open-outline" size={16} color="#111827" />
+                            </Pressable>
+                            </View>
+                          </View>
                         )}
                       </View>
                     ) : (
@@ -599,6 +656,42 @@ const styles = StyleSheet.create({
   },
   filesContainer: {
     gap: 8,
+  },
+  fileItemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#3A52A6',
+  },
+  fileContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginRight: 8,
+  },
+  fileInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  fileName: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#111827',
+  },
+  fileActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  fileActionButton: {
+    padding: 6,
+    borderRadius: 6,
+    backgroundColor: '#E0ECFF',
   },
   fileLink: {
     flexDirection: 'row',

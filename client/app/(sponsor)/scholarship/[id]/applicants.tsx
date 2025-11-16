@@ -37,6 +37,7 @@ export default function ApplicantsListPage() {
   const [modalVisible, setModalVisible] = useState(false);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'shortlisted' | 'approved' | 'denied'>('all');
   const [showDropdown, setShowDropdown] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   
   // Bulk operations state
   const [bulkMode, setBulkMode] = useState(false);
@@ -230,6 +231,17 @@ export default function ApplicantsListPage() {
     } catch (error) {
       console.error('Error opening file:', error);
       showToast('error', 'Error', 'Failed to open file');
+    }
+  };
+
+
+  const getFileNameFromUrl = (url: string, defaultName: string = 'File'): string => {
+    try {
+      const urlParts = url.split('/');
+      const fileName = urlParts[urlParts.length - 1];
+      return fileName ? decodeURIComponent(fileName.split('?')[0]) : defaultName;
+    } catch {
+      return defaultName;
     }
   };
 
@@ -554,17 +566,30 @@ export default function ApplicantsListPage() {
                           <Text style={styles.responseLabel}>{item.label}</Text>
                           {Array.isArray(item.value) && item.value.length > 0 && typeof item.value[0] === 'string' && item.value[0].startsWith('http') ? (
                             <View style={styles.fileList}>
-                              {item.value.map((url: string, idx: number) => (
-                                <Pressable 
-                                  key={idx} 
-                                  style={styles.fileItem}
-                                  onPress={() => handleFileOpen(url, `${item.label}_file_${idx + 1}`)}
-                                >
-                                  <Ionicons name="document-attach" size={16} color="#3A52A6" />
-                                  <Text style={styles.fileText}>File {idx + 1}</Text>
-                                  <Ionicons name="open-outline" size={14} color="#3A52A6" style={{ marginLeft: 4 }} />
-                                </Pressable>
-                              ))}
+                              {item.value.map((url: string, idx: number) => {
+                                const fileName = getFileNameFromUrl(url, `File ${idx + 1}`);
+                                return (
+                                  <View key={idx} style={styles.fileItemContainer}>
+                                    <View style={styles.fileContent}>
+                                      <Ionicons name="document-attach" size={16} color="#3A52A6" />
+                                      <View style={styles.fileInfo}>
+                                        <Text style={styles.fileName} numberOfLines={2}>
+                                          {item.label}
+                                        </Text>
+                                      </View>
+                                    </View>
+                                    <View style={styles.fileActions}>
+                                      <Pressable 
+                                        style={styles.fileActionButton}
+                                        onPress={() => handleFileOpen(url, fileName)}
+                                        hitSlop={8}
+                                      >
+                                        <Ionicons name="open-outline" size={14} color="#111827" />
+                                      </Pressable>
+                                    </View>
+                                  </View>
+                                );
+                              })}
                             </View>
                           ) : item.value === null || item.value === '' ? (
                             <Text style={[styles.responseValue, { fontStyle: 'italic', color: '#9CA3AF' }]}>
@@ -583,17 +608,30 @@ export default function ApplicantsListPage() {
                           <Text style={styles.responseLabel}>{key}</Text>
                           {Array.isArray(value) && value.length > 0 && typeof value[0] === 'string' && value[0].startsWith('http') ? (
                             <View style={styles.fileList}>
-                              {value.map((url: string, idx: number) => (
-                                <Pressable 
-                                  key={idx} 
-                                  style={styles.fileItem}
-                                  onPress={() => handleFileOpen(url, `file_${idx + 1}`)}
-                                >
-                                  <Ionicons name="document-attach" size={16} color="#3A52A6" />
-                                  <Text style={styles.fileText}>File {idx + 1}</Text>
-                                  <Ionicons name="open-outline" size={14} color="#3A52A6" style={{ marginLeft: 4 }} />
-                                </Pressable>
-                              ))}
+                              {value.map((url: string, idx: number) => {
+                                const fileName = getFileNameFromUrl(url, `File ${idx + 1}`);
+                                return (
+                                  <View key={idx} style={styles.fileItemContainer}>
+                                    <View style={styles.fileContent}>
+                                      <Ionicons name="document-attach" size={16} color="#3A52A6" />
+                                      <View style={styles.fileInfo}>
+                                        <Text style={styles.fileName} numberOfLines={2}>
+                                          File
+                                        </Text>
+                                      </View>
+                                    </View>
+                                    <View style={styles.fileActions}>
+                                      <Pressable 
+                                        style={styles.fileActionButton}
+                                        onPress={() => handleFileOpen(url, fileName)}
+                                        hitSlop={8}
+                                      >
+                                        <Ionicons name="open-outline" size={14} color="#111827" />
+                                      </Pressable>
+                                    </View>
+                                  </View>
+                                );
+                              })}
                             </View>
                           ) : (
                             <Text style={styles.responseValue}>
@@ -1277,6 +1315,42 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 13,
     color: '#3A52A6',
+  },
+  fileItemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#3A52A6',
+  },
+  fileContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginRight: 8,
+  },
+  fileInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  fileName: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#111827',
+  },
+  fileActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  fileActionButton: {
+    padding: 6,
+    borderRadius: 6,
+    backgroundColor: '#E0ECFF',
   },
   currentStatusBadge: {
     flexDirection: 'row',

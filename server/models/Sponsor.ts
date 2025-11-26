@@ -7,7 +7,6 @@ interface SponsorAttributes {
   user_id: string;
   organization_name: string;
   organization_type?: 'non_profit' | 'private_company' | 'government_agency' | 'educational_institution' | 'foundation';
-  official_email: string;
   contact_number: string;
   has_completed_profile?: boolean;
   created_at?: Date;
@@ -21,7 +20,6 @@ class Sponsor extends Model<SponsorAttributes, SponsorCreationAttributes> implem
   public user_id!: string;
   public organization_name!: string;
   public organization_type?: 'non_profit' | 'private_company' | 'government_agency' | 'educational_institution' | 'foundation';
-  public official_email!: string;
   public contact_number!: string;
   public has_completed_profile?: boolean;
   public readonly created_at!: Date;
@@ -63,11 +61,6 @@ Sponsor.init(
     organization_type: {
       type: DataTypes.ENUM('non_profit', 'private_company', 'government_agency', 'educational_institution', 'foundation'),
       allowNull: true,
-    },
-    official_email: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      validate: { isEmail: true },
     },
     contact_number: {
       type: DataTypes.STRING,

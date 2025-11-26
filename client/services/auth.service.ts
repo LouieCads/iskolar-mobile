@@ -27,7 +27,6 @@ export interface StudentProfileData {
 export interface SponsorProfileData {
   organization_name: string;
   organization_type?: string;
-  official_email: string;
   contact_number: string;
 }
 

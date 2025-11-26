@@ -6,7 +6,6 @@ import ScholarshipManagementCard from '@/components/scholarship-management-card'
 import ScholarshipManagementMetrics from '@/components/scholarship-management-metrics';
 import Header from '@/components/header';
 import { scholarshipService } from '@/services/scholarship-creation.service';
-import CreateScholarshipButton from '@/components/create-scholarship-button';
 
 interface Sponsor {
   sponsor_id: string;
@@ -246,11 +245,6 @@ export default function MyScholarshipsPage() {
           ))}
           <View style={styles.bottomPadding} />
         </ScrollView>
-      )}
-
-      {/* Floating Create Button */}
-      {!loading && !error && (
-        <CreateScholarshipButton onPress={handleCreateScholarship} />
       )}
     </View>
   );

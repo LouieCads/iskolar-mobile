@@ -165,7 +165,7 @@ export const setupStudentProfile = async (req: AuthenticatedRequest, res: Respon
 // Sponsor Profile Setup
 export const setupSponsorProfile = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { organization_name, organization_type, official_email, contact_number } = req.body;
+    const { organization_name, organization_type, contact_number } = req.body;
     const userId = req.user?.id;
 
     if (!userId) {
@@ -175,7 +175,7 @@ export const setupSponsorProfile = async (req: AuthenticatedRequest, res: Respon
       });
     }
 
-    if (!organization_name || !organization_type  || !official_email || !contact_number) {
+    if (!organization_name || !organization_type  || !contact_number) {
       return res.status(400).json({ 
         success: false,
         message: "All required fields must be provided." 
@@ -220,7 +220,6 @@ export const setupSponsorProfile = async (req: AuthenticatedRequest, res: Respon
       await sponsor.update({
         organization_name,
         organization_type: normalizedOrgType as any,
-        official_email,
         contact_number,
         has_completed_profile: true
       });
@@ -229,7 +228,6 @@ export const setupSponsorProfile = async (req: AuthenticatedRequest, res: Respon
         user_id: userId,
         organization_name,
         organization_type: normalizedOrgType as any,
-        official_email,
         contact_number,
         has_completed_profile: true
       });
@@ -242,7 +240,6 @@ export const setupSponsorProfile = async (req: AuthenticatedRequest, res: Respon
         id: sponsor.sponsor_id,
         organization_name: sponsor.organization_name,
         organization_type: sponsor.organization_type,
-        official_email: sponsor.official_email,
         contact_number: sponsor.contact_number
       }
     });

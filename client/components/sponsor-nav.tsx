@@ -2,7 +2,7 @@
 import { View, Pressable, StyleSheet } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import React, { useState } from 'react';
-import { Octicons  } from '@expo/vector-icons';
+import { Octicons } from '@expo/vector-icons';
 
 export default function SponsorNav() {
   const router = useRouter();
@@ -11,7 +11,7 @@ export default function SponsorNav() {
 
   const navItems = [
     { name: 'my-scholarships', icon: 'home' as const, route: '/(sponsor)/my-scholarships' as const },
-    { name: 'discover', icon: 'globe' as const, route: '/(sponsor)/discover' as const },
+    { name: 'create-scholarship', icon: 'plus-circle' as const, route: '/(sponsor)/create-scholarship' as const },
     { name: 'profile', icon: 'person' as const, route: '/(sponsor)/my-sponsor-profile' as const },
   ];
 

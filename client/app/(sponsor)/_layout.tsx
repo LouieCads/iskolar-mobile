@@ -8,7 +8,6 @@ export default function Sponsor() {
     <View style={styles.container}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="my-scholarships" />
-        <Stack.Screen name="discover" />
         <Stack.Screen name="my-sponsor-profile" />
         <Stack.Screen name="scholarship/[id]" />
         <Stack.Screen name="scholarship/[id]/edit" />

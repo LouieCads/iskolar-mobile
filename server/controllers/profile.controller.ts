@@ -125,7 +125,6 @@ export const getProfile = async (req: AuthenticatedRequest, res: Response) => {
           sponsor_id: sponsor.sponsor_id,
           organization_name: sponsor.organization_name,
           organization_type: sponsor.organization_type,
-          official_email: sponsor.official_email,
           contact_number: sponsor.contact_number,
           has_completed_profile: sponsor.has_completed_profile,
         };
@@ -331,11 +330,10 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response) =>
         });
       }
 
-      const { organization_name, organization_type, official_email, contact_number } = req.body;
+      const { organization_name, organization_type, contact_number } = req.body;
 
       if (organization_name) sponsor.organization_name = organization_name;
       if (organization_type) sponsor.organization_type = organization_type;
-      if (official_email) sponsor.official_email = official_email;
       if (contact_number) sponsor.contact_number = contact_number;
 
       await sponsor.save();
@@ -346,7 +344,6 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response) =>
         sponsor: {
           organization_name: sponsor.organization_name,
           organization_type: sponsor.organization_type,
-          official_email: sponsor.official_email,
           contact_number: sponsor.contact_number,
         }
       });

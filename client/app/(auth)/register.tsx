@@ -159,11 +159,11 @@ export default function RegisterPage() {
         <View style={styles.formContainer}>
           {/* Title */}
           <View style={styles.titleSection}>
-            <Text style={styles.title}>Create an account</Text>
+            <Text style={styles.title}>Sign Up</Text>
             <View style={styles.signInRow}>
               <Text style={styles.signInText}>Already have an account? </Text>
               <Pressable onPress={() => router.push('/login')}>
-                <Text style={styles.signInLink}>Sign in</Text>
+                <Text style={styles.signInLink}>Log In</Text>
               </Pressable>
             </View>
           </View>

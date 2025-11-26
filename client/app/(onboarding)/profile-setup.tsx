@@ -31,9 +31,6 @@ const studentProfileSchema = z.object({
 const sponsorProfileSchema = z.object({
   organization_name: z.string().nonempty("Organization name is required"),
   organization_type: z.string().nonempty("Organization type is required"),
-  official_email: z.string()
-    .nonempty("Email is required")
-    .email("Invalid email format"),
   contact_number: z.string().nonempty("Contact number is required").refine((val) => {
           if (!val) return true;
           const phoneDigits = val.replace(/\D/g, '');
@@ -120,7 +117,6 @@ export default function ProfileSetupPage() {
     defaultValues: {
       organization_name: '',
       organization_type: '',
-      official_email: '',
       contact_number: '',
     },
   });
@@ -211,7 +207,6 @@ export default function ProfileSetupPage() {
         const result = await authService.setupSponsorProfile({
           organization_name: sponsorData.organization_name,
           organization_type: sponsorData.organization_type,
-          official_email: sponsorData.official_email,
           contact_number: sponsorData.contact_number,
         });
 
@@ -478,29 +473,6 @@ export default function ProfileSetupPage() {
               />
               {sponsorForm.formState.errors.organization_type && (
                 <Text style={styles.errorText}>{sponsorForm.formState.errors.organization_type.message}</Text>
-              )}
-            </View>
-
-            {/* Official Email Address */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Official Email Address</Text>
-              <Controller
-                control={sponsorForm.control}
-                name="official_email"
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    style={[styles.input, sponsorForm.formState.errors.official_email && styles.inputError]}
-                    placeholder="Enter official email"
-                    placeholderTextColor="#9CA3AF"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    value={value}
-                    onChangeText={onChange}
-                  />
-                )}
-              />
-              {sponsorForm.formState.errors.official_email && (
-                <Text style={styles.errorText}>{sponsorForm.formState.errors.official_email.message}</Text>
               )}
             </View>
 

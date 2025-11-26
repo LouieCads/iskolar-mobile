@@ -19,7 +19,7 @@ export default function MySponsorProfile() {
   const [editedData, setEditedData] = useState({
     organization_name: '',
     organization_type: '',
-    official_email: '',
+    email: '',
     contact_number: '',
   });
   const [toast, setToast] = useState({
@@ -97,7 +97,7 @@ export default function MySponsorProfile() {
         setEditedData({
           organization_name: result.profile.organization_name || '',
           organization_type: result.profile.organization_type || '',
-          official_email: result.profile.official_email || '',
+          email: result.profile.email || '',
           contact_number: result.profile.contact_number || '',
         });
       } else {
@@ -209,7 +209,7 @@ export default function MySponsorProfile() {
       setEditedData({
         organization_name: profileData.organization_name || '',
         organization_type: profileData.organization_type || '',
-        official_email: profileData.official_email || '',
+        email: profileData.email || '',
         contact_number: profileData.contact_number || '',
       });
     }
@@ -344,14 +344,14 @@ export default function MySponsorProfile() {
             )}
           </View>
 
-          {/* Official Email */}
+          {/* Email */}
           <View style={styles.infoRow}>
             <View style={styles.iconCircle}>
               <Ionicons name="mail-outline" size={24} color="#3A52A6" />
             </View>
             <View style={styles.infoTextContainer}>
-              <Text style={styles.infoLabel}>Official Email</Text>
-              <Text style={styles.infoValue}>{profileData.official_email || ''}</Text>
+              <Text style={styles.infoLabel}>Email</Text>
+              <Text style={styles.infoValue}>{profileData.email || ''}</Text>
             </View>
           </View>
 

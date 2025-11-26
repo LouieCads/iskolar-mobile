@@ -18,7 +18,6 @@ export interface ProfileData {
   sponsor_id?: string;
   organization_name?: string;
   organization_type?: string;
-  official_email?: string;
 }
 
 export interface StudentProfileData {
@@ -31,7 +30,6 @@ export interface StudentProfileData {
 export interface SponsorProfileData {
   organization_name: string;
   organization_type?: string;
-  official_email: string;
   contact_number: string;
 }
 

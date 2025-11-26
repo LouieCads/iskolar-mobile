@@ -13,7 +13,7 @@ import { authService } from '@/services/auth.service';
 const forgotPasswordSchema = z.object({
   email: z.string()
     .nonempty("Email is required")
-    .email("Invalid email format"),
+    .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please enter a valid email address'),
 });
 
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
@@ -55,6 +55,7 @@ export default function ForgotPasswordPage() {
 
   const { control, handleSubmit, formState: { errors } } = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
+    mode: "onBlur", 
     defaultValues: {
       email: '',
     },

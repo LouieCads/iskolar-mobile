@@ -177,7 +177,7 @@ export default function ScholarshipApplyPage() {
     setValue,
   } = useForm({
     resolver: zodResolver(validationSchema),
-    mode: 'onSubmit',
+    mode: "onBlur", 
     defaultValues: customFields.reduce((acc, field, index) => {
       const fieldKey = field.label;
       acc[fieldKey] = field.type === 'checkbox' ? [] : '';

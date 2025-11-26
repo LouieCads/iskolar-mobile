@@ -61,6 +61,7 @@ export default function LoginPage() {
 
   const { control, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
+    mode: "onBlur", 
     defaultValues: {
       email: '',
       password: '',

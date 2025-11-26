@@ -21,7 +21,7 @@ interface Application {
   scholarship_application_id: string;
   student_id: string;
   scholarship_id: string;
-  status: 'pending' | 'approved' | 'denied';
+  status: 'pending' | 'shortlisted' | 'approved' | 'denied';
   remarks?: string;
   custom_form_response: Array<{ label: string; value: any }>;
   applied_at: string;
@@ -104,7 +104,7 @@ export default function StudentHomePage() {
 
     // Filter by status
     if (selectedFilter === 'applied') {
-      filtered = filtered.filter(app => app.status === 'pending');
+      filtered = filtered.filter(app => app.status === 'pending' || app.status === 'shortlisted');
     } else if (selectedFilter === 'past') {
       filtered = filtered.filter(app => app.status === 'approved' || app.status === 'denied');
     }
@@ -193,7 +193,7 @@ export default function StudentHomePage() {
 
   const statusCounts = {
     all: applications.length,
-    applied: applications.filter(a => a.status === 'pending').length,
+    applied: applications.filter(a => a.status === 'pending' || a.status === 'shortlisted').length,
     past: applications.filter(a => a.status === 'approved' || a.status === 'denied').length,
   };
 
@@ -295,7 +295,7 @@ export default function StudentHomePage() {
               {searchQuery 
                 ? 'Try adjusting your search terms' 
                 : selectedFilter === 'applied'
-                ? 'You have no pending applications'
+                ? 'You have no applied applications'
                 : selectedFilter === 'past'
                 ? 'You have no past applications'
                 : 'Start applying to scholarships to see them here'}

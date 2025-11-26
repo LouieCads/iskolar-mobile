@@ -16,7 +16,15 @@ const studentProfileSchema = z.object({
   full_name: z.string().nonempty("Name is required"),
   gender: z.string().nonempty("Gender is required"),
   date_of_birth: z.date(),
-  contact_number: z.string().nonempty("Contact number is required"),
+  contact_number: z.string().nonempty("Contact number is required").refine((val) => {
+          if (!val) return true;
+          const phoneDigits = val.replace(/\D/g, '');
+          return (
+            (phoneDigits.length === 11 && phoneDigits.startsWith('09')) ||
+            (phoneDigits.length === 12 && phoneDigits.startsWith('63')) ||
+            (phoneDigits.length === 10 && phoneDigits.startsWith('02'))
+          );
+        }, `Must be a valid phone number`),
 });
 
 // Sponsor Profile Validation 
@@ -26,7 +34,15 @@ const sponsorProfileSchema = z.object({
   official_email: z.string()
     .nonempty("Email is required")
     .email("Invalid email format"),
-  contact_number: z.string().nonempty("Contact number is required"),
+  contact_number: z.string().nonempty("Contact number is required").refine((val) => {
+          if (!val) return true;
+          const phoneDigits = val.replace(/\D/g, '');
+          return (
+            (phoneDigits.length === 11 && phoneDigits.startsWith('09')) ||
+            (phoneDigits.length === 12 && phoneDigits.startsWith('63')) ||
+            (phoneDigits.length === 10 && phoneDigits.startsWith('02'))
+          );
+        }, `Must be a valid phone number`),
 });
 
 type StudentFormData = z.infer<typeof studentProfileSchema>;

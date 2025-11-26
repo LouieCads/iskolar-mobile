@@ -9,6 +9,7 @@ import {
   getScholarshipApplications,
   updateApplicationStatus,
   bulkUpdateApplicationStatus,
+  rankScholarshipApplications,
   upload,
 } from "../controllers/scholarship-application.controller";
 
@@ -94,6 +95,17 @@ router.put(
   "/:application_id/status",
   authenticateToken,
   updateApplicationStatus
+);
+
+/**
+ * @route   GET /scholarship-application/scholarship/:scholarship_id/rank
+ * @desc    Rank applicants using Decision Tree algorithm
+ * @access  Private (Sponsor - scholarship owner)
+ */
+router.get(
+  "/scholarship/:scholarship_id/rank",
+  authenticateToken,
+  rankScholarshipApplications
 );
 
 export default router;

@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Animated, Image, Modal, Linking, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Animated, Image, Modal, Linking, TouchableOpacity, TextInput, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import Header from '@/components/header';
 import Toast from '@/components/toast';
@@ -14,6 +14,15 @@ interface Applicant {
   custom_form_response: Array<{ label: string; value: any }>; 
   applied_at: string;
   remarks?: string;
+  rank?: number;
+  score?: number;
+  evaluationDetails?: {
+    criteriaMatches: number;
+    criteriaTotal: number;
+    formCompleteness: number;
+    bonusPoints: number;
+    explanation: string[];
+  };
   student?: {
     student_id: string;
     full_name: string;
@@ -39,6 +48,11 @@ export default function ApplicantsListPage() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [downloading, setDownloading] = useState(false);
   
+  // Ranking state
+  const [isRanking, setIsRanking] = useState(false);
+  const [showRankedView, setShowRankedView] = useState(false);
+  const [rankedApplicants, setRankedApplicants] = useState<Applicant[]>([]);
+  
   // Bulk operations state
   const [bulkMode, setBulkMode] = useState(false);
   const [selectedApplicantIds, setSelectedApplicantIds] = useState<Set<string>>(new Set());
@@ -58,6 +72,11 @@ export default function ApplicantsListPage() {
   const [denialRemarks, setDenialRemarks] = useState('');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Enable LayoutAnimation on Android
+  if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
 
   const showToast = (type: 'success' | 'error', title: string, message: string) => {
     setToastType(type);
@@ -89,6 +108,9 @@ export default function ApplicantsListPage() {
       const response = await scholarshipApplicationService.getScholarshipApplications(String(id));
       if (response.success && response.applications) {
         setApplicants(response.applications);
+        // Reset ranking view when applicants are refreshed
+        setShowRankedView(false);
+        setRankedApplicants([]);
       } else {
         setError(response.message);
       }
@@ -245,7 +267,126 @@ export default function ApplicantsListPage() {
     }
   };
 
-  const filteredApplicants = applicants.filter(app => 
+  const handleRankApplicants = async () => {
+    if (!id) return;
+    
+    setIsRanking(true);
+    try {
+      const result = await scholarshipApplicationService.rankScholarshipApplications(String(id));
+      
+      if (result.success && result.ranked_applicants) {
+        // Merge ranked data with existing applicants
+        const rankedMap = new Map(
+          result.ranked_applicants.map(ranked => [
+            ranked.scholarship_application_id,
+            {
+              rank: ranked.rank,
+              score: ranked.score,
+              evaluationDetails: ranked.evaluationDetails,
+            }
+          ])
+        );
+        
+        const mergedApplicants = applicants.map(app => ({
+          ...app,
+          ...rankedMap.get(app.scholarship_application_id),
+        }));
+        
+        // Sort by rank (ascending: rank 1 first, then 2, 3, etc.)
+        // If same rank, sort by score (descending)
+        const sortedApplicants = mergedApplicants.sort((a, b) => {
+          const rankA = a.rank || Infinity;
+          const rankB = b.rank || Infinity;
+          
+          if (rankA !== rankB) {
+            return rankA - rankB; // Lower rank number = higher priority
+          }
+          
+          // Tie-breaker: higher score first
+          const scoreA = a.score || 0;
+          const scoreB = b.score || 0;
+          return scoreB - scoreA;
+        });
+        
+        // Configure smooth layout animation for reordering
+        LayoutAnimation.configureNext({
+          duration: 500,
+          create: {
+            type: LayoutAnimation.Types.easeInEaseOut,
+            property: LayoutAnimation.Properties.opacity,
+          },
+          update: {
+            type: LayoutAnimation.Types.spring,
+            springDamping: 0.7,
+            initialVelocity: 0.5,
+          },
+          delete: {
+            type: LayoutAnimation.Types.easeInEaseOut,
+            property: LayoutAnimation.Properties.opacity,
+          },
+        });
+        
+        setRankedApplicants(sortedApplicants);
+        
+        // Animate the transition to ranked view
+        Animated.sequence([
+          Animated.timing(fadeAnim, {
+            toValue: 0.3,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ]).start();
+        
+        setShowRankedView(true);
+        showToast('success', 'Success', 'Applicants ranked and sorted successfully!');
+      } else {
+        showToast('error', 'Error', result.message || 'Failed to rank applicants');
+      }
+    } catch (error) {
+      console.error('Ranking error:', error);
+      showToast('error', 'Error', 'Failed to rank applicants. Please try again.');
+    } finally {
+      setIsRanking(false);
+    }
+  };
+
+  const toggleRankedView = () => {
+    // Configure smooth layout animation for view toggle
+    LayoutAnimation.configureNext({
+      duration: 400,
+      create: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+        property: LayoutAnimation.Properties.opacity,
+      },
+      update: {
+        type: LayoutAnimation.Types.spring,
+        springDamping: 0.7,
+      },
+    });
+    
+    // Animate the transition
+    Animated.sequence([
+      Animated.timing(fadeAnim, {
+        toValue: 0.3,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    
+    setShowRankedView(!showRankedView);
+  };
+
+  const filteredApplicants = (showRankedView && rankedApplicants.length > 0 ? rankedApplicants : applicants).filter(app => 
     filterStatus === 'all' ? true : app.status === filterStatus
   );
 
@@ -353,24 +494,56 @@ export default function ApplicantsListPage() {
 
             {/* Bulk Actions Toolbar */}
             <View style={styles.bulkToolbar}>
-              <Pressable 
-                style={[styles.bulkModeButton, bulkMode && styles.bulkModeButtonActive]}
-                onPress={toggleBulkMode}
-              >
-                <Text style={[styles.bulkModeButtonText, bulkMode && styles.bulkModeButtonTextActive]}>
-                  {bulkMode ? 'Cancel' : 'Bulk Select'}
-                </Text>
-              </Pressable>
+              <View style={styles.bulkToolbarLeft}>
+                <Pressable 
+                  style={[styles.bulkModeButton, bulkMode && styles.bulkModeButtonActive]}
+                  onPress={toggleBulkMode}
+                >
+                  <Text style={[styles.bulkModeButtonText, bulkMode && styles.bulkModeButtonTextActive]}>
+                    {bulkMode ? 'Cancel' : 'Bulk Select'}
+                  </Text>
+                </Pressable>
 
-              {bulkMode && (
-                <>
-                  <Pressable style={styles.selectAllButton} onPress={selectAll}>
-                    <Text style={styles.selectAllButtonText}>Select All</Text>
-                  </Pressable>
-                  <Pressable style={styles.selectAllButton} onPress={deselectAll}>
-                    <Text style={styles.selectAllButtonText}>Deselect</Text>
-                  </Pressable>
-                </>
+                {bulkMode && (
+                  <>
+                    <Pressable style={styles.selectAllButton} onPress={selectAll}>
+                      <Text style={styles.selectAllButtonText}>Select All</Text>
+                    </Pressable>
+                    <Pressable style={styles.selectAllButton} onPress={deselectAll}>
+                      <Text style={styles.selectAllButtonText}>Deselect</Text>
+                    </Pressable>
+                  </>
+                )}
+              </View>
+
+              {/* Ranking Button */}
+              {!bulkMode && (
+                <View style={styles.rankingToolbar}>
+                  {showRankedView && rankedApplicants.length > 0 ? (
+                    <Pressable 
+                      style={styles.rankToggleButton}
+                      onPress={toggleRankedView}
+                    >
+                      <Ionicons name="list-outline" size={16} color="#3A52A6" />
+                      <Text style={styles.rankToggleButtonText}>Show Original</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable 
+                      style={[styles.rankButton, isRanking && styles.rankButtonDisabled]}
+                      onPress={handleRankApplicants}
+                      disabled={isRanking}
+                    >
+                      {isRanking ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <>
+                          <Ionicons name="trophy-outline" size={16} color="#fff" />
+                          <Text style={styles.rankButtonText}>Rank Applicants</Text>
+                        </>
+                      )}
+                    </Pressable>
+                  )}
+                </View>
               )}
             </View>
 
@@ -436,25 +609,26 @@ export default function ApplicantsListPage() {
                 <Text style={styles.emptyStateText}>No applicants found</Text>
               </View>
             ) : (
-              filteredApplicants.map((applicant) => {
+              filteredApplicants.map((applicant, index) => {
                 if (!applicant.student) return null; 
                 const isSelected = selectedApplicantIds.has(applicant.scholarship_application_id);
                 
                 return (
-                <Pressable
-                  key={applicant.scholarship_application_id}
-                  style={[
-                    styles.applicantCard,
-                    isSelected && styles.applicantCardSelected
-                  ]}
-                  onPress={() => {
-                    if (bulkMode) {
-                      toggleApplicantSelection(applicant.scholarship_application_id);
-                    } else {
-                      openApplicantModal(applicant);
-                    }
-                  }}
-                >
+                  <Pressable
+                    key={applicant.scholarship_application_id}
+                    style={[
+                      styles.applicantCard,
+                      isSelected && styles.applicantCardSelected,
+                      showRankedView && applicant.rank !== undefined && styles.rankedCard,
+                    ]}
+                    onPress={() => {
+                      if (bulkMode) {
+                        toggleApplicantSelection(applicant.scholarship_application_id);
+                      } else {
+                        openApplicantModal(applicant);
+                      }
+                    }}
+                  >
                   {/* Checkbox in bulk mode */}
                   {bulkMode && (
                     <View style={styles.checkboxContainer}>
@@ -477,17 +651,34 @@ export default function ApplicantsListPage() {
                         style={styles.avatar}
                       />
                       <View style={styles.applicantInfo}>
-                        <Text style={styles.applicantName}>
-                          {applicant.student.full_name}
+                        <View style={styles.applicantNameRow}>
+                          <Text style={styles.applicantName}>
+                            {showRankedView && applicant.rank ? `#${applicant.rank} ` : ''}
+                            {applicant.student.full_name}
+                          </Text>
                           <Ionicons 
                             name={getStatusIcon(applicant.status) as any} 
                             size={16} 
                             color={getStatusColor(applicant.status)} 
                           />
-                        </Text>
+                        </View>
                         <Text style={styles.applicantEmail}>
                           {applicant.student.user.email}
                         </Text>
+                        {showRankedView && applicant.score !== undefined && (
+                          <View style={styles.rankScoreContainer}>
+                            <View style={styles.rankScoreBadge}>
+                              <Text style={styles.rankScoreText}>
+                                Score: {(applicant.score * 100).toFixed(1)}%
+                              </Text>
+                            </View>
+                            {applicant.evaluationDetails && (
+                              <Text style={styles.rankCriteriaText}>
+                                {applicant.evaluationDetails.criteriaMatches}/{applicant.evaluationDetails.criteriaTotal} criteria met
+                              </Text>
+                            )}
+                          </View>
+                        )}
                       </View>
                     </View>
 
@@ -642,6 +833,56 @@ export default function ApplicantsListPage() {
                       ))
                     )}
                   </View>
+
+                  {/* Ranking Details */}
+                  {selectedApplicant.rank !== undefined && selectedApplicant.evaluationDetails && (
+                    <View style={styles.modalSection}>
+                      <Text style={styles.sectionTitle}>Ranking Details</Text>
+                      <View style={styles.rankingDetailsContainer}>
+                        <View style={styles.rankingScoreCard}>
+                          <View style={styles.rankingScoreHeader}>
+                            <Ionicons name="trophy" size={18} color="#EFA508" />
+                            <Text style={styles.rankingScoreTitle}>Rank #{selectedApplicant.rank}</Text>
+                          </View>
+                          <Text style={styles.rankingScoreValue}>
+                            {(selectedApplicant.score! * 100).toFixed(1)}%
+                          </Text>
+                        </View>
+                        
+                        <View style={styles.evaluationDetails}>
+                          <View style={styles.evaluationItem}>
+                            <Text style={styles.evaluationLabel}>Criteria Matched</Text>
+                            <Text style={styles.evaluationValue}>
+                              {selectedApplicant.evaluationDetails.criteriaMatches} / {selectedApplicant.evaluationDetails.criteriaTotal}
+                            </Text>
+                          </View>
+                          <View style={styles.evaluationItem}>
+                            <Text style={styles.evaluationLabel}>Form Completeness</Text>
+                            <Text style={styles.evaluationValue}>
+                              {(selectedApplicant.evaluationDetails.formCompleteness * 100).toFixed(0)}%
+                            </Text>
+                          </View>
+                          {selectedApplicant.evaluationDetails.bonusPoints > 0 && (
+                            <View style={styles.evaluationItem}>
+                              <Text style={styles.evaluationLabel}>Bonus Points</Text>
+                              <Text style={styles.evaluationValue}>
+                                +{(selectedApplicant.evaluationDetails.bonusPoints * 100).toFixed(0)}%
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+
+                        <View style={styles.explanationContainer}>
+                          <Text style={styles.explanationTitle}>Evaluation Breakdown</Text>
+                          {selectedApplicant.evaluationDetails.explanation.map((explanation, idx) => (
+                            <Text key={idx} style={styles.explanationText}>
+                              {explanation}
+                            </Text>
+                          ))}
+                        </View>
+                      </View>
+                    </View>
+                  )}
 
                   <View style={styles.modalSection}>
                     <Text style={styles.sectionTitle}>Status</Text>
@@ -1045,12 +1286,56 @@ const styles = StyleSheet.create({
   bulkToolbar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     gap: 8,
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
+  },
+  bulkToolbarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  rankingToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  rankButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#EFA508',
+  },
+  rankButtonDisabled: {
+    opacity: 0.6,
+  },
+  rankButtonText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#fff',
+  },
+  rankToggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#E0ECFF',
+    borderWidth: 1,
+    borderColor: '#3A52A6',
+  },
+  rankToggleButtonText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#3A52A6',
   },
   bulkModeButton: {
     flexDirection: 'row',
@@ -1130,7 +1415,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    paddingVertical: 16,
+    paddingTop: 14,
+    paddingBottom: 65,
     paddingHorizontal: 24,
     gap: 8,
   },
@@ -1158,6 +1444,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
+  rankedCard: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#EFA508',
+  },
   applicantCardSelected: {
     borderColor: '#3A52A6',
     backgroundColor: '#EFF6FF',
@@ -1184,14 +1474,40 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 12,
   },
-  applicantName: {
+  applicantNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    flexWrap: 'wrap',
+  },
+  applicantName: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 16,
     color: '#111827',
-    marginBottom: 2,
+  },
+  rankScoreContainer: {
+    marginTop: 6,
+    gap: 4,
+  },
+  rankScoreBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  rankScoreText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 11,
+    color: '#92400E',
+  },
+  rankCriteriaText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 10,
+    color: '#6B7280',
   },
   applicantEmail: {
     fontFamily: 'BreeSerif_400Regular',
@@ -1502,5 +1818,70 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     marginTop: 8,
     fontStyle: 'italic',
+  },
+  rankingDetailsContainer: {
+    gap: 12,
+  },
+  rankingScoreCard: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  rankingScoreHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  rankingScoreTitle: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 14,
+    color: '#92400E',
+  },
+  rankingScoreValue: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 24,
+    color: '#78350F',
+  },
+  evaluationDetails: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    padding: 12,
+    gap: 10,
+  },
+  evaluationItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  evaluationLabel: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  evaluationValue: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#111827',
+  },
+  explanationContainer: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 8,
+    padding: 12,
+    gap: 8,
+  },
+  explanationTitle: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 13,
+    color: '#3A52A6',
+    marginBottom: 4,
+    fontWeight: '600',
+  },
+  explanationText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 11,
+    color: '#4B5563',
+    lineHeight: 18,
   },
 });

@@ -365,6 +365,59 @@ class ScholarshipApplicationService {
       };
     }
   }
+
+  /**
+   * Rank applicants using Decision Tree algorithm (sponsor-only)
+   */
+  async rankScholarshipApplications(scholarshipId: string): Promise<{
+    success: boolean;
+    ranked_applicants?: Array<{
+      scholarship_application_id: string;
+      rank: number;
+      score: number;
+      evaluationDetails: {
+        criteriaMatches: number;
+        criteriaTotal: number;
+        formCompleteness: number;
+        bonusPoints: number;
+        explanation: string[];
+      };
+      custom_form_response: Array<{ label: string; value: any }>;
+      student?: {
+        student_id: string;
+        full_name: string;
+        gender?: string;
+        date_of_birth: string;
+        contact_number: string;
+        user: {
+          email: string;
+          profile_url?: string;
+        };
+      };
+    }>;
+    message: string;
+  }> {
+    try {
+      const response = await authService.authenticatedRequest(
+        `/scholarship-application/scholarship/${scholarshipId}/rank`,
+        {
+          method: 'GET',
+        }
+      );
+
+      return {
+        success: response.success,
+        ranked_applicants: response.data?.ranked_applicants,
+        message: response.message || (response.success ? 'Applicants ranked successfully' : 'Failed to rank applicants'),
+      };
+    } catch (error) {
+      console.error('Rank applicants error:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to rank applicants',
+      };
+    }
+  }
 }
 
 export const scholarshipApplicationService = new ScholarshipApplicationService();

@@ -59,6 +59,7 @@ type ScholarshipFormData = z.infer<typeof scholarshipSchema>;
 export default function CreateScholarshipPage() {
   const { control, handleSubmit, setValue, watch, formState: { errors }, reset } = useForm<ScholarshipFormData>({
     resolver: zodResolver(scholarshipSchema),
+    mode: "onBlur",
     defaultValues: {
       type: undefined,
       purpose: undefined,

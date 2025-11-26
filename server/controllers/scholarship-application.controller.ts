@@ -9,6 +9,7 @@ import User from "../models/Users";
 import SelectedScholar from "../models/SelectedScholar";
 import { containerClient } from "../config/azure";
 import { BlobSASPermissions, generateBlobSASQueryParameters, StorageSharedKeyCredential } from "@azure/storage-blob";
+import { rankApplicants } from "../utils/decision-tree-ranking";
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -852,8 +853,6 @@ export const bulkUpdateApplicationStatus = async (req: AuthenticatedRequest, res
         }
       } catch (error) {
         console.error("Error creating SelectedScholar entries:", error);
-        // Don't fail the entire request if SelectedScholar creation fails
-        // Log the error but still return success for the bulk update
       }
     }
 
@@ -873,6 +872,103 @@ export const bulkUpdateApplicationStatus = async (req: AuthenticatedRequest, res
     res.status(500).json({
       success: false,
       message: error instanceof Error ? error.message : "Failed to update application statuses",
+    });
+  }
+};
+
+/**
+ * Rank applicants using Decision Tree algorithm (sponsor-only)
+ */
+export const rankScholarshipApplications = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { scholarship_id } = req.params;
+    const user_id = req.user?.id;
+
+    if (!user_id) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    // Get the sponsor record from the user_id
+    const sponsor = await Sponsor.findOne({
+      where: { user_id: user_id }
+    });
+
+    if (!sponsor) {
+      res.status(404).json({
+        success: false,
+        message: "Sponsor profile not found",
+      });
+      return;
+    }
+
+    // Verify scholarship ownership
+    const scholarship = await Scholarship.findOne({
+      where: {
+        scholarship_id,
+        sponsor_id: sponsor.sponsor_id,
+      },
+    });
+
+    if (!scholarship) {
+      res.status(404).json({
+        success: false,
+        message: "Scholarship not found or unauthorized",
+      });
+      return;
+    }
+
+    // Get all applications for this scholarship
+    const applications = await ScholarshipApplication.findAll({
+      where: { scholarship_id },
+      include: [
+        {
+          model: Student,
+          as: "student",
+          attributes: ["student_id", "full_name", "gender", "date_of_birth", "contact_number"],
+          include: [
+            {
+              model: User,
+              as: "user",
+              attributes: ["email", "profile_url"],
+            },
+          ],
+        },
+      ],
+      order: [["applied_at", "DESC"]],
+    });
+
+    // Prepare data for ranking
+    const applicantsData = applications.map(app => ({
+      scholarship_application_id: app.scholarship_application_id,
+      custom_form_response: app.custom_form_response as Array<{ label: string; value: any }>,
+      student: app.student as any,
+    }));
+
+    const scholarshipData = {
+      criteria: scholarship.criteria || [],
+      custom_form_fields: Array.isArray(scholarship.custom_form_fields)
+        ? scholarship.custom_form_fields
+        : scholarship.custom_form_fields?.fields || [],
+      type: scholarship.type as 'merit_based' | 'skill_based' | undefined,
+    };
+
+    // Rank applicants using Decision Tree
+    const rankedApplicants = rankApplicants(applicantsData, scholarshipData);
+
+    res.status(200).json({
+      success: true,
+      message: "Applicants ranked successfully",
+      ranked_applicants: rankedApplicants,
+    });
+  } catch (error) {
+    console.error("Rank applicants error:", error);
+    res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to rank applicants",
     });
   }
 };

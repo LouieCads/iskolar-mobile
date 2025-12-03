@@ -37,7 +37,7 @@ interface ScholarshipApplication {
       profile_url?: string;
     };
   };
-  scholarship?: {
+  scholarship: {
     scholarship_id: string;
     type: string;        
     purpose: string; 

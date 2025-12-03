@@ -1038,6 +1038,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     borderRadius: 8,
     padding: 60,
+    aspectRatio: 1,
     marginBottom: 18,
     backgroundColor: 'transparent',
   },
@@ -1046,6 +1047,7 @@ const styles = StyleSheet.create({
     borderColor: '#3A52A6',
     borderStyle: 'dashed',
     borderRadius: 8,
+    aspectRatio: 1,
     padding: 32,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1054,6 +1056,7 @@ const styles = StyleSheet.create({
   uploadContainerWithImage: {
     padding: 0,
     borderWidth: 0,
+    aspectRatio: 1,
     borderStyle: 'solid',
   },
   uploadText: {

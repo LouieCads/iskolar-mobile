@@ -27,7 +27,7 @@ import Toast from '@/components/toast';
 
 type DocumentAsset = DocumentPicker.DocumentPickerAsset;
 
-// Helper function to safely extract custom form fields
+// Helper function
 const getCustomFormFields = (scholarship: any): CustomFormField[] => {
   if (!scholarship?.custom_form_fields) {
     return [];
@@ -130,7 +130,6 @@ const buildValidationSchema = (fields: CustomFormField[]) => {
         break;
 
       case 'file':
-        // File validation is handled separately through customFormFiles state
         schemaObject[fieldKey] = z.any().optional();
         break;
 
@@ -156,7 +155,6 @@ export default function ScholarshipApplyPage() {
   const [toastTitle, setToastTitle] = useState('');
   const [toastMessage, setToastMessage] = useState('');
   
-  // Custom form files state (managed separately from react-hook-form)
   const [customFormFiles, setCustomFormFiles] = useState<Record<string, DocumentAsset[]>>({});
   const [datePickers, setDatePickers] = useState<Record<string, boolean>>({});
   const [showSubmissionConfirmation, setShowSubmissionConfirmation] = useState(false);
@@ -164,10 +162,8 @@ export default function ScholarshipApplyPage() {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  // Get custom form fields
   const customFields = getCustomFormFields(scholarship);
 
-  // Initialize react-hook-form with dynamic schema
   const validationSchema = buildValidationSchema(customFields);
   const {
     control,
@@ -209,7 +205,7 @@ export default function ScholarshipApplyPage() {
       const res = await scholarshipService.getScholarshipById(String(id));
       if (res.success && res.scholarship) {
         setScholarship(res.scholarship);
-        // Reset form when scholarship data is loaded
+
         const fields = getCustomFormFields(res.scholarship);
         const defaultValues = fields.reduce((acc, field, index) => {
           const fieldKey = field.label;
@@ -251,12 +247,11 @@ export default function ScholarshipApplyPage() {
 
   const processSubmission = async (formData: Record<string, any>) => {
     if (!id) {
-      showToast('error', 'Error', 'We could not find this scholarship. Please try again later.');
+      showToast('error', 'Error', 'Scholarship not found. Please try again later.');
       setShowSubmissionConfirmation(false);
       return;
     }
 
-    // Validate file fields 
     const fileValidationErrors: string[] = [];
     customFields.forEach((field: CustomFormField, index: number) => {
       const fieldKey = field.label;

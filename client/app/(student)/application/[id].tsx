@@ -41,6 +41,9 @@ interface Application {
     sponsor: {
       sponsor_id: string;
       organization_name: string;
+      user: {
+        profile_url?: string;
+      }
     };
   };
 }
@@ -224,7 +227,15 @@ export default function ApplicationDetailsPage() {
               <View style={styles.card}>
                 <Text style={styles.titleText}>{application.scholarship.title}</Text>
                 <View style={styles.metaRow}>
-                  <Ionicons name="business-outline" size={16} color="#6B7280" />
+                  <Image 
+                    source={
+                    application.scholarship.sponsor.user.profile_url 
+                      ? { uri: application.scholarship.sponsor.user.profile_url } 
+                      : require('@/assets/images/iskolar-logo.png')
+                  }
+                  style={styles.profileImage}
+                  defaultSource={require('@/assets/images/iskolar-logo.png')}
+                />
                   <Text style={styles.metaText}>
                     {application.scholarship.sponsor?.organization_name || 'Unknown Sponsor'}
                   </Text>
@@ -239,16 +250,16 @@ export default function ApplicationDetailsPage() {
 
               {/* Scholarship Metrics */}
               <View style={styles.metricsRow}>
-                <View style={[styles.metricBox, { borderColor: '#31D0AA' }]}>
+                <View style={[styles.metricBox, { borderColor: '#E5E7EB' }]}>
                   <Text style={styles.metricLabel}>Amount</Text>
-                  <Text style={[styles.metricValue, { color: '#31D0AA' }]}>
+                  <Text style={[styles.metricValue, { color: '#111827' }]}>
                     {formatAmount(amountPerScholar)}
                   </Text>
                   <Text style={styles.metricSubtext}>per scholar</Text>
                 </View>
-                <View style={[styles.metricBox, { borderColor: '#607EF2' }]}>
+                <View style={[styles.metricBox, { borderColor: '#E5E7EB' }]}>
                   <Text style={styles.metricLabel}>Slots</Text>
-                  <Text style={[styles.metricValue, { color: '#607EF2' }]}>
+                  <Text style={[styles.metricValue, { color: '#111827' }]}>
                     {application.scholarship.total_slot}
                   </Text>
                   <Text style={styles.metricSubtext}>available</Text>
@@ -537,6 +548,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     lineHeight: 28,
   },
+  profileImage: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#F0F7FF',
+    resizeMode: 'cover',
+  },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -571,7 +589,7 @@ const styles = StyleSheet.create({
   metricLabel: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
-    color: '#5D6673',
+    color: '#6B7280',
     marginBottom: 4,
   },
   metricValue: {
@@ -610,15 +628,17 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   tag: {
-    backgroundColor: '#E0ECFF',
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    backgroundColor: '#F9FAFB', 
+    borderWidth: 1, 
+    borderColor: '#E5E7EB', 
+    borderRadius: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
   },
   tagText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
-    color: '#3A52A6',
+    color: '#111827',
     textTransform: 'capitalize',
   },
 

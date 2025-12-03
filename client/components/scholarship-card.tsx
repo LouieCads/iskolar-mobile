@@ -1,7 +1,7 @@
 import { View, Text, Image, Pressable, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 
 interface ScholarshipCardProps {
   scholarship_id: string;
@@ -90,17 +90,12 @@ export default function ScholarshipCard({
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
         >
-        <LinearGradient
-          colors={['#3A52A6', '#3A52A6', '#607EF2']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
+        <View 
           style={styles.cardHeader}
         >
-          <Image 
+          <Image
             source={
-              imageUrl 
-                ? { uri: imageUrl } 
-                : require('@/assets/images/iskolar-logo.png')
+              imageUrl ? { uri: imageUrl } : require('@/assets/images/iskolar-logo.png')
             }
             style={styles.cardImage}
             defaultSource={require('@/assets/images/iskolar-logo.png')}
@@ -139,22 +134,22 @@ export default function ScholarshipCard({
               </Text>
             </View>
           </View>
-        </LinearGradient>
+        </View>
 
         <View style={styles.cardBody}>
           <View style={styles.detailsContainer}>
             <View style={styles.detailBox}>
               <View style={styles.detailHeader}>
-                <Ionicons name="cash-outline" size={16} color="#31D0AA" />
+                <Ionicons name="cash-outline" size={16} color="#6B7280" />
                 <Text style={styles.detailLabel}>Amount</Text>
               </View>
               <Text style={styles.amountText}>{formatAmount(amountPerScholar)}</Text>
               <Text style={styles.perScholar}>per scholar</Text>
             </View>
 
-            <View style={[styles.detailBox, styles.slotsBox]}>
+            <View style={styles.detailBox}>
               <View style={styles.detailHeader}>
-                <Ionicons name="people-outline" size={16} color="#607EF2" />
+                <Ionicons name="people-outline" size={16} color="#6B7280" />
                 <Text style={styles.detailLabel}>Slots</Text>
               </View>
               <Text style={styles.slotsText}>{slots}</Text>
@@ -209,11 +204,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FEFEFD', 
     borderRadius: 16,
     marginTop: 14,
     marginHorizontal: 2,
     overflow: 'hidden',
+    borderWidth: 1, 
+    borderColor: '#D3DCF6', 
     shadowColor: '#3A52A6',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -221,6 +218,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   cardPressed: {
+    borderColor: '#3A52A6', 
     shadowColor: '#3A52A6',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
@@ -230,6 +228,7 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     flexDirection: 'row',
+    backgroundColor: '#3A52A6',
   },
   cardImage: {
     width: 120,
@@ -263,16 +262,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tag: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)', 
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 5,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   tagText: {
     fontFamily: 'BreeSerif_400Regular',
-    color: '#F0F7FF',
+    color: '#3A52A6', 
     fontSize: 9,
   },
   infoRow: {
@@ -299,13 +296,11 @@ const styles = StyleSheet.create({
   },
   detailBox: {
     flex: 1,
-    borderWidth: 2,
-    borderColor: '#31D0AA',
+    backgroundColor: '#F9FAFB', 
+    borderWidth: 1, 
+    borderColor: '#E5E7EB', 
     borderRadius: 12,
     padding: 8,
-  },
-  slotsBox: {
-    borderColor: '#607EF2',
   },
   detailHeader: {
     flexDirection: 'row',
@@ -316,29 +311,29 @@ const styles = StyleSheet.create({
   detailLabel: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 13,
-    color: '#5D6673',
+    color: '#6B7280', 
   },
   amountText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
-    color: '#31D0AA',
+    color: '#111827',
     marginBottom: 2,
   },
   perScholar: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 11,
-    color: '#666',
+    color: '#6B7280', 
   },
   slotsText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
-    color: '#607EF2',
+    color: '#111827', 
     marginBottom: 2,
   },
   scholarsText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 11,
-    color: '#666',
+    color: '#6B7280', 
   },
   infoSection: {
     marginBottom: 11,
@@ -346,7 +341,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
-    color: '#5D6673',
+    color: '#6B7280', 
     marginBottom: 6,
     letterSpacing: 0.5,
   },
@@ -356,7 +351,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   chip: {
-    backgroundColor: '#eaeafeff',
+    backgroundColor: '#F9FAFB', 
+    borderWidth: 1, 
+    borderColor: '#E5E7EB', 
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 6,
@@ -364,6 +361,6 @@ const styles = StyleSheet.create({
   chipText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 10,
-    color: '#5D6673',
+    color: '#374151', 
   },
 });

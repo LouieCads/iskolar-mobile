@@ -210,7 +210,15 @@ export default function ScholarshipDetailsPage() {
             <View style={styles.card}>
               <Text style={styles.titleText}>{scholarship?.title}</Text>
               <View style={styles.metaRow}>
-                <Ionicons name="business-outline" size={16} color="#6B7280" />
+                <Image 
+                  source={
+                    scholarship?.sponsor?.profile_image_url 
+                      ? { uri: scholarship?.sponsor?.profile_image_url } 
+                      : require('@/assets/images/iskolar-logo.png')
+                  }
+                  style={styles.profileImage}
+                  defaultSource={require('@/assets/images/iskolar-logo.png')}
+                />
                 <Text style={styles.metaText}>{scholarship?.sponsor?.organization_name || 'Unknown Sponsor'}</Text>
               </View>
               <View style={styles.metaRow}>
@@ -220,14 +228,14 @@ export default function ScholarshipDetailsPage() {
             </View>
 
             <View style={styles.row}>
-              <View style={[styles.metricBox, { borderColor: '#31D0AA' }]}> 
+              <View style={[styles.metricBox, { borderColor: '#E5E7EB' }]}> 
                 <Text style={styles.metricLabel}>Amount</Text>
-                <Text style={[styles.metricValue, { color: '#31D0AA' }]}>{formatAmount(amountPerScholar)}</Text>
+                <Text style={[styles.metricValue, { color: '#111827' }]}>{formatAmount(amountPerScholar)}</Text>
                 <Text style={styles.perScholar}>per scholar</Text>
               </View>
-              <View style={[styles.metricBox, { borderColor: '#607EF2' }]}> 
+              <View style={[styles.metricBox, { borderColor: '#E5E7EB' }]}> 
                 <Text style={styles.metricLabel}>Slots</Text>
-                <Text style={[styles.metricValue, { color: '#607EF2' }]}>{scholarship?.total_slot}</Text>
+                <Text style={[styles.metricValue, { color: '#111827' }]}>{scholarship?.total_slot}</Text>
                 <Text style={styles.perScholar}>available</Text>
               </View>
             </View>
@@ -421,6 +429,13 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     lineHeight: 28,
   },
+  profileImage: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#F0F7FF',
+    resizeMode: 'cover',
+  },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -453,7 +468,7 @@ const styles = StyleSheet.create({
   metricLabel: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
-    color: '#5D6673',
+    color: '#6B7280',
     marginBottom: 4,
   },
   metricValue: {
@@ -487,15 +502,17 @@ const styles = StyleSheet.create({
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E0ECFF',
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    backgroundColor: '#F9FAFB', 
+    borderWidth: 1, 
+    borderColor: '#E5E7EB', 
+    borderRadius: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
   },
   tagText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
-    color: '#3A52A6',
+    color: '#111827',
     textTransform: 'capitalize',
   },
   applyButton: {

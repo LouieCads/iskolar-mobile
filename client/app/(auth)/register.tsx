@@ -36,6 +36,8 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [termsError, setTermsError] = useState(false);
   const [toast, setToast] = useState({
     visible: false,
     type: 'success' as 'success' | 'error',
@@ -86,6 +88,12 @@ export default function RegisterPage() {
   // API
   const onSubmit = async (data: RegisterFormData) => {
     try {
+      if (!agreedToTerms) {
+        setTermsError(true);
+        showToast('error', 'Terms Required', 'You must agree to the terms and conditions');
+        return;
+      }
+
       setLoading(true);
       const email = data.email.trim().toLowerCase().slice(0, 254);
       const password = data.password.trim().slice(0, 128);
@@ -269,6 +277,48 @@ export default function RegisterPage() {
             )}
           </View>
 
+          {/* Terms and Conditions Checkbox */}
+          <View style={styles.checkboxContainer}>
+            <Pressable
+              style={[
+                styles.checkbox,
+                agreedToTerms && styles.checkboxChecked,
+                termsError && styles.checkboxError,
+              ]}
+              onPress={() => {
+                setAgreedToTerms(!agreedToTerms);
+                if (!agreedToTerms) {
+                  setTermsError(false);
+                }
+              }}
+              disabled={loading}
+            >
+              {agreedToTerms && (
+                <MaterialIcons name="check" size={16} color="#F0F7FF" />
+              )}
+            </Pressable>
+            <View style={styles.termsTextContainer}>
+              <Text style={styles.termsText}>I agree to the </Text>
+              <Pressable
+                onPress={() => router.push('./terms-conditions')}
+                disabled={loading}
+              >
+                <Text style={styles.termsLink}>Terms & Conditions</Text>
+              </Pressable>
+              <Text style={styles.termsText}> and </Text>
+              <Pressable
+                onPress={() => router.push('./privacy-policy')}
+                disabled={loading}
+              >
+                <Text style={styles.termsLink}>Privacy Policy</Text>
+              </Pressable>
+              <Text style={styles.termsText}>.</Text>
+            </View>
+          </View>
+          {termsError && (
+            <Text style={styles.errorText}>You must agree to the terms and conditions</Text>
+          )}
+
           {/* Sign Up */}
           <Pressable
             onPress={handleSubmit(onSubmit)}
@@ -387,6 +437,49 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginLeft: 4,
     fontFamily: 'BreeSerif_400Regular',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+    marginTop: 10,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: '#C4CBD5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    marginTop: 2,
+    backgroundColor: '#F0F7FF',
+  },
+  checkboxChecked: {
+    backgroundColor: '#3A52A6',
+    borderColor: '#3A52A6',
+  },
+  checkboxError: {
+    borderColor: '#EF4444',
+    borderWidth: 2,
+  },
+  termsTextContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+  },
+  termsText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#4A5568',
+  },
+  termsLink: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#3A52A6',
+    textDecorationLine: 'underline',
   },
   button: {
     backgroundColor: '#3A52A6',

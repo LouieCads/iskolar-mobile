@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { authService } from '@/services/auth.service';
 import { profileService, ProfileData } from '@/services/profile.service';
+import { isValidPhone } from '@/utils/phone';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Dropdown } from 'react-native-element-dropdown';
@@ -25,6 +26,7 @@ export default function MyStudentProfile() {
     date_of_birth: '',
     contact_number: '',
   });
+  const [contactNumberError, setContactNumberError] = useState('');
   const [toast, setToast] = useState({
     visible: false,
     type: 'success' as 'success' | 'error',
@@ -215,6 +217,7 @@ export default function MyStudentProfile() {
 
   const handleCancelEdit = () => {
     setIsEditing(false);
+    setContactNumberError('');
 
     if (profileData) {
       setEditedData({
@@ -227,6 +230,12 @@ export default function MyStudentProfile() {
   };
 
   const handleSave = async () => {
+    if (!isValidPhone(editedData.contact_number)) {
+      setContactNumberError('Must be a valid phone number');
+      return;
+    }
+    setContactNumberError('');
+
     try {
       setLoading(true);
       const result = await profileService.updateProfile(editedData);
@@ -482,13 +491,21 @@ export default function MyStudentProfile() {
             <View style={styles.infoTextContainer}>
               <Text style={styles.infoLabel}>Contact Number</Text>
               {isEditing ? (
-                <TextInput
-                  style={styles.editInput}
-                  value={editedData.contact_number}
-                  onChangeText={(text) => setEditedData({ ...editedData, contact_number: text })}
-                  placeholder="Enter contact number"
-                  keyboardType="phone-pad"
-                />
+                <>
+                  <TextInput
+                    style={[styles.editInput, contactNumberError ? styles.editInputError : null]}
+                    value={editedData.contact_number}
+                    onChangeText={(text) => {
+                      setEditedData({ ...editedData, contact_number: text });
+                      if (contactNumberError) setContactNumberError('');
+                    }}
+                    placeholder="Enter contact number"
+                    keyboardType="phone-pad"
+                  />
+                  {contactNumberError ? (
+                    <Text style={styles.fieldErrorText}>{contactNumberError}</Text>
+                  ) : null}
+                </>
               ) : (
                 <Text style={styles.infoValue}>{profileData.contact_number || 'Not provided'}</Text>
               )}
@@ -699,6 +716,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#3A52A6',
     paddingVertical: 4,
+  },
+  editInputError: {
+    borderBottomColor: '#EF4444',
+  },
+  fieldErrorText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 11,
+    color: '#EF4444',
+    marginTop: 4,
   },
   editInputContainer: {
     flex: 1,

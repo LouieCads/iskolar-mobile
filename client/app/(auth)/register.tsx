@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { View, Text, Image, Pressable, StyleSheet, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
+import AuthScreenContainer from '@/components/auth-screen-container';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -139,12 +139,7 @@ export default function RegisterPage() {
   };
   
   return (
-    <LinearGradient
-      colors={['#3A52A6', '#3A52A6', '#607EF2']}
-      start={{ x: 0, y: 0.5 }}
-      end={{ x: 1, y: 0.5 }}
-      style={styles.container}
-    >
+    <AuthScreenContainer>
       {/* Toast Notification */}
       <Toast
         visible={toast.visible}
@@ -333,14 +328,11 @@ export default function RegisterPage() {
           </Pressable>
         </View>
       </View>
-    </LinearGradient>
+    </AuthScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   backButton: {
     position: 'absolute',
     top: 48,

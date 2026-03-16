@@ -55,10 +55,14 @@ sequelize
   .authenticate()
   .then(() => {
     console.log("✅ PostgreSQL connected");
-    return sequelize.sync({ alter: true });
+    if (process.env.NODE_ENV === "development") {
+      return sequelize.sync({ alter: true }).then(() => {});
+    }
   })
   .then(() => {
-    console.log("✅ Database & tables synced");
+    if (process.env.NODE_ENV === "development") {
+      console.log("✅ Database & tables synced (development only)");
+    }
   })
   .catch((err) => {
     console.error("❌ Database error:", err);

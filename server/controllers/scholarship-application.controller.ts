@@ -10,6 +10,7 @@ import SelectedScholar from "../models/SelectedScholar";
 import { containerClient } from "../config/azure";
 import { BlobSASPermissions, generateBlobSASQueryParameters, StorageSharedKeyCredential } from "@azure/storage-blob";
 import { rankApplicants } from "../utils/decision-tree-ranking";
+import { sendApplicationStatusEmail } from "../services/notification.service";
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -675,6 +676,17 @@ export const updateApplicationStatus = async (req: AuthenticatedRequest, res: Re
           model: Scholarship,
           as: "scholarship",
         },
+        {
+          model: Student,
+          as: "student",
+          include: [
+            {
+              model: User,
+              as: "user",
+              attributes: ["email"],
+            },
+          ],
+        },
       ],
     });
 
@@ -723,6 +735,20 @@ export const updateApplicationStatus = async (req: AuthenticatedRequest, res: Re
         // Don't fail the entire request if SelectedScholar creation fails
         // Log the error but still return success for the application update
       }
+    }
+
+    // Send email notification to student (fire-and-forget)
+    const student = application.student as any;
+    const studentEmail = student?.user?.email;
+    if (studentEmail) {
+      sendApplicationStatusEmail({
+        studentEmail,
+        studentName: student.full_name ?? "Scholar",
+        scholarshipTitle: scholarship.title ?? "Scholarship",
+        sponsorName: sponsor.organization_name ?? "Sponsor",
+        status,
+        remarks: remarks || null,
+      }).catch((err) => console.error("Failed to send application status email:", err));
     }
 
     res.status(200).json({
@@ -785,13 +811,24 @@ export const bulkUpdateApplicationStatus = async (req: AuthenticatedRequest, res
 
     // Fetch all applications and verify ownership
     const applications = await ScholarshipApplication.findAll({
-      where: { 
-        scholarship_application_id: application_ids 
+      where: {
+        scholarship_application_id: application_ids
       },
       include: [
         {
           model: Scholarship,
           as: "scholarship",
+        },
+        {
+          model: Student,
+          as: "student",
+          include: [
+            {
+              model: User,
+              as: "user",
+              attributes: ["email"],
+            },
+          ],
         },
       ],
     });
@@ -853,6 +890,23 @@ export const bulkUpdateApplicationStatus = async (req: AuthenticatedRequest, res
         }
       } catch (error) {
         console.error("Error creating SelectedScholar entries:", error);
+      }
+    }
+
+    // Send email notifications to each student (fire-and-forget)
+    for (const application of applications) {
+      const student = application.student as any;
+      const scholarship = application.scholarship as any;
+      const studentEmail = student?.user?.email;
+      if (studentEmail) {
+        sendApplicationStatusEmail({
+          studentEmail,
+          studentName: student.full_name ?? "Scholar",
+          scholarshipTitle: scholarship?.title ?? "Scholarship",
+          sponsorName: sponsor.organization_name ?? "Sponsor",
+          status,
+          remarks: remarks || null,
+        }).catch((err) => console.error("Failed to send application status email:", err));
       }
     }
 

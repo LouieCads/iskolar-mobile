@@ -49,12 +49,26 @@ export function normalizeOTP(raw: unknown): string {
   return value.replace(/\D/g, "").slice(0, 6);
 }
 
-// Guard against obviously unsafe inputs 
+// Normalize a phone number by stripping non-digit characters (preserves leading +).
+// Returns the digit-only string, or null if the input is not a string.
+export function normalizePhone(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const digitsOnly = raw.replace(/\D/g, "");
+  return digitsOnly;
+}
+
+// Validate a normalized (digits-only) phone number.
+// Accepts 7–15 digits per ITU-T E.164. Also accepts Philippine local format (11 digits starting with 09)
+// and international format (12 digits starting with 639).
+export function isValidPhone(phone: string): boolean {
+  if (!/^\d+$/.test(phone)) return false;
+  const len = phone.length;
+  return len >= 7 && len <= 15;
+}
+
+// Guard against obviously unsafe inputs
 export function isSafeInput(value: string): boolean {
   // Disallow common injection metacharacters and control chars
   const unsafePattern = /["'`;\\]|--|\/\*|\*\/|\r|\n|\t/;
   return !unsafePattern.test(value);
 }
-
-
-

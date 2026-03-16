@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import User from "../models/Users";
 import Student from "../models/Student";
 import Sponsor from "../models/Sponsor";
+import { normalizePhone, isValidPhone } from "../utils/validation";
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -114,12 +115,20 @@ export const setupStudentProfile = async (req: AuthenticatedRequest, res: Respon
       });
     }
 
-    const normalizedGender = gender.toLowerCase();
-    
-    if (normalizedGender && !['male', 'female'].includes(normalizedGender)) {
-      return res.status(400).json({ 
+    const normalizedPhone = normalizePhone(contact_number);
+    if (normalizedPhone === null || !isValidPhone(normalizedPhone)) {
+      return res.status(400).json({
         success: false,
-        message: "Gender must be either 'male' or 'female'." 
+        message: "Must be a valid phone number.",
+      });
+    }
+
+    const normalizedGender = gender.toLowerCase();
+
+    if (normalizedGender && !['male', 'female'].includes(normalizedGender)) {
+      return res.status(400).json({
+        success: false,
+        message: "Gender must be either 'male' or 'female'."
       });
     }
 
@@ -128,7 +137,7 @@ export const setupStudentProfile = async (req: AuthenticatedRequest, res: Respon
         full_name,
         gender: normalizedGender as 'male' | 'female' | undefined,
         date_of_birth,
-        contact_number,
+        contact_number: normalizedPhone,
         has_completed_profile: true
       });
     } else {
@@ -137,7 +146,7 @@ export const setupStudentProfile = async (req: AuthenticatedRequest, res: Respon
         full_name,
         gender: normalizedGender as 'male' | 'female' | undefined,
         date_of_birth,
-        contact_number,
+        contact_number: normalizedPhone,
         has_completed_profile: true
       });
     }
@@ -206,13 +215,21 @@ export const setupSponsorProfile = async (req: AuthenticatedRequest, res: Respon
       });
     }
 
+    const normalizedSponsorPhone = normalizePhone(contact_number);
+    if (normalizedSponsorPhone === null || !isValidPhone(normalizedSponsorPhone)) {
+      return res.status(400).json({
+        success: false,
+        message: "Must be a valid phone number.",
+      });
+    }
+
     const normalizedOrgType = organization_type.toLowerCase().replace(/\s+/g, '_');
-    
+
     const validOrgTypes = ['non_profit', 'private_company', 'government_agency', 'educational_institution', 'foundation'];
     if (normalizedOrgType && !validOrgTypes.includes(normalizedOrgType)) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Invalid organization type." 
+        message: "Invalid organization type."
       });
     }
 
@@ -220,7 +237,7 @@ export const setupSponsorProfile = async (req: AuthenticatedRequest, res: Respon
       await sponsor.update({
         organization_name,
         organization_type: normalizedOrgType as any,
-        contact_number,
+        contact_number: normalizedSponsorPhone,
         has_completed_profile: true
       });
     } else {
@@ -228,7 +245,7 @@ export const setupSponsorProfile = async (req: AuthenticatedRequest, res: Respon
         user_id: userId,
         organization_name,
         organization_type: normalizedOrgType as any,
-        contact_number,
+        contact_number: normalizedSponsorPhone,
         has_completed_profile: true
       });
     }

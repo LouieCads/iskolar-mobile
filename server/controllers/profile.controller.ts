@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import multer from "multer";
+import { normalizePhone, isValidPhone } from "../utils/validation";
 import { v4 as uuidv4 } from "uuid";
 import User from "../models/Users";
 import Student from "../models/Student";
@@ -304,10 +305,20 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response) =>
 
       const { full_name, gender, date_of_birth, contact_number } = req.body;
 
+      if (contact_number !== undefined) {
+        const normalizedPhone = normalizePhone(contact_number);
+        if (normalizedPhone === null || !isValidPhone(normalizedPhone)) {
+          return res.status(400).json({
+            success: false,
+            message: "Must be a valid phone number.",
+          });
+        }
+        student.contact_number = normalizedPhone;
+      }
+
       if (full_name) student.full_name = full_name;
       if (gender) student.gender = gender;
       if (date_of_birth) student.date_of_birth = date_of_birth;
-      if (contact_number) student.contact_number = contact_number;
 
       await student.save();
 
@@ -332,9 +343,19 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response) =>
 
       const { organization_name, organization_type, contact_number } = req.body;
 
+      if (contact_number !== undefined) {
+        const normalizedPhone = normalizePhone(contact_number);
+        if (normalizedPhone === null || !isValidPhone(normalizedPhone)) {
+          return res.status(400).json({
+            success: false,
+            message: "Must be a valid phone number.",
+          });
+        }
+        sponsor.contact_number = normalizedPhone;
+      }
+
       if (organization_name) sponsor.organization_name = organization_name;
       if (organization_type) sponsor.organization_type = organization_type;
-      if (contact_number) sponsor.contact_number = contact_number;
 
       await sponsor.save();
 

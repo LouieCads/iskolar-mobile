@@ -6,6 +6,7 @@ import ScholarshipCard from '@/components/scholarship-card';
 import ScholarshipMetrics from '@/components/scholarship-metrics';
 import Header from '@/components/header';
 import { scholarshipService } from '@/services/scholarship-creation.service';
+import { scholarshipApplicationService } from '@/services/scholarship-application.service';
 
 interface Sponsor {
   sponsor_id: string;
@@ -35,6 +36,7 @@ interface Scholarship {
 export default function DiscoverPage() {
   const router = useRouter();
   const [scholarships, setScholarships] = useState<Scholarship[]>([]);
+  const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,12 +45,19 @@ export default function DiscoverPage() {
   const fetchScholarships = useCallback(async () => {
     try {
       setError(null);
-      const response = await scholarshipService.getAllScholarships();
-      
-      if (response.success && response.scholarships) {
-        setScholarships(response.scholarships);
+      const [scholarshipsResponse, applicationsResponse] = await Promise.all([
+        scholarshipService.getAllScholarships(),
+        scholarshipApplicationService.getMyApplications(),
+      ]);
+
+      if (scholarshipsResponse.success && scholarshipsResponse.scholarships) {
+        setScholarships(scholarshipsResponse.scholarships);
       } else {
-        setError(response.message);
+        setError(scholarshipsResponse.message);
+      }
+
+      if (applicationsResponse.success && applicationsResponse.applications) {
+        setAppliedIds(new Set(applicationsResponse.applications.map(a => a.scholarship_id)));
       }
     } catch (err) {
       setError('Failed to load scholarships');
@@ -100,15 +109,17 @@ export default function DiscoverPage() {
     return tags;
   };
 
-  // Search 
+  // Exclude applied scholarships, then apply search
   const filteredScholarships = useMemo(() => {
+    const unapplied = scholarships.filter(s => !appliedIds.has(s.scholarship_id));
+
     if (!searchQuery.trim()) {
-      return scholarships;
+      return unapplied;
     }
 
     const query = searchQuery.toLowerCase().trim();
 
-    return scholarships.filter((scholarship) => {
+    return unapplied.filter((scholarship) => {
       if (scholarship.title?.toLowerCase().includes(query)) {
         return true;
       }
@@ -153,7 +164,7 @@ export default function DiscoverPage() {
         showSearch={true}
       />
 
-      <ScholarshipMetrics scholarships={scholarships} />
+      <ScholarshipMetrics scholarships={filteredScholarships} />
 
       {loading ? (
         <View style={styles.centerContainer}>
@@ -175,11 +186,17 @@ export default function DiscoverPage() {
         <View style={styles.centerContainer}>
           <Ionicons name="document-outline" size={45} color="#C0C0C0" />
           <Text style={styles.emptyText}>
-            {searchQuery ? 'No scholarships match your search' : 'No scholarships available'}
+            {searchQuery
+              ? 'No scholarships match your search'
+              : scholarships.length > 0
+              ? "You've applied to all available scholarships"
+              : 'No scholarships available'}
           </Text>
-          {searchQuery && (
+          {searchQuery ? (
             <Text style={styles.searchHint}>Try different keywords</Text>
-          )}
+          ) : scholarships.length > 0 ? (
+            <Text style={styles.searchHint}>Check your applications on the home page</Text>
+          ) : null}
         </View>
       ) : (
         <ScrollView 

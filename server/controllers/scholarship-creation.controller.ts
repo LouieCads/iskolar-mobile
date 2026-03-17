@@ -8,6 +8,7 @@ import ScholarshipApplication from "../models/ScholarshipApplication";
 import { containerClient } from "../config/azure";
 import { BlobSASPermissions, generateBlobSASQueryParameters, StorageSharedKeyCredential } from "@azure/storage-blob";
 import { fn, col } from "sequelize";
+import { isDeadlinePassed } from "../utils/scholarship";
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -347,11 +348,6 @@ export const getAllScholarships = async (req: Request, res: Response) => {
       order: [['created_at', 'DESC']],
     });
 
-    // Auto-close scholarships if deadline passed
-    for (const scholarship of scholarships) {
-      await scholarship.autoCloseIfDeadlinePassed();
-    }
-
     // Format the response
     const formattedScholarships = scholarships.map((scholarship: any) => {
       const scholarshipData = scholarship.toJSON();
@@ -359,6 +355,9 @@ export const getAllScholarships = async (req: Request, res: Response) => {
         scholarship_id: scholarshipData.scholarship_id,
         sponsor_id: scholarshipData.sponsor_id,
         status: scholarshipData.status,
+        is_open_for_applications:
+          scholarshipData.status === "active" &&
+          !isDeadlinePassed(scholarshipData.application_deadline),
         type: scholarshipData.type,
         purpose: scholarshipData.purpose,
         title: scholarshipData.title,
@@ -461,11 +460,6 @@ export const getSponsorScholarships = async (req: AuthenticatedRequest, res: Res
       subQuery: false,
     });
 
-    // Auto-close scholarships if deadline passed
-    for (const scholarship of scholarships) {
-      await scholarship.autoCloseIfDeadlinePassed();
-    }
-
     // Format the response
     const formattedScholarships = scholarships.map((scholarship: any) => {
       const scholarshipData = scholarship.toJSON();
@@ -473,6 +467,9 @@ export const getSponsorScholarships = async (req: AuthenticatedRequest, res: Res
         scholarship_id: scholarshipData.scholarship_id,
         sponsor_id: scholarshipData.sponsor_id,
         status: scholarshipData.status,
+        is_open_for_applications:
+          scholarshipData.status === "active" &&
+          !isDeadlinePassed(scholarshipData.application_deadline),
         type: scholarshipData.type,
         purpose: scholarshipData.purpose,
         title: scholarshipData.title,
@@ -548,9 +545,6 @@ export const getScholarshipById = async (req: AuthenticatedRequest, res: Respons
       });
     }
 
-    // Auto-close if deadline passed
-    await scholarship.autoCloseIfDeadlinePassed();
-
     const scholarshipData = scholarship.toJSON() as any;
 
     return res.status(200).json({
@@ -559,6 +553,9 @@ export const getScholarshipById = async (req: AuthenticatedRequest, res: Respons
         scholarship_id: scholarshipData.scholarship_id,
         sponsor_id: scholarshipData.sponsor_id,
         status: scholarshipData.status,
+        is_open_for_applications:
+          scholarshipData.status === "active" &&
+          !isDeadlinePassed(scholarshipData.application_deadline),
         type: scholarshipData.type,
         purpose: scholarshipData.purpose,
         title: scholarshipData.title,
@@ -632,9 +629,6 @@ export const updateScholarship = async (req: AuthenticatedRequest, res: Response
       });
     }
 
-    // Auto-close if deadline passed
-    await scholarship.autoCloseIfDeadlinePassed();
-
     const {
       type,
       purpose,
@@ -649,7 +643,11 @@ export const updateScholarship = async (req: AuthenticatedRequest, res: Response
       status,
     } = req.body as any;
 
-    if (scholarship.status === 'closed') {
+    const isEffectivelyClosed =
+      scholarship.status === "closed" ||
+      isDeadlinePassed(scholarship.application_deadline);
+
+    if (isEffectivelyClosed) {
       // Only allow status updates (for archiving)
       if (typeof status !== 'undefined') {
         scholarship.status = status;
@@ -756,11 +754,11 @@ export const deleteScholarship = async (req: AuthenticatedRequest, res: Response
       return res.status(403).json({ success: false, message: "You don't have permission to delete this scholarship." });
     }
 
-    // Auto-close if deadline passed
-    await scholarship.autoCloseIfDeadlinePassed();
+    const isEffectivelyClosed =
+      scholarship.status === "closed" ||
+      isDeadlinePassed(scholarship.application_deadline);
 
-    // Check if scholarship is closed
-    if (scholarship.status === 'closed') {
+    if (isEffectivelyClosed) {
       return res.status(400).json({
         success: false,
         message: 'Scholarship is closed. Deletion is not allowed.'
@@ -818,11 +816,11 @@ export const archiveScholarship = async (req: AuthenticatedRequest, res: Respons
       return res.status(403).json({ success: false, message: "You don't have permission to archive this scholarship." });
     }
 
-    // Auto-close if deadline passed
-    await scholarship.autoCloseIfDeadlinePassed();
+    const isEffectivelyClosed =
+      scholarship.status === "closed" ||
+      isDeadlinePassed(scholarship.application_deadline);
 
-    // Check if scholarship is closed
-    if (scholarship.status !== 'closed') {
+    if (!isEffectivelyClosed) {
       return res.status(400).json({
         success: false,
         message: 'Archiving is only allowed for closed scholarships.'

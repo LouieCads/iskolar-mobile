@@ -1,6 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+import { scheduleCloseExpiredScholarships } from "./jobs/closeExpiredScholarships";
 import sequelize from "./config/database";
 import authRoutes from "./routes/auth.routes";
 import onboardingRoutes from "./routes/onboarding.routes";
@@ -83,4 +84,5 @@ sequelize
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
+  scheduleCloseExpiredScholarships();
 });

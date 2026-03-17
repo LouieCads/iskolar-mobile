@@ -9,6 +9,10 @@ import { containerClient } from "../config/azure";
 import { BlobSASPermissions, generateBlobSASQueryParameters, StorageSharedKeyCredential } from "@azure/storage-blob";
 import { fn, col } from "sequelize";
 import { isDeadlinePassed } from "../utils/scholarship";
+import {
+  buildScholarshipPreview,
+  buildScholarshipDetail,
+} from "../dto/scholarship.dto";
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -348,35 +352,9 @@ export const getAllScholarships = async (req: Request, res: Response) => {
       order: [['created_at', 'DESC']],
     });
 
-    // Format the response
-    const formattedScholarships = scholarships.map((scholarship: any) => {
-      const scholarshipData = scholarship.toJSON();
-      return {
-        scholarship_id: scholarshipData.scholarship_id,
-        sponsor_id: scholarshipData.sponsor_id,
-        status: scholarshipData.status,
-        is_open_for_applications:
-          scholarshipData.status === "active" &&
-          !isDeadlinePassed(scholarshipData.application_deadline),
-        type: scholarshipData.type,
-        purpose: scholarshipData.purpose,
-        title: scholarshipData.title,
-        total_amount: scholarshipData.total_amount,
-        total_slot: scholarshipData.total_slot,
-        application_deadline: scholarshipData.application_deadline,
-        criteria: scholarshipData.criteria,
-        required_documents: scholarshipData.required_documents,
-        custom_form_fields: scholarshipData.custom_form_fields || null,
-        image_url: scholarshipData.image_url,
-        created_at: scholarshipData.created_at,
-        updated_at: scholarshipData.updated_at,
-        sponsor: {
-          sponsor_id: scholarshipData.sponsor?.sponsor_id,
-          profile_url: scholarshipData.sponsor?.user?.profile_url,
-          organization_name: scholarshipData.sponsor?.organization_name,
-        }
-      };
-    });
+    const formattedScholarships = scholarships.map((s: any) =>
+      buildScholarshipPreview(s.toJSON())
+    );
 
     return res.status(200).json({
       success: true,
@@ -460,37 +438,9 @@ export const getSponsorScholarships = async (req: AuthenticatedRequest, res: Res
       subQuery: false,
     });
 
-    // Format the response
-    const formattedScholarships = scholarships.map((scholarship: any) => {
-      const scholarshipData = scholarship.toJSON();
-      return {
-        scholarship_id: scholarshipData.scholarship_id,
-        sponsor_id: scholarshipData.sponsor_id,
-        status: scholarshipData.status,
-        is_open_for_applications:
-          scholarshipData.status === "active" &&
-          !isDeadlinePassed(scholarshipData.application_deadline),
-        type: scholarshipData.type,
-        purpose: scholarshipData.purpose,
-        title: scholarshipData.title,
-        description: scholarshipData.description,
-        total_amount: scholarshipData.total_amount,
-        total_slot: scholarshipData.total_slot,
-        application_deadline: scholarshipData.application_deadline,
-        criteria: scholarshipData.criteria,
-        required_documents: scholarshipData.required_documents,
-        custom_form_fields: scholarshipData.custom_form_fields || null,
-        image_url: scholarshipData.image_url,
-        applications_count: parseInt(scholarshipData.applications_count) || 0,
-        created_at: scholarshipData.created_at,
-        updated_at: scholarshipData.updated_at,
-        sponsor: {
-          sponsor_id: scholarshipData.sponsor?.sponsor_id,
-          organization_name: scholarshipData.sponsor?.organization_name,
-          profile_url: scholarshipData.sponsor?.user?.profile_url,
-        }
-      };
-    });
+    const formattedScholarships = scholarships.map((s: any) =>
+      buildScholarshipDetail(s.toJSON())
+    );
 
     return res.status(200).json({
       success: true,
@@ -545,36 +495,9 @@ export const getScholarshipById = async (req: AuthenticatedRequest, res: Respons
       });
     }
 
-    const scholarshipData = scholarship.toJSON() as any;
-
     return res.status(200).json({
       success: true,
-      scholarship: {
-        scholarship_id: scholarshipData.scholarship_id,
-        sponsor_id: scholarshipData.sponsor_id,
-        status: scholarshipData.status,
-        is_open_for_applications:
-          scholarshipData.status === "active" &&
-          !isDeadlinePassed(scholarshipData.application_deadline),
-        type: scholarshipData.type,
-        purpose: scholarshipData.purpose,
-        title: scholarshipData.title,
-        description: scholarshipData.description,
-        total_amount: scholarshipData.total_amount,
-        total_slot: scholarshipData.total_slot,
-        application_deadline: scholarshipData.application_deadline,
-        criteria: scholarshipData.criteria,
-        required_documents: scholarshipData.required_documents,
-        custom_form_fields: scholarshipData.custom_form_fields || null,
-        image_url: scholarshipData.image_url,
-        applications_count: parseInt(scholarshipData.applications_count || '0') || 0,
-        created_at: scholarshipData.created_at,
-        updated_at: scholarshipData.updated_at,
-        sponsor: {
-          sponsor_id: scholarshipData.sponsor?.sponsor_id,
-          organization_name: scholarshipData.sponsor?.organization_name,
-        }
-      }
+      scholarship: buildScholarshipDetail(scholarship.toJSON() as any),
     });
   } catch (error) {
     console.error('Error getting scholarship by id:', error);

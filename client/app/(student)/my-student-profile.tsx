@@ -245,7 +245,12 @@ export default function MyStudentProfile() {
         await fetchProfile();
         setIsEditing(false);
       } else {
-        showToast('error', 'Error', result.message);
+        const msg: string = result.message ?? '';
+        if (/contact|phone|number/i.test(msg)) {
+          setContactNumberError(msg || 'Must be a valid phone number');
+        } else {
+          showToast('error', 'Error', msg);
+        }
       }
     } catch (error) {
       console.error('Error updating profile:', error);

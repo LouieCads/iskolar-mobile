@@ -16,6 +16,7 @@ import Sponsor from "./models/Sponsor";
 import Scholarship from "./models/Scholarship";
 import ScholarshipApplication from "./models/ScholarshipApplication";
 import SelectedScholar from "./models/SelectedScholar";
+import "./models/PasswordResetToken"; 
 
 dotenv.config();
 const app = express();

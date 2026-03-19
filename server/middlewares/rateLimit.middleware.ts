@@ -1,11 +1,23 @@
 import { Request, Response, NextFunction } from "express";
 import { tooMany } from "./rateLimit.responses";
 
-// Simple in-memory sliding window rate limiter per IP+key
-// Not for multi-instance production without a shared store.
+// Simple in-memory sliding window rate limiter per IP+key.
+// NOTE: For multi-instance deployments, replace with a Redis-backed store
+// (e.g. ioredis + sliding-window-counter) to share state across processes.
 
 type Bucket = { hits: number; windowStart: number };
 const buckets: Map<string, Bucket> = new Map();
+
+// Purge expired buckets every 10 minutes to prevent unbounded memory growth.
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, bucket] of buckets) {
+    // Keep the largest configured window (5 min) as the max TTL guard.
+    if (now - bucket.windowStart > 10 * 60 * 1000) {
+      buckets.delete(key);
+    }
+  }
+}, 10 * 60 * 1000).unref();
 
 interface RateLimitOptions {
   windowMs: number;

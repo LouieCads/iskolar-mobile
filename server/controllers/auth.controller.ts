@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 import User from "../models/Users";
+import PasswordResetToken from "../models/PasswordResetToken";
 import { normalizeEmail, isValidEmail, sanitizeString, isValidPassword, isValidOTP, normalizeOTP, enforceMaxLength, isSafeInput } from "../utils/validation";
 import { ok, created, badRequest, notFound, serverError } from "../utils/responses";
 
@@ -11,7 +12,10 @@ const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
   throw new Error("JWT_SECRET environment variable is required");
 }
-const otpStore: Map<string, { otp: string; expiresAt: Date; verified: boolean }> = new Map(); // Temporary storage
+
+function hashOTP(otp: string): string {
+  return crypto.createHash("sha256").update(otp).digest("hex");
+}
 
 const PASSWORD_PATTERNS = {
   uppercase: /[A-Z]/,
@@ -50,15 +54,15 @@ export const register = async (req: Request, res: Response) => {
       return badRequest(res, "Email already registered");
     }
 
-    // Hash password 
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 15);
     const newUser = await User.create({ email, password: hashedPassword });
 
-    return created(res, "Account created successfully!", { 
-      user: { 
-        id: newUser.user_id, 
-        email: newUser.email 
-      } 
+    return created(res, "Account created successfully!", {
+      user: {
+        id: newUser.user_id,
+        email: newUser.email
+      }
     });
   } catch (error) {
     console.error("Registration error:", error);
@@ -92,17 +96,17 @@ export const login = async (req: Request, res: Response) => {
     const expiresIn = rememberMe ? "30d" : "1d";
 
     // Generate JWT
-    const token = jwt.sign({ 
-      id: user.user_id, 
+    const token = jwt.sign({
+      id: user.user_id,
       email: user.email,
-    }, 
-    JWT_SECRET, 
+    },
+    JWT_SECRET,
     { expiresIn });
 
-    const expiresInMs = rememberMe 
+    const expiresInMs = rememberMe
       ? 30 * 24 * 60 * 60 * 1000  // 30 days in milliseconds
       : 24 * 60 * 60 * 1000;       // 1 day in milliseconds
-    
+
     const expiryTimestamp = Date.now() + expiresInMs;
 
     return ok(res, "Login successful!", {
@@ -116,7 +120,7 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
-// Send OTP 
+// Send OTP
 export const sendOTP = async (req: Request, res: Response) => {
   try {
     const rawEmail = enforceMaxLength(String(req.body?.email ?? ""), 254);
@@ -129,24 +133,27 @@ export const sendOTP = async (req: Request, res: Response) => {
     const user = await User.findOne({ where: { email } });
     if (!user) return notFound(res, "Email not found. Please create an account");
 
-    // Generate 6-digit OTP
+    // Generate 6-digit OTP and store only its hash
     const otp = crypto.randomInt(100000, 999999).toString();
+    const otp_hash = hashOTP(otp);
+    const expires_at = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-    otpStore.set(email.toLowerCase(), {
-      otp,
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // expires in 5 mins
+    await PasswordResetToken.upsert({
+      email: email.toLowerCase(),
+      otp_hash,
+      expires_at,
       verified: false,
     });
 
     const transporter = nodemailer.createTransport({
-      service: "gmail", 
+      service: "gmail",
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
     });
 
-    // Send OTP 
+    // Send OTP
     await transporter.sendMail({
       from: `"iSkolar" <${process.env.EMAIL_USER}>`,
       to: email,
@@ -172,7 +179,7 @@ export const sendOTP = async (req: Request, res: Response) => {
 };
 
 // Verify OTP
-export const verifyOTP = (req: Request, res: Response) => {
+export const verifyOTP = async (req: Request, res: Response) => {
   try {
     const rawEmail = enforceMaxLength(String(req.body?.email ?? ""), 254);
     const email = normalizeEmail(sanitizeString(rawEmail, { max: 254 }));
@@ -188,20 +195,22 @@ export const verifyOTP = (req: Request, res: Response) => {
       return badRequest(res, "Invalid OTP. Please try again.");
     }
 
-    const otpData = otpStore.get(email.toLowerCase());
-    if (!otpData) return badRequest(res, "No OTP found for this email. Please request a new one.");
+    const record = await PasswordResetToken.findOne({ where: { email: email.toLowerCase() } });
+    if (!record) {
+      return badRequest(res, "No OTP found for this email. Please request a new one.");
+    }
 
-    if (otpData.expiresAt < new Date()) {
-      otpStore.delete(email.toLowerCase());
+    if (record.expires_at < new Date()) {
+      await record.destroy();
       return badRequest(res, "OTP has expired. Please request a new one.");
     }
 
-    if (otpData.otp !== otp) {
+    if (record.otp_hash !== hashOTP(otp)) {
       return badRequest(res, "Invalid OTP. Please try again.");
     }
 
-    otpData.verified = true;
-    otpStore.set(email.toLowerCase(), otpData);
+    record.verified = true;
+    await record.save();
 
     return ok(res, "OTP verified successfully");
   } catch (error) {
@@ -232,10 +241,15 @@ export const resetPassword = async (req: Request, res: Response) => {
       return badRequest(res, "Password does not meet complexity requirements");
     }
 
-    // Check if OTP was verified
-    const otpData = otpStore.get(email.toLowerCase());
-    if (!otpData || !otpData.verified) {
+    // Check if OTP was verified in the database
+    const record = await PasswordResetToken.findOne({ where: { email: email.toLowerCase() } });
+    if (!record || !record.verified) {
       return badRequest(res, "OTP not verified. Please verify OTP first.");
+    }
+
+    if (record.expires_at < new Date()) {
+      await record.destroy();
+      return badRequest(res, "OTP has expired. Please start the reset process again.");
     }
 
     const user = await User.findOne({ where: { email } });
@@ -245,8 +259,8 @@ export const resetPassword = async (req: Request, res: Response) => {
     user.password = hashedPassword;
     await user.save();
 
-    // Remove from OTP store
-    otpStore.delete(email.toLowerCase());
+    // Clear the token after successful reset
+    await record.destroy();
 
     return ok(res, "Password reset successful! Please login");
   } catch (error) {

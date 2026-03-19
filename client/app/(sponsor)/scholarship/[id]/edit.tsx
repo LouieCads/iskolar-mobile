@@ -155,20 +155,21 @@ export default function EditScholarshipPage() {
       const res = await scholarshipService.getScholarshipById(String(id));
       if (res.success && res.scholarship) {
         const s = res.scholarship as any;
-        
-        // Set form values using setValue
-        setValue('title', s.title || '');
-        setValue('description', s.description || '');
-        setValue('totalAmount', String(s.total_amount ?? ''));
-        setValue('totalSlot', String(s.total_slot ?? ''));
-        setValue('deadline', s.application_deadline ? String(s.application_deadline) : '');
-        setValue('criteria', Array.isArray(s.criteria) ? s.criteria : []);
-        setValue('documents', Array.isArray(s.required_documents) ? s.required_documents : []);
-        setValue('type', s.type || undefined);
-        setValue('purpose', s.purpose || undefined);
-        setValue('status', s.status || 'active');
-        setValue('customFormFields', s.custom_form_fields || []);
-        
+
+        reset({
+          title: s.title || '',
+          description: s.description || '',
+          totalAmount: String(s.total_amount ?? ''),
+          totalSlot: String(s.total_slot ?? ''),
+          deadline: s.application_deadline ? String(s.application_deadline) : '',
+          criteria: Array.isArray(s.criteria) ? s.criteria : [],
+          documents: Array.isArray(s.required_documents) ? s.required_documents : [],
+          type: s.type || undefined,
+          purpose: s.purpose || undefined,
+          status: s.status || 'active',
+          customFormFields: s.custom_form_fields || [],
+        });
+
         setImageUrl(s.image_url || null);
         if (s.application_deadline) setDate(new Date(s.application_deadline));
       } else {
@@ -180,7 +181,7 @@ export default function EditScholarshipPage() {
       setLoading(false);
       animateIn();
     }
-  }, [id, animateIn, setValue]);
+  }, [id, animateIn, reset]);
 
   useEffect(() => { fetchDetails(); }, [fetchDetails]);
 
@@ -221,6 +222,7 @@ export default function EditScholarshipPage() {
       if (res.success) {
         showToast('success', 'Success', 'Scholarship updated!');
         setNewImageUri(null);
+        setTimeout(() => router.back(), 1500);
       } else {
         showToast('error', 'Error', res.message);
       }

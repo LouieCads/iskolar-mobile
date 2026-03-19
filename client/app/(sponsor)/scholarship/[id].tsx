@@ -1,5 +1,5 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { useRef, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Alert, Animated, Image, Modal } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import Header from '@/components/header';
@@ -60,9 +60,7 @@ export default function ScholarshipDetailsPage() {
     }
   }, [id, animateIn]);
 
-  useEffect(() => {
-    fetchDetails();
-  }, [fetchDetails]);
+  useFocusEffect(useCallback(() => { fetchDetails(); }, [fetchDetails]));
 
   const amountPerScholar = scholarship?.total_slot > 0 
     ? scholarship.total_amount / scholarship.total_slot 
@@ -188,6 +186,27 @@ export default function ScholarshipDetailsPage() {
             />
           </View>
 
+          {(scholarship?.type || scholarship?.purpose) && (
+            <View style={styles.row}>
+              {scholarship?.type && (
+                <View style={[styles.metricBox, { borderColor: '#E5E7EB', flex: 1 }]}>
+                  <Text style={styles.metricLabel}>Type</Text>
+                  <Text style={[styles.metricValue, { color: '#111827', fontSize: 12 }]}>
+                    {scholarship.type === 'merit_based' ? 'Merit-Based' : 'Skill-Based'}
+                  </Text>
+                </View>
+              )}
+              {scholarship?.purpose && (
+                <View style={[styles.metricBox, { borderColor: '#E5E7EB', flex: 1 }]}>
+                  <Text style={styles.metricLabel}>Purpose</Text>
+                  <Text style={[styles.metricValue, { color: '#111827', fontSize: 12, textTransform: 'capitalize' }]}>
+                    {scholarship.purpose}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+
           <View style={styles.card}>
             <Text style={styles.titleText}>{scholarship?.title}</Text>
             <View style={styles.metaRow}>
@@ -208,7 +227,7 @@ export default function ScholarshipDetailsPage() {
             </View>
           </View>
 
-          <View style={styles.row}> 
+          <View style={styles.row}>
             <View style={[styles.metricBox, { borderColor: '#E5E7EB' }]}>
               <Text style={styles.metricLabel}>Applications</Text>
               <Text style={[styles.metricValue, { color: '#111827' }]}>{scholarship.applications_count}</Text>

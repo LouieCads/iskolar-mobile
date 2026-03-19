@@ -46,26 +46,7 @@ export default function RegisterPage() {
   });
 
   useEffect(() => {
-    const checkAuth = async () => {
-      setLoading(true);
-      try {
-        const hasToken = await authService.hasValidToken();
-        if (hasToken) {
-          const result = await authService.getProfileStatus();
-
-          if (result.user?.role === 'student') {
-            router.replace('../(student)/home');
-          } else if (result.user?.role === 'sponsor') {
-            router.replace('../(sponsor)/my-scholarships');
-          }
-        }
-      } catch (e) {
-        // Ignore
-      } finally {
-        setLoading(false);
-      }
-    };
-    checkAuth();
+    authService.redirectIfAuthenticated(router);
   }, []);
 
   const { control, handleSubmit, formState: { errors } } = useForm<RegisterFormData>({

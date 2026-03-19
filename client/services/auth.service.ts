@@ -160,6 +160,22 @@ class AuthService {
       sponsor: response.data?.sponsor
     };
   }
+
+  async redirectIfAuthenticated(router: { replace: (path: any) => void }): Promise<void> {
+    try {
+      const hasToken = await this.hasValidToken();
+      if (!hasToken) return;
+
+      const result = await this.getProfileStatus();
+      if (result.user?.role === 'student' && result.user?.profile_completed) {
+        router.replace('../(student)/home');
+      } else if (result.user?.role === 'sponsor' && result.user?.profile_completed) {
+        router.replace('../(sponsor)/my-scholarships');
+      }
+    } catch {
+      // No-op: ignore errors during auth check on public screens
+    }
+  }
 }
 
 export const authService = new AuthService();

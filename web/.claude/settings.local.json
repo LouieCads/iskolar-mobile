@@ -3,7 +3,9 @@
     "allow": [
       "Bash(cat:*)",
       "Bash(/tmp/tree_output.txt:*)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(xargs grep:*)",
+      "Bash(EMAIL='scholarpass23@gmail.com' PASSWORD='Louie21@' bunx tsx scripts/seed-admin.ts)"
     ]
   }
 }

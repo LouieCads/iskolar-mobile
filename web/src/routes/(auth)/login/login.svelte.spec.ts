@@ -26,11 +26,11 @@ describe('Login page', () => {
 	it('renders the login form', async () => {
 		render(LoginPage);
 
-		await expect.element(page.getByRole('heading', { name: 'Sign in to your account' })).toBeVisible();
-		await expect.element(page.getByLabelText('Email address')).toBeVisible();
+		await expect.element(page.getByRole('heading', { name: 'Log In' })).toBeVisible();
+		await expect.element(page.getByLabelText('Email')).toBeVisible();
 		await expect.element(page.getByLabelText('Password', { exact: true })).toBeVisible();
-		await expect.element(page.getByLabelText('Remember me for 30 days')).toBeVisible();
-		await expect.element(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+		await expect.element(page.getByLabelText('Remember Me')).toBeVisible();
+		await expect.element(page.getByRole('button', { name: 'Log In' })).toBeVisible();
 	});
 
 	it('redirects to dashboard when already authenticated', async () => {
@@ -53,9 +53,9 @@ describe('Login page', () => {
 
 		render(LoginPage);
 
-		await page.getByLabelText('Email address').fill('admin@example.com');
+		await page.getByLabelText('Email').fill('admin@example.com');
 		await page.getByLabelText('Password', { exact: true }).fill('wrongpassword');
-		await page.getByRole('button', { name: 'Sign in' }).click();
+		await page.getByRole('button', { name: 'Log In' }).click();
 
 		await expect.element(page.getByRole('alert')).toHaveTextContent('Invalid email or password');
 	});
@@ -79,9 +79,9 @@ describe('Login page', () => {
 
 		render(LoginPage);
 
-		await page.getByLabelText('Email address').fill('admin@example.com');
+		await page.getByLabelText('Email').fill('admin@example.com');
 		await page.getByLabelText('Password', { exact: true }).fill('correctpassword');
-		await page.getByRole('button', { name: 'Sign in' }).click();
+		await page.getByRole('button', { name: 'Log In' }).click();
 
 		await vi.waitFor(() => {
 			expect(mockSaveToken).toHaveBeenCalledWith(fakeToken, fakeExpiry);
@@ -94,9 +94,9 @@ describe('Login page', () => {
 
 		render(LoginPage);
 
-		await page.getByLabelText('Email address').fill('admin@example.com');
+		await page.getByLabelText('Email').fill('admin@example.com');
 		await page.getByLabelText('Password', { exact: true }).fill('anypassword');
-		await page.getByRole('button', { name: 'Sign in' }).click();
+		await page.getByRole('button', { name: 'Log In' }).click();
 
 		await expect
 			.element(page.getByRole('alert'))

@@ -5,7 +5,8 @@
       "Bash(/tmp/tree_output.txt:*)",
       "Read(//tmp/**)",
       "Bash(xargs grep:*)",
-      "Bash(EMAIL='scholarpass23@gmail.com' PASSWORD='Louie21@' bunx tsx scripts/seed-admin.ts)"
+      "Bash(EMAIL='scholarpass23@gmail.com' PASSWORD='Louie21@' bunx tsx scripts/seed-admin.ts)",
+      "Bash(bun run:*)"
     ]
   }
 }

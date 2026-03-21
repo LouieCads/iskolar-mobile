@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /d/louig/Desktop/iSkolar-Mobile/server -maxdepth 2 -type d -not -path */node_modules* -not -path */.git* -not -path */dist*)",
+      "Bash(npx tsc:*)",
+      "Read(//d/louig/Desktop/iSkolar-Mobile/web/**)",
+      "Bash(npx svelte-check:*)",
+      "Bash(find D:/louig/Desktop/iSkolar-Mobile/web -maxdepth 1 -name .env* -type f)",
+      "Bash(xargs ls:*)"
+    ]
+  }
+}

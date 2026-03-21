@@ -8,6 +8,8 @@ import onboardingRoutes from "./routes/onboarding.routes";
 import profileRoutes from "./routes/profile.routes";
 import scholarshipRoutes from "./routes/scholarship-creation.routes";
 import scholarshipApplicationRoutes from './routes/scholarship-application.routes';
+import userManagementRoutes from './routes/user-management.routes';
+import { seedAdmin } from './scripts/seed-admin';
 
 // Import Models
 import User from "./models/Users";
@@ -65,6 +67,7 @@ app.use("/onboarding", onboardingRoutes);
 app.use("/profile", profileRoutes);
 app.use("/scholarship", scholarshipRoutes);
 app.use('/scholarship-application', scholarshipApplicationRoutes);
+app.use('/admin/users', userManagementRoutes);
 
 sequelize
   .authenticate()
@@ -74,10 +77,11 @@ sequelize
       return sequelize.sync({ alter: true }).then(() => {});
     }
   })
-  .then(() => {
+  .then(async () => {
     if (process.env.NODE_ENV === "development") {
       console.log("✅ Database & tables synced (development only)");
     }
+    await seedAdmin();
   })
   .catch((err) => {
     console.error("❌ Database error:", err);

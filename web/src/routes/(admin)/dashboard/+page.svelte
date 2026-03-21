@@ -269,7 +269,7 @@
 	</div>
 
 	<!-- Right Column -->
-	<div class="flex w-72 flex-shrink-0 flex-col gap-4">
+	<div class="flex w-72 shrink-0 flex-col gap-4">
 		<!-- Scholarship Breakdown -->
 		<div class="rounded-xl bg-white p-5 shadow-sm">
 			<h2 class="mb-4 text-sm text-gray-700">Scholarship Breakdown</h2>
@@ -316,7 +316,7 @@
 		<ul class="space-y-3">
 			{#each recentActivity as activity}
 				<li class="flex gap-2">
-					<div class="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#3A52A6]"></div>
+					<div class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#3A52A6]"></div>
 					<div>
 						<p class="text-xs leading-relaxed text-gray-600">{activity.text}</p>
 						<p class="mt-0.5 text-[10px] text-gray-400">{activity.time}</p>
@@ -327,7 +327,7 @@
 	</div>
 
 	<!-- Action Shortcuts -->
-	<div class="w-56 flex-shrink-0 rounded-xl bg-white p-5 shadow-sm">
+	<div class="w-56 shrink-0 rounded-xl bg-white p-5 shadow-sm">
 		<h2 class="mb-4 text-sm text-gray-700">Action Shortcuts</h2>
 		<div class="grid grid-cols-2 gap-3">
 			{#each actionShortcuts as shortcut}

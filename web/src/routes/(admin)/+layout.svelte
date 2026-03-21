@@ -46,11 +46,11 @@
 
 <div class="flex h-screen overflow-hidden bg-[#F0F4F8]">
 	<!-- Sidebar -->
-	<aside class="flex w-44 flex-shrink-0 flex-col border-r border-gray-100 bg-white shadow-sm">
+	<aside class="flex w-44 shrink-0 flex-col border-r border-gray-100 bg-white shadow-sm">
 		<!-- Logo -->
 		<div class="flex items-center gap-2.5 border-b border-gray-100 p-4">
 			<div
-				class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#3A52A6]"
+				class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#3A52A6]"
 			>
 				<svg
 					class="h-5 w-5 text-white"
@@ -160,7 +160,7 @@
 		<!-- Admin User -->
 		<div class="flex items-center gap-2 border-t border-gray-100 p-3">
 			<div
-				class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#3A52A6] text-xs text-white"
+				class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#3A52A6] text-xs text-white"
 			>
 				A
 			</div>
@@ -171,7 +171,7 @@
 			<button
 				onclick={handleLogout}
 				title="Logout"
-				class="ml-auto flex-shrink-0 text-gray-300 transition-colors hover:text-gray-500"
+				class="ml-auto shrink-0 text-gray-300 transition-colors hover:text-gray-500"
 			>
 				<svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 					<path
@@ -188,7 +188,7 @@
 	<div class="flex flex-1 flex-col overflow-hidden">
 		<!-- Top Header -->
 		<header
-			class="flex flex-shrink-0 items-center justify-between border-b border-gray-100 bg-white px-6 py-3"
+			class="flex shrink-0 items-center justify-between border-b border-gray-100 bg-white px-6 py-3"
 		>
 			<p class="text-sm text-gray-400">
 				{breadcrumb.section} &rsaquo;

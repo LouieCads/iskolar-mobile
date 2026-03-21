@@ -241,7 +241,7 @@
 					<td class="py-3.5 pr-4">
 						<div class="flex items-center gap-3">
 							<div
-								class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs text-white {user.avatarBg}"
+								class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs text-white {user.avatarBg}"
 							>
 								{user.initials}
 							</div>

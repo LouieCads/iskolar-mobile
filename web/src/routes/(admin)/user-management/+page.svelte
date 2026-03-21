@@ -118,7 +118,7 @@
 
 <!-- Page Title -->
 <div class="mb-5">
-	<h1 class="text-xl font-bold text-gray-800">User Management</h1>
+	<h1 class="text-xl text-gray-800">User Management</h1>
 	<p class="mt-0.5 text-xs text-gray-400">248 registered users — Students, Sponsors & Admins</p>
 </div>
 
@@ -217,19 +217,19 @@
 	<table class="w-full">
 		<thead>
 			<tr class="border-b border-gray-100">
-				<th class="pb-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400"
+				<th class="pb-3 text-left text-[10px] uppercase tracking-wider text-gray-400"
 					>User</th
 				>
-				<th class="pb-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400"
+				<th class="pb-3 text-left text-[10px] uppercase tracking-wider text-gray-400"
 					>Role</th
 				>
-				<th class="pb-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400"
+				<th class="pb-3 text-left text-[10px] uppercase tracking-wider text-gray-400"
 					>Status</th
 				>
-				<th class="pb-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400"
+				<th class="pb-3 text-left text-[10px] uppercase tracking-wider text-gray-400"
 					>Registration Date</th
 				>
-				<th class="pb-3 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-400"
+				<th class="pb-3 text-right text-[10px] uppercase tracking-wider text-gray-400"
 					>Actions</th
 				>
 			</tr>
@@ -241,7 +241,7 @@
 					<td class="py-3.5 pr-4">
 						<div class="flex items-center gap-3">
 							<div
-								class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white {user.avatarBg}"
+								class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs text-white {user.avatarBg}"
 							>
 								{user.initials}
 							</div>
@@ -338,7 +338,7 @@
 					onclick={() => { currentPage = p as number; }}
 					class="flex h-7 w-7 items-center justify-center rounded-lg border text-xs transition-all
 						{currentPage === p
-							? 'border-[#3A52A6] bg-[#3A52A6] font-semibold text-white'
+							? 'border-[#3A52A6] bg-[#3A52A6] text-white'
 							: 'border-gray-200 text-gray-500 hover:border-[#3A52A6] hover:text-[#3A52A6]'}"
 				>
 					{p}

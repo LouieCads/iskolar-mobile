@@ -231,8 +231,8 @@
 				{/if}
 			</div>
 			<div>
-				<p class="text-[10px] font-semibold tracking-wide text-gray-400">{card.label}</p>
-				<p class="text-2xl font-bold text-gray-800">{card.value}</p>
+				<p class="text-[10px] tracking-wide text-gray-400">{card.label}</p>
+				<p class="text-2xl text-gray-800">{card.value}</p>
 				<p class="text-xs {card.subtitleColor}">{card.subtitle}</p>
 			</div>
 		</div>
@@ -244,7 +244,7 @@
 	<!-- Bar Chart -->
 	<div class="flex-1 rounded-xl bg-white p-5 shadow-sm">
 		<div class="mb-4 flex items-center justify-between">
-			<h2 class="text-sm font-semibold text-gray-700">User Registrations — 2025</h2>
+			<h2 class="text-sm text-gray-700">User Registrations — 2025</h2>
 			<div
 				class="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-500"
 			>
@@ -272,13 +272,13 @@
 	<div class="flex w-72 flex-shrink-0 flex-col gap-4">
 		<!-- Scholarship Breakdown -->
 		<div class="rounded-xl bg-white p-5 shadow-sm">
-			<h2 class="mb-4 text-sm font-semibold text-gray-700">Scholarship Breakdown</h2>
+			<h2 class="mb-4 text-sm text-gray-700">Scholarship Breakdown</h2>
 			<div class="space-y-3">
 				{#each scholarshipBreakdown as item}
 					<div>
 						<div class="mb-1 flex items-center justify-between text-xs">
 							<span class="text-gray-500">{item.label}</span>
-							<span class="font-semibold text-gray-700">{item.count}</span>
+							<span class="text-gray-700">{item.count}</span>
 						</div>
 						<div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
 							<div class="h-full rounded-full {item.color}" style="width: {item.pct}%"></div>
@@ -290,13 +290,13 @@
 
 		<!-- User Distribution -->
 		<div class="rounded-xl bg-white p-5 shadow-sm">
-			<h2 class="mb-4 text-sm font-semibold text-gray-700">User Distribution</h2>
+			<h2 class="mb-4 text-sm text-gray-700">User Distribution</h2>
 			<div class="space-y-3">
 				{#each userDistribution as item}
 					<div>
 						<div class="mb-1 flex items-center justify-between text-xs">
 							<span class="text-gray-500">{item.label}</span>
-							<span class="font-semibold text-gray-700">{item.count}</span>
+							<span class="text-gray-700">{item.count}</span>
 						</div>
 						<div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
 							<div class="h-full rounded-full {item.color}" style="width: {item.pct}%"></div>
@@ -312,7 +312,7 @@
 <div class="flex gap-4">
 	<!-- Recent Activity -->
 	<div class="flex-1 rounded-xl bg-white p-5 shadow-sm">
-		<h2 class="mb-4 text-sm font-semibold text-gray-700">Recent Activity</h2>
+		<h2 class="mb-4 text-sm text-gray-700">Recent Activity</h2>
 		<ul class="space-y-3">
 			{#each recentActivity as activity}
 				<li class="flex gap-2">
@@ -328,7 +328,7 @@
 
 	<!-- Action Shortcuts -->
 	<div class="w-56 flex-shrink-0 rounded-xl bg-white p-5 shadow-sm">
-		<h2 class="mb-4 text-sm font-semibold text-gray-700">Action Shortcuts</h2>
+		<h2 class="mb-4 text-sm text-gray-700">Action Shortcuts</h2>
 		<div class="grid grid-cols-2 gap-3">
 			{#each actionShortcuts as shortcut}
 				<a

@@ -63,7 +63,7 @@
 				</svg>
 			</div>
 			<div>
-				<p class="text-sm font-bold leading-tight text-[#3A52A6]">iSkolar</p>
+				<p class="text-sm leading-tight text-[#3A52A6]">iSkolar</p>
 				<p class="text-[10px] text-gray-400">Admin</p>
 			</div>
 		</div>
@@ -72,7 +72,7 @@
 		<nav class="flex-1 space-y-3 overflow-y-auto px-2 py-3">
 			{#each navSections as section}
 				<div>
-					<p class="mb-1 px-2 text-[9px] font-semibold uppercase tracking-widest text-gray-400">
+					<p class="mb-1 px-2 text-[9px] uppercase tracking-widest text-gray-400">
 						{section.label}
 					</p>
 					{#each section.items as item}
@@ -80,7 +80,7 @@
 							href={item.href}
 							class="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors {page.url
 								.pathname === item.href
-								? 'bg-[#EEF2FF] font-semibold text-[#3A52A6]'
+								? 'bg-[#EEF2FF] text-[#3A52A6]'
 								: 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'}"
 						>
 							{#if item.icon === 'dashboard'}
@@ -160,12 +160,12 @@
 		<!-- Admin User -->
 		<div class="flex items-center gap-2 border-t border-gray-100 p-3">
 			<div
-				class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#3A52A6] text-xs font-bold text-white"
+				class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#3A52A6] text-xs text-white"
 			>
 				A
 			</div>
 			<div class="min-w-0">
-				<p class="truncate text-xs font-semibold text-gray-700">Admin User</p>
+				<p class="truncate text-xs text-gray-700">Admin User</p>
 				<p class="truncate text-[10px] text-gray-400">Super Administrator</p>
 			</div>
 			<button
@@ -192,10 +192,10 @@
 		>
 			<p class="text-sm text-gray-400">
 				{breadcrumb.section} &rsaquo;
-				<span class="font-semibold text-gray-700">{breadcrumb.label}</span>
+				<span class="text-gray-700">{breadcrumb.label}</span>
 			</p>
 			<div
-				class="flex h-8 w-8 items-center justify-center rounded-full bg-[#3A52A6] text-sm font-bold text-white"
+				class="flex h-8 w-8 items-center justify-center rounded-full bg-[#3A52A6] text-sm text-white"
 			>
 				A
 			</div>

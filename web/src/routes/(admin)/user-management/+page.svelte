@@ -155,7 +155,7 @@
 				bind:value={roleFilter}
 				class="appearance-none rounded-lg border border-gray-200 py-2 pl-3 pr-8 text-xs text-gray-600 focus:border-[#3A52A6] focus:outline-none focus:ring-1 focus:ring-[#3A52A6]"
 			>
-				{#each roles as role}
+				{#each roles as role (role)}
 					<option value={role}>{role}</option>
 				{/each}
 			</select>
@@ -176,7 +176,7 @@
 				bind:value={statusFilter}
 				class="appearance-none rounded-lg border border-gray-200 py-2 pl-3 pr-8 text-xs text-gray-600 focus:border-[#3A52A6] focus:outline-none focus:ring-1 focus:ring-[#3A52A6]"
 			>
-				{#each statuses as status}
+				{#each statuses as status (status)}
 					<option value={status}>{status}</option>
 				{/each}
 			</select>
@@ -235,7 +235,7 @@
 			</tr>
 		</thead>
 		<tbody class="divide-y divide-gray-50">
-			{#each filteredUsers as user}
+			{#each filteredUsers as user (user.email)}
 				<tr class="group transition-colors hover:bg-gray-50">
 					<!-- User -->
 					<td class="py-3.5 pr-4">
@@ -330,7 +330,7 @@
 			&lt;
 		</button>
 
-		{#each getVisiblePages() as p}
+		{#each getVisiblePages() as p (p)}
 			{#if p === '...'}
 				<span class="flex h-7 w-7 items-center justify-center text-xs text-gray-400">…</span>
 			{:else}

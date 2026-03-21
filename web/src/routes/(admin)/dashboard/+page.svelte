@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
+
 	const statCards = [
 		{
 			label: 'TOTAL REGISTERED USERS',
@@ -159,7 +161,7 @@
 
 <!-- Stat Cards — Row 1 -->
 <div class="mb-4 grid grid-cols-4 gap-4">
-	{#each statCards as card}
+	{#each statCards as card (card.label)}
 		<div
 			class="rounded-xl border-t-4 bg-white p-4 shadow-sm {card.borderColor} flex flex-col gap-2"
 		>
@@ -256,7 +258,7 @@
 		</div>
 		<!-- Chart bars -->
 		<div class="flex h-36 items-end gap-1.5">
-			{#each chartData as bar}
+			{#each chartData as bar (bar.month)}
 				<div class="flex flex-1 flex-col items-center gap-1">
 					<div
 						class="w-full rounded-t-sm bg-[#3A52A6] opacity-80 transition-all hover:opacity-100"
@@ -274,7 +276,7 @@
 		<div class="rounded-xl bg-white p-5 shadow-sm">
 			<h2 class="mb-4 text-sm text-gray-700">Scholarship Breakdown</h2>
 			<div class="space-y-3">
-				{#each scholarshipBreakdown as item}
+				{#each scholarshipBreakdown as item (item.label)}
 					<div>
 						<div class="mb-1 flex items-center justify-between text-xs">
 							<span class="text-gray-500">{item.label}</span>
@@ -292,7 +294,7 @@
 		<div class="rounded-xl bg-white p-5 shadow-sm">
 			<h2 class="mb-4 text-sm text-gray-700">User Distribution</h2>
 			<div class="space-y-3">
-				{#each userDistribution as item}
+				{#each userDistribution as item (item.label)}
 					<div>
 						<div class="mb-1 flex items-center justify-between text-xs">
 							<span class="text-gray-500">{item.label}</span>
@@ -314,7 +316,7 @@
 	<div class="flex-1 rounded-xl bg-white p-5 shadow-sm">
 		<h2 class="mb-4 text-sm text-gray-700">Recent Activity</h2>
 		<ul class="space-y-3">
-			{#each recentActivity as activity}
+			{#each recentActivity as activity (activity.time)}
 				<li class="flex gap-2">
 					<div class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#3A52A6]"></div>
 					<div>
@@ -330,7 +332,7 @@
 	<div class="w-56 shrink-0 rounded-xl bg-white p-5 shadow-sm">
 		<h2 class="mb-4 text-sm text-gray-700">Action Shortcuts</h2>
 		<div class="grid grid-cols-2 gap-3">
-			{#each actionShortcuts as shortcut}
+			{#each actionShortcuts as shortcut (shortcut.href)}
 				<a
 					href={shortcut.href}
 					class="flex flex-col items-center gap-2 rounded-lg border border-gray-100 p-3 text-center transition-all hover:border-[#3A52A6] hover:bg-[#EEF2FF] hover:shadow-sm"

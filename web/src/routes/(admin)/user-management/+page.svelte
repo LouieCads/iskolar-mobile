@@ -234,26 +234,6 @@
 			</svg>
 		</div>
 
-		<!-- Time Filter -->
-		<div class="relative">
-			<select
-				class="appearance-none rounded-lg border border-gray-200 py-2 pl-3 pr-8 text-xs text-gray-600 focus:border-[#3A52A6] focus:outline-none focus:ring-1 focus:ring-[#3A52A6]"
-			>
-				<option>All Time</option>
-				<option>This Week</option>
-				<option>This Month</option>
-				<option>This Year</option>
-			</select>
-			<svg
-				class="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-400"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke="currentColor"
-				stroke-width="2"
-			>
-				<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-			</svg>
-		</div>
 	</div>
 
 	<!-- Loading State -->

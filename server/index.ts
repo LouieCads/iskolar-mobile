@@ -18,7 +18,8 @@ import Sponsor from "./models/Sponsor";
 import Scholarship from "./models/Scholarship";
 import ScholarshipApplication from "./models/ScholarshipApplication";
 import SelectedScholar from "./models/SelectedScholar";
-import "./models/PasswordResetToken"; 
+import StatusLog from "./models/StatusLog";
+import "./models/PasswordResetToken";
 
 dotenv.config();
 const app = express();
@@ -51,7 +52,8 @@ const models = {
   Sponsor,
   Scholarship,
   ScholarshipApplication,
-  SelectedScholar
+  SelectedScholar,
+  StatusLog
 };
 
 // Call associate method for each model

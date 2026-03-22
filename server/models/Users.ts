@@ -6,6 +6,7 @@ interface UserAttributes {
   email: string;
   password: string;
   role?: "admin" | "student" | "sponsor";
+  status?: "active" | "suspended" | "deactivated";
   has_selected_role?: boolean;
   profile_url?: string;
   created_at?: Date;
@@ -19,6 +20,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public email!: string;
   public password!: string;
   public role?: "admin" | "student" | "sponsor";
+  public status!: "active" | "suspended" | "deactivated";
   public has_selected_role?: boolean;
   public profile_url?: string;
   public readonly created_at!: Date;
@@ -56,6 +58,11 @@ User.init(
     role: {
       type: DataTypes.ENUM("admin", "student", "sponsor"),
       allowNull: true,
+    },
+    status: {
+      type: DataTypes.ENUM("active", "suspended", "deactivated"),
+      allowNull: false,
+      defaultValue: "active",
     },
     has_selected_role: {
       type: DataTypes.BOOLEAN,

@@ -3,11 +3,13 @@ import { Op } from "sequelize";
 import User from "../models/Users";
 import Student from "../models/Student";
 import Sponsor from "../models/Sponsor";
+import StatusLog from "../models/StatusLog";
 import { ok, badRequest, forbidden, serverError } from "../utils/responses";
 
 interface AuthenticatedRequest {
   user?: { id: string; email: string };
   query: any;
+  body: any;
 }
 
 export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
@@ -36,6 +38,10 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
       where.role = role.toLowerCase();
     }
 
+    if (status && ["active", "suspended", "deactivated"].includes(status.toLowerCase())) {
+      where.status = status.toLowerCase();
+    }
+
     if (search) {
       where[Op.or] = [
         { email: { [Op.iLike]: `%${search}%` } },
@@ -44,7 +50,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
 
     const { count, rows: users } = await User.findAndCountAll({
       where,
-      attributes: ["user_id", "email", "role", "profile_url", "created_at"],
+      attributes: ["user_id", "email", "role", "status", "profile_url", "created_at"],
       include: [
         {
           model: Student,
@@ -75,6 +81,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         where: {
           [Op.and]: [
             ...(where.role ? [{ role: where.role }] : []),
+            ...(where.status ? [{ status: where.status }] : []),
             {
               [Op.or]: [
                 { email: { [Op.iLike]: `%${search}%` } },
@@ -84,7 +91,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
             },
           ],
         },
-        attributes: ["user_id", "email", "role", "profile_url", "created_at"],
+        attributes: ["user_id", "email", "role", "status", "profile_url", "created_at"],
         include: [
           {
             model: Student,
@@ -127,7 +134,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         name,
         email: u.email,
         role: u.role ? u.role.charAt(0).toUpperCase() + u.role.slice(1) : "Unknown",
-        status: "Active", // TODO: add status field to User model when needed
+        status: u.status ? u.status.charAt(0).toUpperCase() + u.status.slice(1) : "Active",
         profile_url: u.profile_url,
         initials,
         registration_date: u.created_at,
@@ -160,7 +167,7 @@ export const getUserById = async (req: AuthenticatedRequest & { params: any }, r
     if (!userId) return badRequest(res, "User ID is required");
 
     const user = await User.findByPk(userId, {
-      attributes: ["user_id", "email", "role", "profile_url", "has_selected_role", "created_at"],
+      attributes: ["user_id", "email", "role", "status", "profile_url", "has_selected_role", "created_at"],
       include: [
         {
           model: Student,
@@ -191,7 +198,7 @@ export const getUserById = async (req: AuthenticatedRequest & { params: any }, r
         name,
         email: u.email,
         role: u.role ? u.role.charAt(0).toUpperCase() + u.role.slice(1) : "Unknown",
-        status: "Active",
+        status: u.status ? u.status.charAt(0).toUpperCase() + u.status.slice(1) : "Active",
         profile_url: u.profile_url,
         has_selected_role: u.has_selected_role,
         registration_date: u.created_at,
@@ -201,6 +208,64 @@ export const getUserById = async (req: AuthenticatedRequest & { params: any }, r
     });
   } catch (err) {
     console.error("getUserById error:", err);
+    return serverError(res);
+  }
+};
+
+const VALID_STATUSES = ["active", "suspended", "deactivated"] as const;
+
+export const updateUserStatus = async (
+  req: AuthenticatedRequest & { params: any },
+  res: Response
+) => {
+  try {
+    const adminUser = await User.findByPk(req.user!.id);
+    if (!adminUser || adminUser.role !== "admin") {
+      return forbidden(res, "Admin access required");
+    }
+
+    const { userId } = req.params;
+    if (!userId) return badRequest(res, "User ID is required");
+
+    const { status } = req.body as { status?: string };
+    if (!status || !VALID_STATUSES.includes(status.toLowerCase() as any)) {
+      return badRequest(res, "Invalid status. Must be one of: active, suspended, deactivated");
+    }
+
+    const newStatus = status.toLowerCase() as (typeof VALID_STATUSES)[number];
+
+    const targetUser = await User.findByPk(userId);
+    if (!targetUser) return badRequest(res, "User not found");
+
+    // Prevent admins from changing their own status
+    if (targetUser.user_id === req.user!.id) {
+      return badRequest(res, "You cannot change your own status");
+    }
+
+    const previousStatus = targetUser.status || "active";
+    if (previousStatus === newStatus) {
+      return badRequest(res, `User is already ${newStatus}`);
+    }
+
+    // Update user status
+    targetUser.status = newStatus;
+    await targetUser.save();
+
+    // Log the status change
+    await StatusLog.create({
+      user_id: targetUser.user_id,
+      previous_status: previousStatus,
+      new_status: newStatus,
+      changed_by: req.user!.id,
+    });
+
+    const displayStatus = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+    return ok(res, `User status updated to ${displayStatus}`, {
+      user_id: targetUser.user_id,
+      status: displayStatus,
+    });
+  } catch (err) {
+    console.error("updateUserStatus error:", err);
     return serverError(res);
   }
 };

@@ -6,7 +6,7 @@ import nodemailer from "nodemailer";
 import User from "../models/Users";
 import PasswordResetToken from "../models/PasswordResetToken";
 import { normalizeEmail, isValidEmail, sanitizeString, isValidPassword, isValidOTP, normalizeOTP, enforceMaxLength, isSafeInput } from "../utils/validation";
-import { ok, created, badRequest, notFound, serverError } from "../utils/responses";
+import { ok, created, badRequest, forbidden, notFound, serverError } from "../utils/responses";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -92,6 +92,14 @@ export const login = async (req: Request, res: Response) => {
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) return badRequest(res, "Invalid email or password");
+
+    // Block login for suspended or deactivated users
+    if (user.status === "suspended") {
+      return forbidden(res, "Your account has been suspended. Please contact an administrator.");
+    }
+    if (user.status === "deactivated") {
+      return forbidden(res, "Your account has been deactivated. Please contact an administrator.");
+    }
 
     const expiresIn = rememberMe ? "30d" : "1d";
 

@@ -46,6 +46,7 @@
 	let confirmingStatus = $state(false);
 	let statusLoading = $state(false);
 	let statusMessage = $state('');
+	let statusIsError = $state(false);
 
 	const userId = page.params.user_id;
 
@@ -139,21 +140,65 @@
 	async function confirmStatusChange() {
 		if (!statusAction || !user) return;
 		statusLoading = true;
-		// Status update is a planned backend feature — optimistically update UI
-		await new Promise((r) => setTimeout(r, 600));
-		user = { ...user, status: statusAction };
-		statusLoading = false;
-		confirmingStatus = false;
-		statusAction = null;
-		statusMessage = 'User status updated successfully.';
-		setTimeout(() => (statusMessage = ''), 3000);
+		statusIsError = false;
+		try {
+			const token = getToken();
+			const res = await fetch(`${API_URL}/admin/users/${userId}/status`, {
+				method: 'PATCH',
+				headers: {
+					Authorization: `Bearer ${token}`,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ status: statusAction.toLowerCase() })
+			});
+			const data = await res.json();
+			if (!data.success) {
+				statusIsError = true;
+				statusMessage = data.message || 'Failed to update status.';
+				return;
+			}
+			user = { ...user, status: statusAction };
+			statusMessage = 'User status updated successfully.';
+		} catch {
+			statusIsError = true;
+			statusMessage = 'Failed to connect to server.';
+		} finally {
+			statusLoading = false;
+			confirmingStatus = false;
+			statusAction = null;
+			setTimeout(() => (statusMessage = ''), 3000);
+		}
 	}
 
-	function restoreActive() {
+	async function restoreActive() {
 		if (!user) return;
-		user = { ...user, status: 'Active' };
-		statusMessage = 'User status restored to Active.';
-		setTimeout(() => (statusMessage = ''), 3000);
+		statusLoading = true;
+		statusIsError = false;
+		try {
+			const token = getToken();
+			const res = await fetch(`${API_URL}/admin/users/${userId}/status`, {
+				method: 'PATCH',
+				headers: {
+					Authorization: `Bearer ${token}`,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ status: 'active' })
+			});
+			const data = await res.json();
+			if (!data.success) {
+				statusIsError = true;
+				statusMessage = data.message || 'Failed to restore status.';
+				return;
+			}
+			user = { ...user, status: 'Active' };
+			statusMessage = 'User status restored to Active.';
+		} catch {
+			statusIsError = true;
+			statusMessage = 'Failed to connect to server.';
+		} finally {
+			statusLoading = false;
+			setTimeout(() => (statusMessage = ''), 3000);
+		}
 	}
 
 	onMount(() => {
@@ -252,7 +297,13 @@
 				<h3 class="mb-4 text-xs uppercase tracking-wider text-gray-400">Status Management</h3>
 
 				{#if statusMessage}
-					<p class="mb-3 rounded-lg bg-green-50 px-3 py-2 text-xs text-green-600">{statusMessage}</p>
+					<p
+						class="mb-3 rounded-lg px-3 py-2 text-xs {statusIsError
+							? 'bg-red-50 text-red-500'
+							: 'bg-green-50 text-green-600'}"
+					>
+						{statusMessage}
+					</p>
 				{/if}
 
 				{#if confirmingStatus}
@@ -281,9 +332,10 @@
 						{#if user.status !== 'Active'}
 							<button
 								onclick={restoreActive}
-								class="w-full cursor-pointer rounded-lg border border-green-200 py-2 text-xs text-green-600 transition-all hover:bg-green-50"
+								disabled={statusLoading}
+								class="w-full cursor-pointer rounded-lg border border-green-200 py-2 text-xs text-green-600 transition-all hover:bg-green-50 disabled:opacity-60"
 							>
-								Restore to Active
+								{statusLoading ? 'Saving...' : 'Restore to Active'}
 							</button>
 						{/if}
 						{#if user.status !== 'Suspended'}

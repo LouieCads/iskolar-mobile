@@ -9,7 +9,8 @@
       "Bash(bun run:*)",
       "Read(//d/louig/Desktop/iSkolar-Mobile/server/**)",
       "Read(//d/louig/Desktop/iSkolar-Mobile/**)",
-      "Bash(find D:/louig/Desktop/iSkolar-Mobile/server -name *user* -o -name *admin*)"
+      "Bash(find D:/louig/Desktop/iSkolar-Mobile/server -name *user* -o -name *admin*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

@@ -10,6 +10,7 @@ import scholarshipRoutes from "./routes/scholarship-creation.routes";
 import scholarshipApplicationRoutes from './routes/scholarship-application.routes';
 import userManagementRoutes from './routes/user-management.routes';
 import adminScholarshipRoutes from './routes/admin-scholarship.routes';
+import userReportRoutes from './routes/user-report.routes';
 import { seedAdmin } from './scripts/seed-admin';
 
 // Import Models
@@ -59,6 +60,7 @@ app.use("/scholarship", scholarshipRoutes);
 app.use('/scholarship-application', scholarshipApplicationRoutes);
 app.use('/admin/users', userManagementRoutes);
 app.use('/admin/scholarships', adminScholarshipRoutes);
+app.use('/admin/reports/users', userReportRoutes);
 
 sequelize
   .authenticate()

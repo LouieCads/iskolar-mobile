@@ -35,7 +35,11 @@
 	};
 
 	let breadcrumb = $derived(
-		breadcrumbMap[page.url.pathname] ?? { section: 'Overview', label: 'Dashboard' }
+		page.url.pathname.startsWith('/user-management/')
+			? { section: 'Management', label: 'User Profile' }
+			: page.url.pathname.startsWith('/scholarship-management/')
+				? { section: 'Management', label: 'Scholarship Detail' }
+				: (breadcrumbMap[page.url.pathname] ?? { section: 'Overview', label: 'Dashboard' })
 	);
 
 	function handleLogout() {

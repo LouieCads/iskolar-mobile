@@ -9,6 +9,7 @@ import profileRoutes from "./routes/profile.routes";
 import scholarshipRoutes from "./routes/scholarship-creation.routes";
 import scholarshipApplicationRoutes from './routes/scholarship-application.routes';
 import userManagementRoutes from './routes/user-management.routes';
+import adminScholarshipRoutes from './routes/admin-scholarship.routes';
 import { seedAdmin } from './scripts/seed-admin';
 
 // Import Models
@@ -19,6 +20,7 @@ import Scholarship from "./models/Scholarship";
 import ScholarshipApplication from "./models/ScholarshipApplication";
 import SelectedScholar from "./models/SelectedScholar";
 import StatusLog from "./models/StatusLog";
+import ScholarshipStatusLog from "./models/ScholarshipStatusLog";
 import "./models/PasswordResetToken";
 
 dotenv.config();
@@ -26,24 +28,9 @@ const app = express();
 
 const PORT = process.env.PORT || 5000;
 
+app.use(cors());
+
 app.use(express.json());
-
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
-  .split(",")
-  .map((o) => o.trim())
-  .filter(Boolean);
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. mobile clients, curl)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      callback(new Error(`CORS: origin '${origin}' not allowed`));
-    },
-    credentials: false,
-  })
-);
 
 // Initialize model associations
 const models = {
@@ -53,7 +40,8 @@ const models = {
   Scholarship,
   ScholarshipApplication,
   SelectedScholar,
-  StatusLog
+  StatusLog,
+  ScholarshipStatusLog
 };
 
 // Call associate method for each model
@@ -70,6 +58,7 @@ app.use("/profile", profileRoutes);
 app.use("/scholarship", scholarshipRoutes);
 app.use('/scholarship-application', scholarshipApplicationRoutes);
 app.use('/admin/users', userManagementRoutes);
+app.use('/admin/scholarships', adminScholarshipRoutes);
 
 sequelize
   .authenticate()

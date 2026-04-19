@@ -1,130 +1,69 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
+	import { onMount, onDestroy } from 'svelte';
+	import { API_URL } from '$lib/config';
+	import { getToken } from '$lib/auth';
 
-	const statCards = [
-		{
-			label: 'TOTAL REGISTERED USERS',
-			value: '2481',
-			subtitle: '↑ 12% this month',
-			subtitleColor: 'text-green-500',
-			borderColor: 'border-t-blue-500',
-	
-			iconColor: 'text-blue-500',
-			icon: 'users-group'
-		},
-		{
-			label: 'ACTIVE SCHOLARSHIPS',
-			value: '36',
-			subtitle: '4 new this week',
-			subtitleColor: 'text-green-500',
-			borderColor: 'border-t-emerald-400',
-	
-			iconColor: 'text-emerald-500',
-			icon: 'scholarship'
-		},
-		{
-			label: 'TOTAL APPLICATIONS',
-			value: '1204',
-			subtitle: '↑ 8% this month',
-			subtitleColor: 'text-green-500',
-			borderColor: 'border-t-amber-400',
-	
-			iconColor: 'text-amber-500',
-			icon: 'document-list'
-		},
-		{
-			label: 'APPROVED APPLICATIONS',
-			value: '847',
-			subtitle: '70% approval rate',
-			subtitleColor: 'text-green-500',
-			borderColor: 'border-t-blue-500',
-	
-			iconColor: 'text-blue-500',
-			icon: 'document-check'
-		},
-		{
-			label: 'ACTIVE STUDENTS',
-			value: '2180',
-			subtitle: '↑ 12% this month',
-			subtitleColor: 'text-green-500',
-			borderColor: 'border-t-blue-500',
-	
-			iconColor: 'text-blue-500',
-			icon: 'students'
-		},
-		{
-			label: 'ACTIVE SPONSORS',
-			value: '52',
-			subtitle: '↑ 3 new',
-			subtitleColor: 'text-green-500',
-			borderColor: 'border-t-amber-400',
-	
-			iconColor: 'text-amber-500',
-			icon: 'building'
-		},
-		{
-			label: 'TOTAL SCHOLARSHIPS POSTED',
-			value: '66',
-			subtitle: '↑ 2 this week',
-			subtitleColor: 'text-green-500',
-			borderColor: 'border-t-indigo-400',
-	
-			iconColor: 'text-indigo-500',
-			icon: 'clipboard'
-		},
-		{
-			label: 'DENIED APPLICATIONS',
-			value: '357',
-			subtitle: '29.7% denial rate',
-			subtitleColor: 'text-red-500',
-			borderColor: 'border-t-red-400',
-	
-			iconColor: 'text-red-400',
-			icon: 'document-x'
+	interface DashboardStats {
+		totalUsers: number;
+		activeStudents: number;
+		activeSponsors: number;
+		totalStudents: number;
+		totalSponsors: number;
+		totalScholarships: number;
+		activeScholarships: number;
+		closedScholarships: number;
+		suspendedScholarships: number;
+		archivedScholarships: number;
+		totalApplications: number;
+		approvedApplications: number;
+		deniedApplications: number;
+	}
+
+	let stats = $state<DashboardStats | null>(null);
+	let loading = $state(true);
+	let refreshing = $state(false);
+	let error = $state('');
+	let lastRefreshed = $state<Date | null>(null);
+
+	const REFRESH_INTERVAL_MS = 30_000;
+	let intervalId: ReturnType<typeof setInterval>;
+
+	async function fetchStats(isManual = false) {
+		if (isManual) refreshing = true;
+		try {
+			const token = getToken();
+			const res = await fetch(`${API_URL}/admin/dashboard`, {
+				headers: { Authorization: `Bearer ${token}` }
+			});
+			const data = await res.json();
+			if (!data.success) {
+				error = data.message || 'Failed to load dashboard stats';
+				return;
+			}
+			stats = data.stats;
+			error = '';
+			lastRefreshed = new Date();
+		} catch {
+			error = 'Network error. Retrying...';
+		} finally {
+			loading = false;
+			refreshing = false;
 		}
-	];
+	}
 
-	const chartData = [
-		{ month: 'Jan', pct: 42 },
-		{ month: 'Feb', pct: 53 },
-		{ month: 'Mar', pct: 57 },
-		{ month: 'Apr', pct: 50 },
-		{ month: 'May', pct: 63 },
-		{ month: 'Jun', pct: 67 },
-		{ month: 'Jul', pct: 61 },
-		{ month: 'Aug', pct: 68 },
-		{ month: 'Sep', pct: 73 },
-		{ month: 'Oct', pct: 83 },
-		{ month: 'Nov', pct: 89 },
-		{ month: 'Dec', pct: 68 }
-	];
+	onMount(() => {
+		fetchStats();
+		intervalId = setInterval(() => fetchStats(), REFRESH_INTERVAL_MS);
+	});
 
-	const scholarshipBreakdown = [
-		{ label: 'Active', count: 36, color: 'bg-emerald-500', pct: 54 },
-		{ label: 'Closed', count: 18, color: 'bg-gray-400', pct: 27 },
-		{ label: 'Suspended', count: 5, color: 'bg-amber-400', pct: 8 },
-		{ label: 'Archived', count: 8, color: 'bg-gray-300', pct: 12 }
-	];
+	onDestroy(() => {
+		clearInterval(intervalId);
+	});
 
-	const recentActivity = [
-		{
-			text: 'New student Bill Gates registered and completed profile setup.',
-			time: '5 minutes ago'
-		},
-		{
-			text: 'Sponsor CHED Foundation posted a new scholarship: CHED Merit Scholarship 2025.',
-			time: '10 minutes ago'
-		},
-		{ text: 'User John Lou Manuel was suspended for policy violation.', time: '1 hour ago' },
-		{
-			text: 'Scholarship SM Foundation Grant archived. 120 applications closed.',
-			time: '3 hours ago'
-		},
-		{
-			text: 'User report exported for period: January – June 2025.',
-			time: 'Yesterday, 6:30 PM'
-		}
-	];
+	function pct(part: number, total: number) {
+		if (!total) return 0;
+		return Math.round((part / total) * 100);
+	}
 
 	const actionShortcuts = [
 		{ label: 'User List', href: '/user-management', icon: 'users' },
@@ -132,141 +71,246 @@
 		{ label: 'User Reports', href: '/user-reports', icon: 'reports' },
 		{ label: 'Scholarship Reports', href: '/scholarship-reports', icon: 'bar-chart' }
 	];
-
-	const userDistribution = [
-		{ label: 'Students', count: 2180, color: 'bg-blue-500', pct: 98 },
-		{ label: 'Sponsors', count: 52, color: 'bg-amber-400', pct: 2 }
-	];
 </script>
 
 <svelte:head>
 	<title>iSkolar — Dashboard</title>
 </svelte:head>
 
-<!-- Export Button -->
-<div class="mb-4 flex justify-end">
+<!-- Header row -->
+<div class="mb-4 flex items-center justify-between">
+	<div>
+		{#if lastRefreshed}
+			<p class="text-[10px] text-gray-400">
+				Last updated: {lastRefreshed.toLocaleTimeString()} · auto-refreshes every 30s
+			</p>
+		{/if}
+	</div>
 	<button
-		class="flex items-center gap-2 rounded-lg bg-[#3A52A6] px-4 py-2 text-xs text-white shadow transition-all hover:bg-[#2d3f8a] hover:shadow-md active:scale-95"
+		onclick={() => fetchStats(true)}
+		disabled={refreshing}
+		class="flex items-center gap-2 rounded-lg bg-[#3A52A6] px-4 py-2 text-xs text-white shadow transition-all hover:bg-[#2d3f8a] hover:shadow-md active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
 	>
-		<svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+		<svg
+			class="h-3.5 w-3.5 {refreshing ? 'animate-spin' : ''}"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			stroke-width="2"
+		>
 			<path
 				stroke-linecap="round"
 				stroke-linejoin="round"
-				d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+				d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
 			/>
 		</svg>
-		Export Report
+		{refreshing ? 'Refreshing...' : 'Refresh'}
 	</button>
 </div>
 
-<!-- Stat Cards — Row 1 -->
+{#if error}
+	<div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-600">
+		{error}
+	</div>
+{/if}
+
+<!-- Stat Cards -->
 <div class="mb-4 grid grid-cols-4 gap-4">
-	{#each statCards as card (card.label)}
-		<div
-			class="rounded-xl border-t-4 bg-white p-4 shadow-sm {card.borderColor} flex flex-col gap-2"
-		>
-			<div
-				class="flex h-9 w-9 items-center justify-center rounded-lg {card.iconColor}"
-			>
-				{#if card.icon === 'users-group'}
-					<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-						/>
-					</svg>
-				{:else if card.icon === 'scholarship'}
-					<svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-						<path
-							d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"
-						/>
-					</svg>
-				{:else if card.icon === 'document-list'}
-					<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-						/>
-					</svg>
-				{:else if card.icon === 'document-check'}
-					<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-						/>
-					</svg>
-				{:else if card.icon === 'students'}
-					<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
-						/>
-					</svg>
-				{:else if card.icon === 'building'}
-					<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z"
-						/>
-					</svg>
-				{:else if card.icon === 'clipboard'}
-					<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
-						/>
-					</svg>
-				{:else}
-					<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-						/>
-					</svg>
-				{/if}
-			</div>
-			<div>
-				<p class="text-[10px] tracking-wide text-gray-400">{card.label}</p>
-				<p class="text-2xl text-gray-800">{card.value}</p>
-				<p class="text-xs {card.subtitleColor}">{card.subtitle}</p>
-			</div>
+	<!-- Total Registered Users -->
+	<a
+		href="/user-management"
+		class="group rounded-xl border-t-4 border-t-blue-500 bg-white p-4 shadow-sm transition-all hover:shadow-md flex flex-col gap-2"
+	>
+		<div class="flex h-9 w-9 items-center justify-center rounded-lg text-blue-500">
+			<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+			</svg>
 		</div>
-	{/each}
+		<div>
+			<p class="text-[10px] tracking-wide text-gray-400">TOTAL REGISTERED USERS</p>
+			<p class="text-2xl text-gray-800">
+				{#if loading}—{:else}{stats?.totalUsers ?? 0}{/if}
+			</p>
+			<p class="text-xs text-gray-400 group-hover:text-blue-500">View User Management →</p>
+		</div>
+	</a>
+
+	<!-- Active Scholarships -->
+	<a
+		href="/scholarship-management"
+		class="group rounded-xl border-t-4 border-t-emerald-400 bg-white p-4 shadow-sm transition-all hover:shadow-md flex flex-col gap-2"
+	>
+		<div class="flex h-9 w-9 items-center justify-center rounded-lg text-emerald-500">
+			<svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+				<path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z" />
+			</svg>
+		</div>
+		<div>
+			<p class="text-[10px] tracking-wide text-gray-400">ACTIVE SCHOLARSHIPS</p>
+			<p class="text-2xl text-gray-800">
+				{#if loading}—{:else}{stats?.activeScholarships ?? 0}{/if}
+			</p>
+			<p class="text-xs text-gray-400 group-hover:text-emerald-500">View Scholarships →</p>
+		</div>
+	</a>
+
+	<!-- Total Applications -->
+	<a
+		href="/scholarship-management"
+		class="group rounded-xl border-t-4 border-t-amber-400 bg-white p-4 shadow-sm transition-all hover:shadow-md flex flex-col gap-2"
+	>
+		<div class="flex h-9 w-9 items-center justify-center rounded-lg text-amber-500">
+			<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+			</svg>
+		</div>
+		<div>
+			<p class="text-[10px] tracking-wide text-gray-400">TOTAL APPLICATIONS</p>
+			<p class="text-2xl text-gray-800">
+				{#if loading}—{:else}{stats?.totalApplications ?? 0}{/if}
+			</p>
+			<p class="text-xs text-gray-400 group-hover:text-amber-500">View Scholarships →</p>
+		</div>
+	</a>
+
+	<!-- Approved Applications -->
+	<a
+		href="/scholarship-management"
+		class="group rounded-xl border-t-4 border-t-blue-500 bg-white p-4 shadow-sm transition-all hover:shadow-md flex flex-col gap-2"
+	>
+		<div class="flex h-9 w-9 items-center justify-center rounded-lg text-blue-500">
+			<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+			</svg>
+		</div>
+		<div>
+			<p class="text-[10px] tracking-wide text-gray-400">APPROVED APPLICATIONS</p>
+			<p class="text-2xl text-gray-800">
+				{#if loading}—{:else}{stats?.approvedApplications ?? 0}{/if}
+			</p>
+			{#if stats && stats.totalApplications > 0}
+				<p class="text-xs text-green-500">
+					{pct(stats.approvedApplications, stats.totalApplications)}% approval rate
+				</p>
+			{:else}
+				<p class="text-xs text-gray-400 group-hover:text-blue-500">View Scholarships →</p>
+			{/if}
+		</div>
+	</a>
+
+	<!-- Active Students -->
+	<a
+		href="/user-management"
+		class="group rounded-xl border-t-4 border-t-blue-500 bg-white p-4 shadow-sm transition-all hover:shadow-md flex flex-col gap-2"
+	>
+		<div class="flex h-9 w-9 items-center justify-center rounded-lg text-blue-500">
+			<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+			</svg>
+		</div>
+		<div>
+			<p class="text-[10px] tracking-wide text-gray-400">ACTIVE STUDENTS</p>
+			<p class="text-2xl text-gray-800">
+				{#if loading}—{:else}{stats?.activeStudents ?? 0}{/if}
+			</p>
+			<p class="text-xs text-gray-400 group-hover:text-blue-500">View User Management →</p>
+		</div>
+	</a>
+
+	<!-- Active Sponsors -->
+	<a
+		href="/user-management"
+		class="group rounded-xl border-t-4 border-t-amber-400 bg-white p-4 shadow-sm transition-all hover:shadow-md flex flex-col gap-2"
+	>
+		<div class="flex h-9 w-9 items-center justify-center rounded-lg text-amber-500">
+			<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+			</svg>
+		</div>
+		<div>
+			<p class="text-[10px] tracking-wide text-gray-400">ACTIVE SPONSORS</p>
+			<p class="text-2xl text-gray-800">
+				{#if loading}—{:else}{stats?.activeSponsors ?? 0}{/if}
+			</p>
+			<p class="text-xs text-gray-400 group-hover:text-amber-500">View User Management →</p>
+		</div>
+	</a>
+
+	<!-- Total Scholarships Posted -->
+	<a
+		href="/scholarship-management"
+		class="group rounded-xl border-t-4 border-t-indigo-400 bg-white p-4 shadow-sm transition-all hover:shadow-md flex flex-col gap-2"
+	>
+		<div class="flex h-9 w-9 items-center justify-center rounded-lg text-indigo-500">
+			<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+			</svg>
+		</div>
+		<div>
+			<p class="text-[10px] tracking-wide text-gray-400">TOTAL SCHOLARSHIPS POSTED</p>
+			<p class="text-2xl text-gray-800">
+				{#if loading}—{:else}{stats?.totalScholarships ?? 0}{/if}
+			</p>
+			<p class="text-xs text-gray-400 group-hover:text-indigo-500">View Scholarships →</p>
+		</div>
+	</a>
+
+	<!-- Denied Applications -->
+	<a
+		href="/scholarship-management"
+		class="group rounded-xl border-t-4 border-t-red-400 bg-white p-4 shadow-sm transition-all hover:shadow-md flex flex-col gap-2"
+	>
+		<div class="flex h-9 w-9 items-center justify-center rounded-lg text-red-400">
+			<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+			</svg>
+		</div>
+		<div>
+			<p class="text-[10px] tracking-wide text-gray-400">DENIED APPLICATIONS</p>
+			<p class="text-2xl text-gray-800">
+				{#if loading}—{:else}{stats?.deniedApplications ?? 0}{/if}
+			</p>
+			{#if stats && stats.totalApplications > 0}
+				<p class="text-xs text-red-500">
+					{pct(stats.deniedApplications, stats.totalApplications)}% denial rate
+				</p>
+			{:else}
+				<p class="text-xs text-gray-400 group-hover:text-red-400">View Scholarships →</p>
+			{/if}
+		</div>
+	</a>
 </div>
 
-<!-- Middle Section: Chart + Right Column -->
+<!-- Middle Section -->
 <div class="mb-4 flex gap-4">
-	<!-- Bar Chart -->
+	<!-- Closed Scholarships stat (spans left panel space) -->
 	<div class="flex-1 rounded-xl bg-white p-5 shadow-sm">
 		<div class="mb-4 flex items-center justify-between">
-			<h2 class="text-sm text-gray-700">User Registrations — 2025</h2>
-			<div
-				class="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-500"
-			>
-				This Year
-				<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-					<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-				</svg>
-			</div>
+			<h2 class="text-sm text-gray-700">Closed Scholarships</h2>
+			<a
+				href="/scholarship-management"
+				class="text-[11px] text-[#3A52A6] hover:underline"
+			>View all →</a>
 		</div>
-		<!-- Chart bars -->
-		<div class="flex h-36 items-end gap-1.5">
-			{#each chartData as bar (bar.month)}
-				<div class="flex flex-1 flex-col items-center gap-1">
-					<div
-						class="w-full rounded-t-sm bg-[#3A52A6] opacity-80 transition-all hover:opacity-100"
-						style="height: {bar.pct}%"
-					></div>
-					<span class="text-[9px] text-gray-400">{bar.month}</span>
-				</div>
-			{/each}
+		<div class="flex items-end gap-6">
+			<div class="text-center">
+				<p class="text-3xl font-light text-gray-800">
+					{#if loading}—{:else}{stats?.closedScholarships ?? 0}{/if}
+				</p>
+				<p class="mt-1 text-xs text-gray-400">Closed</p>
+			</div>
+			<div class="text-center">
+				<p class="text-3xl font-light text-gray-800">
+					{#if loading}—{:else}{stats?.suspendedScholarships ?? 0}{/if}
+				</p>
+				<p class="mt-1 text-xs text-gray-400">Suspended</p>
+			</div>
+			<div class="text-center">
+				<p class="text-3xl font-light text-gray-800">
+					{#if loading}—{:else}{stats?.archivedScholarships ?? 0}{/if}
+				</p>
+				<p class="mt-1 text-xs text-gray-400">Archived</p>
+			</div>
 		</div>
 	</div>
 
@@ -275,57 +319,122 @@
 		<!-- Scholarship Breakdown -->
 		<div class="rounded-xl bg-white p-5 shadow-sm">
 			<h2 class="mb-4 text-sm text-gray-700">Scholarship Breakdown</h2>
-			<div class="space-y-3">
-				{#each scholarshipBreakdown as item (item.label)}
-					<div>
-						<div class="mb-1 flex items-center justify-between text-xs">
-							<span class="text-gray-500">{item.label}</span>
-							<span class="text-gray-700">{item.count}</span>
+			{#if loading}
+				<div class="space-y-3">
+					{#each [1, 2, 3, 4] as _}
+						<div class="h-4 animate-pulse rounded bg-gray-100"></div>
+					{/each}
+				</div>
+			{:else if stats}
+				<div class="space-y-3">
+					{#each [
+						{ label: 'Active', count: stats.activeScholarships, color: 'bg-emerald-500' },
+						{ label: 'Closed', count: stats.closedScholarships, color: 'bg-gray-400' },
+						{ label: 'Suspended', count: stats.suspendedScholarships, color: 'bg-amber-400' },
+						{ label: 'Archived', count: stats.archivedScholarships, color: 'bg-gray-300' }
+					] as item (item.label)}
+						<div>
+							<div class="mb-1 flex items-center justify-between text-xs">
+								<span class="text-gray-500">{item.label}</span>
+								<span class="text-gray-700">{item.count}</span>
+							</div>
+							<div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+								<div
+									class="h-full rounded-full {item.color}"
+									style="width: {pct(item.count, stats.activeScholarships + stats.closedScholarships + stats.suspendedScholarships + stats.archivedScholarships)}%"
+								></div>
+							</div>
 						</div>
-						<div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-							<div class="h-full rounded-full {item.color}" style="width: {item.pct}%"></div>
-						</div>
-					</div>
-				{/each}
-			</div>
+					{/each}
+				</div>
+			{/if}
 		</div>
 
 		<!-- User Distribution -->
 		<div class="rounded-xl bg-white p-5 shadow-sm">
 			<h2 class="mb-4 text-sm text-gray-700">User Distribution</h2>
-			<div class="space-y-3">
-				{#each userDistribution as item (item.label)}
-					<div>
-						<div class="mb-1 flex items-center justify-between text-xs">
-							<span class="text-gray-500">{item.label}</span>
-							<span class="text-gray-700">{item.count}</span>
+			{#if loading}
+				<div class="space-y-3">
+					{#each [1, 2] as _}
+						<div class="h-4 animate-pulse rounded bg-gray-100"></div>
+					{/each}
+				</div>
+			{:else if stats}
+				<div class="space-y-3">
+					{#each [
+						{ label: 'Students', count: stats.totalStudents, color: 'bg-blue-500' },
+						{ label: 'Sponsors', count: stats.totalSponsors, color: 'bg-amber-400' }
+					] as item (item.label)}
+						<div>
+							<div class="mb-1 flex items-center justify-between text-xs">
+								<span class="text-gray-500">{item.label}</span>
+								<span class="text-gray-700">{item.count}</span>
+							</div>
+							<div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+								<div
+									class="h-full rounded-full {item.color}"
+									style="width: {pct(item.count, stats.totalStudents + stats.totalSponsors)}%"
+								></div>
+							</div>
 						</div>
-						<div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-							<div class="h-full rounded-full {item.color}" style="width: {item.pct}%"></div>
-						</div>
-					</div>
-				{/each}
-			</div>
+					{/each}
+				</div>
+			{/if}
 		</div>
 	</div>
 </div>
 
 <!-- Bottom Section -->
 <div class="flex gap-4">
-	<!-- Recent Activity -->
+	<!-- Stats Summary -->
 	<div class="flex-1 rounded-xl bg-white p-5 shadow-sm">
-		<h2 class="mb-4 text-sm text-gray-700">Recent Activity</h2>
-		<ul class="space-y-3">
-			{#each recentActivity as activity (activity.time)}
-				<li class="flex gap-2">
-					<div class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#3A52A6]"></div>
-					<div>
-						<p class="text-xs leading-relaxed text-gray-600">{activity.text}</p>
-						<p class="mt-0.5 text-[10px] text-gray-400">{activity.time}</p>
-					</div>
+		<h2 class="mb-4 text-sm text-gray-700">Platform Summary</h2>
+		{#if loading}
+			<div class="space-y-3">
+				{#each [1, 2, 3, 4] as _}
+					<div class="h-6 animate-pulse rounded bg-gray-100"></div>
+				{/each}
+			</div>
+		{:else if stats}
+			<ul class="space-y-3">
+				<li class="flex items-center justify-between text-sm">
+					<span class="text-gray-500">Total Registered Users</span>
+					<span class="font-medium text-gray-800">{stats.totalUsers}</span>
 				</li>
-			{/each}
-		</ul>
+				<li class="flex items-center justify-between text-sm">
+					<span class="text-gray-500">Active Students</span>
+					<span class="font-medium text-gray-800">{stats.activeStudents}</span>
+				</li>
+				<li class="flex items-center justify-between text-sm">
+					<span class="text-gray-500">Active Sponsors</span>
+					<span class="font-medium text-gray-800">{stats.activeSponsors}</span>
+				</li>
+				<li class="flex items-center justify-between text-sm">
+					<span class="text-gray-500">Total Scholarships Posted</span>
+					<span class="font-medium text-gray-800">{stats.totalScholarships}</span>
+				</li>
+				<li class="flex items-center justify-between text-sm">
+					<span class="text-gray-500">Active Scholarships</span>
+					<span class="font-medium text-gray-800">{stats.activeScholarships}</span>
+				</li>
+				<li class="flex items-center justify-between text-sm">
+					<span class="text-gray-500">Closed Scholarships</span>
+					<span class="font-medium text-gray-800">{stats.closedScholarships}</span>
+				</li>
+				<li class="flex items-center justify-between text-sm">
+					<span class="text-gray-500">Total Applications Submitted</span>
+					<span class="font-medium text-gray-800">{stats.totalApplications}</span>
+				</li>
+				<li class="flex items-center justify-between text-sm">
+					<span class="text-gray-500">Approved Applications</span>
+					<span class="font-medium text-green-600">{stats.approvedApplications}</span>
+				</li>
+				<li class="flex items-center justify-between text-sm">
+					<span class="text-gray-500">Denied Applications</span>
+					<span class="font-medium text-red-500">{stats.deniedApplications}</span>
+				</li>
+			</ul>
+		{/if}
 	</div>
 
 	<!-- Action Shortcuts -->
@@ -339,52 +448,20 @@
 				>
 					<div class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-50 text-gray-500">
 						{#if shortcut.icon === 'users'}
-							<svg
-								class="h-4.5 w-4.5"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								stroke-width="1.8"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-								/>
+							<svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
 							</svg>
 						{:else if shortcut.icon === 'scholarship'}
 							<svg class="h-4.5 w-4.5" fill="currentColor" viewBox="0 0 24 24">
-								<path
-									d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"
-								/>
+								<path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z" />
 							</svg>
 						{:else if shortcut.icon === 'reports'}
-							<svg
-								class="h-4.5 w-4.5"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								stroke-width="1.8"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-								/>
+							<svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
 							</svg>
 						{:else}
-							<svg
-								class="h-4.5 w-4.5"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								stroke-width="1.8"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-								/>
+							<svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
 							</svg>
 						{/if}
 					</div>

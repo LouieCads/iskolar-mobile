@@ -12,7 +12,6 @@
 		totalScholarships: number;
 		activeScholarships: number;
 		closedScholarships: number;
-		suspendedScholarships: number;
 		archivedScholarships: number;
 		totalApplications: number;
 		approvedApplications: number;
@@ -301,12 +300,6 @@
 			</div>
 			<div class="text-center">
 				<p class="text-3xl font-light text-gray-800">
-					{#if loading}—{:else}{stats?.suspendedScholarships ?? 0}{/if}
-				</p>
-				<p class="mt-1 text-xs text-gray-400">Suspended</p>
-			</div>
-			<div class="text-center">
-				<p class="text-3xl font-light text-gray-800">
 					{#if loading}—{:else}{stats?.archivedScholarships ?? 0}{/if}
 				</p>
 				<p class="mt-1 text-xs text-gray-400">Archived</p>
@@ -330,7 +323,6 @@
 					{#each [
 						{ label: 'Active', count: stats.activeScholarships, color: 'bg-emerald-500' },
 						{ label: 'Closed', count: stats.closedScholarships, color: 'bg-gray-400' },
-						{ label: 'Suspended', count: stats.suspendedScholarships, color: 'bg-amber-400' },
 						{ label: 'Archived', count: stats.archivedScholarships, color: 'bg-gray-300' }
 					] as item (item.label)}
 						<div>
@@ -341,7 +333,7 @@
 							<div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
 								<div
 									class="h-full rounded-full {item.color}"
-									style="width: {pct(item.count, stats.activeScholarships + stats.closedScholarships + stats.suspendedScholarships + stats.archivedScholarships)}%"
+									style="width: {pct(item.count, stats.activeScholarships + stats.closedScholarships + stats.archivedScholarships)}%"
 								></div>
 							</div>
 						</div>

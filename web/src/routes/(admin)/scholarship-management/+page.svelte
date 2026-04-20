@@ -5,7 +5,7 @@
 	import { API_URL } from '$lib/config';
 	import { getToken } from '$lib/auth';
 
-	type ScholarshipStatus = 'active' | 'closed' | 'suspended' | 'archived' | 'draft';
+	type ScholarshipStatus = 'active' | 'closed' | 'archived' | 'draft';
 
 	interface Scholarship {
 		scholarship_id: string;
@@ -33,7 +33,7 @@
 	let totalScholarships = $state(0);
 	const pageSize = 10;
 
-	const statuses = ['All Status', 'Active', 'Closed', 'Suspended', 'Archived', 'Draft'];
+	const statuses = ['All Status', 'Active', 'Closed', 'Archived', 'Draft'];
 	const deadlines = ['All Deadlines', 'Upcoming', 'Passed'];
 
 	let searchTimeout: ReturnType<typeof setTimeout>;
@@ -133,7 +133,6 @@
 	const statusStyle: Record<string, { dot: string; text: string }> = {
 		active: { dot: 'bg-green-500', text: 'text-green-600' },
 		closed: { dot: 'bg-gray-400', text: 'text-gray-500' },
-		suspended: { dot: 'bg-amber-400', text: 'text-amber-500' },
 		archived: { dot: 'bg-red-400', text: 'text-red-500' },
 		draft: { dot: 'bg-blue-400', text: 'text-blue-500' }
 	};

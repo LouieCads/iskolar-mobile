@@ -6,7 +6,7 @@
 	import { API_URL } from '$lib/config';
 	import { getToken } from '$lib/auth';
 
-	type ScholarshipStatus = 'active' | 'closed' | 'suspended' | 'archived' | 'draft';
+	type ScholarshipStatus = 'active' | 'closed' | 'archived' | 'draft';
 
 	interface ScholarshipDetail {
 		scholarship_id: string;
@@ -113,7 +113,6 @@
 	const statusStyle: Record<string, { dot: string; text: string; bg: string }> = {
 		active: { dot: 'bg-green-500', text: 'text-green-600', bg: 'bg-green-50' },
 		closed: { dot: 'bg-gray-400', text: 'text-gray-500', bg: 'bg-gray-50' },
-		suspended: { dot: 'bg-amber-400', text: 'text-amber-500', bg: 'bg-amber-50' },
 		archived: { dot: 'bg-red-400', text: 'text-red-500', bg: 'bg-red-50' },
 		draft: { dot: 'bg-blue-400', text: 'text-blue-500', bg: 'bg-blue-50' }
 	};
@@ -121,14 +120,12 @@
 	const statusActions: { value: ScholarshipStatus; label: string; border: string; text: string; hover: string }[] = [
 		{ value: 'active', label: 'Set Active', border: 'border-green-200', text: 'text-green-600', hover: 'hover:bg-green-50' },
 		{ value: 'closed', label: 'Close Scholarship', border: 'border-gray-200', text: 'text-gray-500', hover: 'hover:bg-gray-50' },
-		{ value: 'suspended', label: 'Suspend Scholarship', border: 'border-amber-200', text: 'text-amber-600', hover: 'hover:bg-amber-50' },
 		{ value: 'archived', label: 'Archive Scholarship', border: 'border-red-200', text: 'text-red-500', hover: 'hover:bg-red-50' }
 	];
 
 	const statusInfo: Record<string, string> = {
 		active: 'Open for student applications.',
 		closed: 'New applications are disabled. Apply button is hidden for students.',
-		suspended: 'Temporarily disabled. Apply button is hidden for students.',
 		archived: 'Permanently closed. No further changes expected.'
 	};
 
@@ -285,7 +282,7 @@
 							Set this scholarship to
 							<span class="font-medium capitalize">{pendingStatus}</span>?
 						</p>
-						{#if pendingStatus === 'closed' || pendingStatus === 'suspended'}
+						{#if pendingStatus === 'closed'}
 							<p class="mt-1 text-[10px] text-amber-600">
 								New applications will be disabled and the Apply button will be hidden for students.
 							</p>

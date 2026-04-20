@@ -7,7 +7,7 @@
 	import { getToken } from '$lib/auth';
 
 	type Role = 'Student' | 'Sponsor' | 'Admin' | 'Unknown';
-	type Status = 'Active' | 'Suspended' | 'Deactivated';
+	type Status = 'Active' | 'Deactivated';
 
 	interface StudentProfile {
 		full_name: string;
@@ -42,7 +42,7 @@
 	let error = $state('');
 
 	// Status management
-	let statusAction = $state<'Suspended' | 'Deactivated' | null>(null);
+	let statusAction = $state<'Deactivated' | null>(null);
 	let confirmingStatus = $state(false);
 	let statusLoading = $state(false);
 	let statusMessage = $state('');
@@ -122,11 +122,10 @@
 
 	const statusBadge: Record<Status, { dot: string; text: string; bg: string }> = {
 		Active: { dot: 'bg-green-500', text: 'text-green-600', bg: 'bg-green-50' },
-		Suspended: { dot: 'bg-amber-400', text: 'text-amber-500', bg: 'bg-amber-50' },
 		Deactivated: { dot: 'bg-red-500', text: 'text-red-500', bg: 'bg-red-50' }
 	};
 
-	function initiateStatusChange(action: 'Suspended' | 'Deactivated') {
+	function initiateStatusChange(action: 'Deactivated') {
 		statusAction = action;
 		confirmingStatus = true;
 		statusMessage = '';
@@ -336,14 +335,6 @@
 								class="w-full cursor-pointer rounded-lg border border-green-200 py-2 text-xs text-green-600 transition-all hover:bg-green-50 disabled:opacity-60"
 							>
 								{statusLoading ? 'Saving...' : 'Restore to Active'}
-							</button>
-						{/if}
-						{#if user.status !== 'Suspended'}
-							<button
-								onclick={() => initiateStatusChange('Suspended')}
-								class="w-full rounded-lg cursor-pointer border border-amber-200 py-2 text-xs text-amber-600 transition-all hover:bg-amber-50"
-							>
-								Suspend User
 							</button>
 						{/if}
 						{#if user.status !== 'Deactivated'}

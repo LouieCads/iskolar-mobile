@@ -13,8 +13,16 @@ interface AuthenticatedRequest {
   body: any;
 }
 
-function activityLevel(count: number): string {
+function activityLevel(count: number, isStudent: boolean, lastLogin: Date | null): string {
   if (count >= 3) return "High";
+
+  // For students: count as medium if they have 1+ applications OR have logged in
+  if (isStudent) {
+    if (count >= 1 || lastLogin) return "Medium";
+    return "Low";
+  }
+
+  // For sponsors: medium if they have 1+ scholarships
   if (count >= 1) return "Medium";
   return "Low";
 }
@@ -34,7 +42,7 @@ export const getUserReport = async (req: AuthenticatedRequest, res: Response) =>
     if (role && ["student", "sponsor", "admin"].includes(role.toLowerCase())) {
       where.role = role.toLowerCase();
     }
-    if (status && ["active", "suspended", "deactivated"].includes(status.toLowerCase())) {
+    if (status && ["active", "deactivated"].includes(status.toLowerCase())) {
       where.status = status.toLowerCase();
     }
     if (from_date) {
@@ -51,7 +59,7 @@ export const getUserReport = async (req: AuthenticatedRequest, res: Response) =>
 
     const users = await User.findAll({
       where,
-      attributes: ["user_id", "email", "role", "status", "created_at"],
+      attributes: ["user_id", "email", "role", "status", "last_login", "created_at"],
       include: [
         {
           model: Student,
@@ -94,6 +102,7 @@ export const getUserReport = async (req: AuthenticatedRequest, res: Response) =>
       else if (u.sponsor) profileCompletion = u.sponsor.has_completed_profile ? "Complete" : "Incomplete";
 
       let actCount = 0;
+      const isStudent = !!u.student;
       if (u.student) actCount = u.student.scholarship_applications?.length ?? 0;
       else if (u.sponsor) actCount = u.sponsor.scholarships?.length ?? 0;
 
@@ -104,7 +113,7 @@ export const getUserReport = async (req: AuthenticatedRequest, res: Response) =>
         role: u.role ? u.role.charAt(0).toUpperCase() + u.role.slice(1) : "Unknown",
         status: u.status ? u.status.charAt(0).toUpperCase() + u.status.slice(1) : "Active",
         profile_completion: profileCompletion,
-        activity_level: activityLevel(actCount),
+        activity_level: activityLevel(actCount, isStudent, u.last_login),
         activity_count: actCount,
         registration_date: u.created_at,
       };

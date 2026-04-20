@@ -6,9 +6,10 @@ interface UserAttributes {
   email: string;
   password: string;
   role?: "admin" | "student" | "sponsor";
-  status?: "active" | "suspended" | "deactivated";
+  status?: "active" | "deactivated";
   has_selected_role?: boolean;
   profile_url?: string;
+  last_login?: Date;
   created_at?: Date;
   updated_at?: Date;
 }
@@ -20,9 +21,10 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public email!: string;
   public password!: string;
   public role?: "admin" | "student" | "sponsor";
-  public status!: "active" | "suspended" | "deactivated";
+  public status!: "active" | "deactivated";
   public has_selected_role?: boolean;
   public profile_url?: string;
+  public last_login?: Date;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
 
@@ -60,7 +62,7 @@ User.init(
       allowNull: true,
     },
     status: {
-      type: DataTypes.ENUM("active", "suspended", "deactivated"),
+      type: DataTypes.ENUM("active", "deactivated"),
       allowNull: false,
       defaultValue: "active",
     },
@@ -71,6 +73,10 @@ User.init(
     },
     profile_url: {
       type: DataTypes.STRING(1000),
+      allowNull: true,
+    },
+    last_login: {
+      type: DataTypes.DATE,
       allowNull: true,
     },
     created_at: {

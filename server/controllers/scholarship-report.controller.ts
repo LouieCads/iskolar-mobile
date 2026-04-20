@@ -24,7 +24,7 @@ export const getScholarshipReport = async (req: AuthenticatedRequest, res: Respo
     const where: any = {};
     const sponsorWhere: any = {};
 
-    if (status && ["draft", "active", "closed", "suspended", "archived"].includes(status.toLowerCase())) {
+    if (status && ["draft", "active", "closed", "archived"].includes(status.toLowerCase())) {
       where.status = status.toLowerCase();
     }
     if (from_date) {

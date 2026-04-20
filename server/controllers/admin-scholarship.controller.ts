@@ -13,7 +13,7 @@ interface AuthenticatedRequest {
   params: any;
 }
 
-const VALID_STATUSES = ["active", "closed", "suspended", "archived"] as const;
+const VALID_STATUSES = ["active", "closed", "archived"] as const;
 type AdminScholarshipStatus = (typeof VALID_STATUSES)[number];
 
 export const getAdminScholarships = async (req: AuthenticatedRequest, res: Response) => {
@@ -174,7 +174,7 @@ export const updateScholarshipStatus = async (req: AuthenticatedRequest, res: Re
 
     const { status } = req.body as { status?: string };
     if (!status || !VALID_STATUSES.includes(status.toLowerCase() as AdminScholarshipStatus)) {
-      return badRequest(res, "Invalid status. Must be one of: active, closed, suspended, archived");
+      return badRequest(res, "Invalid status. Must be one of: active, closed, archived");
     }
 
     const newStatus = status.toLowerCase() as AdminScholarshipStatus;

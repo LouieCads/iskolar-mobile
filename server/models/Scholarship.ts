@@ -6,7 +6,7 @@ import { isDeadlinePassed, getScholarshipActionPermissions, ScholarshipActionPer
 interface ScholarshipAttributes {
   scholarship_id: string;
   sponsor_id: string;
-  status?: "draft" | "active" | "closed" | "suspended" | "archived";
+  status?: "draft" | "active" | "closed" | "archived";
   image_url?: string;
   type?: "merit_based" | "skill_based";
   purpose?: "allowance" | "tuition";
@@ -17,7 +17,7 @@ interface ScholarshipAttributes {
   application_deadline?: Date;
   criteria: string[];
   required_documents: string[];
-  custom_form_fields: any; 
+  custom_form_fields: any;
   created_at?: Date;
   updated_at?: Date;
 }
@@ -27,7 +27,7 @@ interface ScholarshipCreationAttributes extends Optional<ScholarshipAttributes, 
 class Scholarship extends Model<ScholarshipAttributes, ScholarshipCreationAttributes> implements ScholarshipAttributes {
   public scholarship_id!: string;
   public sponsor_id!: string;
-  public status?: "draft" | "active" | "closed" | "suspended" | "archived";
+  public status?: "draft" | "active" | "closed" | "archived";
   public image_url?: string;
   public type?: "merit_based" | "skill_based";
   public purpose?: "allowance" | "tuition";
@@ -38,7 +38,7 @@ class Scholarship extends Model<ScholarshipAttributes, ScholarshipCreationAttrib
   public application_deadline?: Date;
   public criteria!: string[];
   public required_documents!: string[];
-  public custom_form_fields!: any; 
+  public custom_form_fields!: any;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
 
@@ -100,7 +100,7 @@ Scholarship.init(
       onUpdate: "CASCADE",
     },
     status: {
-      type: DataTypes.ENUM("draft", "active", "closed", "suspended", "archived"),
+      type: DataTypes.ENUM("draft", "active", "closed", "archived"),
       allowNull: true,
       defaultValue: "active",
     },

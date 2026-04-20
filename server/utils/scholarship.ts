@@ -18,7 +18,7 @@ export interface ScholarshipActionPermissions {
 
 /**
  * Gets action permissions based on scholarship status
- * @param status - (draft, active, closed, suspended, archived)
+ * @param status - (draft, active, closed, archived)
  */
 export function getScholarshipActionPermissions(status: string): ScholarshipActionPermissions {
   const isClosed = status === 'closed';

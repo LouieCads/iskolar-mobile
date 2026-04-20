@@ -38,7 +38,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
       where.role = role.toLowerCase();
     }
 
-    if (status && ["active", "suspended", "deactivated"].includes(status.toLowerCase())) {
+    if (status && ["active", "deactivated"].includes(status.toLowerCase())) {
       where.status = status.toLowerCase();
     }
 
@@ -50,7 +50,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
 
     const { count, rows: users } = await User.findAndCountAll({
       where,
-      attributes: ["user_id", "email", "role", "status", "profile_url", "created_at"],
+      attributes: ["user_id", "email", "role", "status", "profile_url", "last_login", "created_at"],
       include: [
         {
           model: Student,
@@ -91,7 +91,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
             },
           ],
         },
-        attributes: ["user_id", "email", "role", "status", "profile_url", "created_at"],
+        attributes: ["user_id", "email", "role", "status", "profile_url", "last_login", "created_at"],
         include: [
           {
             model: Student,
@@ -167,7 +167,7 @@ export const getUserById = async (req: AuthenticatedRequest & { params: any }, r
     if (!userId) return badRequest(res, "User ID is required");
 
     const user = await User.findByPk(userId, {
-      attributes: ["user_id", "email", "role", "status", "profile_url", "has_selected_role", "created_at"],
+      attributes: ["user_id", "email", "role", "status", "profile_url", "has_selected_role", "last_login", "created_at"],
       include: [
         {
           model: Student,
@@ -212,7 +212,7 @@ export const getUserById = async (req: AuthenticatedRequest & { params: any }, r
   }
 };
 
-const VALID_STATUSES = ["active", "suspended", "deactivated"] as const;
+const VALID_STATUSES = ["active", "deactivated"] as const;
 
 export const updateUserStatus = async (
   req: AuthenticatedRequest & { params: any },
@@ -229,7 +229,7 @@ export const updateUserStatus = async (
 
     const { status } = req.body as { status?: string };
     if (!status || !VALID_STATUSES.includes(status.toLowerCase() as any)) {
-      return badRequest(res, "Invalid status. Must be one of: active, suspended, deactivated");
+      return badRequest(res, "Invalid status. Must be one of: active, deactivated");
     }
 
     const newStatus = status.toLowerCase() as (typeof VALID_STATUSES)[number];
@@ -266,6 +266,26 @@ export const updateUserStatus = async (
     });
   } catch (err) {
     console.error("updateUserStatus error:", err);
+    return serverError(res);
+  }
+};
+
+export const triggerAutoDeactivate = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const adminUser = await User.findByPk(req.user!.id);
+    if (!adminUser || adminUser.role !== "admin") {
+      return forbidden(res, "Admin access required");
+    }
+
+    const { autoDeactivateInactiveUsers } = await import("../utils/auto-deactivate");
+    const result = await autoDeactivateInactiveUsers();
+
+    return ok(res, "Auto-deactivation job triggered successfully", {
+      deactivated_count: result.count,
+      deactivated_users: result.users,
+    });
+  } catch (err) {
+    console.error("triggerAutoDeactivate error:", err);
     return serverError(res);
   }
 };

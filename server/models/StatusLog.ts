@@ -4,8 +4,8 @@ import sequelize from "../config/database";
 interface StatusLogAttributes {
   log_id: string;
   user_id: string;
-  previous_status: "active" | "suspended" | "deactivated";
-  new_status: "active" | "suspended" | "deactivated";
+  previous_status: "active" | "deactivated";
+  new_status: "active" | "deactivated";
   changed_by: string;
   created_at?: Date;
 }
@@ -18,8 +18,8 @@ class StatusLog
 {
   public log_id!: string;
   public user_id!: string;
-  public previous_status!: "active" | "suspended" | "deactivated";
-  public new_status!: "active" | "suspended" | "deactivated";
+  public previous_status!: "active" | "deactivated";
+  public new_status!: "active" | "deactivated";
   public changed_by!: string;
   public readonly created_at!: Date;
 
@@ -41,11 +41,11 @@ StatusLog.init(
       allowNull: false,
     },
     previous_status: {
-      type: DataTypes.ENUM("active", "suspended", "deactivated"),
+      type: DataTypes.ENUM("active", "deactivated"),
       allowNull: false,
     },
     new_status: {
-      type: DataTypes.ENUM("active", "suspended", "deactivated"),
+      type: DataTypes.ENUM("active", "deactivated"),
       allowNull: false,
     },
     changed_by: {

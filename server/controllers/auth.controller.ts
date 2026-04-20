@@ -93,13 +93,14 @@ export const login = async (req: Request, res: Response) => {
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) return badRequest(res, "Invalid email or password");
 
-    // Block login for suspended or deactivated users
-    if (user.status === "suspended") {
-      return forbidden(res, "Your account has been suspended. Please contact an administrator.");
-    }
+    // Block login for deactivated users
     if (user.status === "deactivated") {
       return forbidden(res, "Your account has been deactivated. Please contact an administrator.");
     }
+
+    // Update last login timestamp
+    user.last_login = new Date();
+    await user.save();
 
     const expiresIn = rememberMe ? "30d" : "1d";
 

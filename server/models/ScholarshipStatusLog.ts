@@ -1,7 +1,7 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/database";
 
-type ScholarshipStatus = "draft" | "active" | "closed" | "suspended" | "archived";
+type ScholarshipStatus = "draft" | "active" | "closed" | "archived";
 
 interface ScholarshipStatusLogAttributes {
   log_id: string;
@@ -50,11 +50,11 @@ ScholarshipStatusLog.init(
       allowNull: false,
     },
     previous_status: {
-      type: DataTypes.ENUM("draft", "active", "closed", "suspended", "archived"),
+      type: DataTypes.ENUM("draft", "active", "closed", "archived"),
       allowNull: false,
     },
     new_status: {
-      type: DataTypes.ENUM("draft", "active", "closed", "suspended", "archived"),
+      type: DataTypes.ENUM("draft", "active", "closed", "archived"),
       allowNull: false,
     },
     changed_by: {

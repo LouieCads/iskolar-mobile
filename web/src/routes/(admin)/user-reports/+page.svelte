@@ -300,7 +300,7 @@
 		<button
 			onclick={generateReport}
 			disabled={loading}
-			class="flex items-center gap-2 rounded-lg bg-[#3A52A6] px-4 py-2 text-xs text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+			class="flex cursor-pointer items-center gap-2 rounded-lg bg-[#3A52A6] px-4 py-2 text-xs text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
 		>
 			{#if loading}
 				<div
@@ -399,7 +399,7 @@
 			<button
 				onclick={exportPDF}
 				disabled={exportingPDF || report.data.length === 0}
-				class="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-600 transition-all hover:border-[#3A52A6] hover:text-[#3A52A6] disabled:cursor-not-allowed disabled:opacity-40"
+				class="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-600 transition-all hover:border-[#3A52A6] hover:text-[#3A52A6] disabled:cursor-not-allowed disabled:opacity-40"
 			>
 				{#if exportingPDF}
 					<div

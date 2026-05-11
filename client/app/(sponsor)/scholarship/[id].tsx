@@ -135,8 +135,6 @@ export default function ScholarshipDetailsPage() {
         return '#FF6B6B';
       case 'archived':
         return '#F59E0B';
-      case 'suspended':
-        return '#9CA3AF';
       default:
         return '#31D0AA';
     }

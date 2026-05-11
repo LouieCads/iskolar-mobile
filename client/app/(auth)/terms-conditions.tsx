@@ -76,7 +76,7 @@ export default function TermsConditionsPage() {
         <Text style={styles.sectionTitle}>5. Account Termination</Text>
         <Text style={styles.subTitle}>Admin Rights.</Text>
         <Text style={styles.bodyText}>
-          iSkolar Administrators reserve the right to suspend, deactivate, or delete your account if you violate these Terms, particularly regarding fraudulent posts or fake applications. Deactivated accounts are restricted from logging in.
+          iSkolar Administrators reserve the right to deactivate or delete your account if you violate these Terms, particularly regarding fraudulent posts or fake applications. Deactivated accounts are restricted from logging in.
         </Text>
 
         <Text style={styles.sectionTitle}>6. Intellectual Property</Text>

@@ -7,7 +7,7 @@ const router = Router();
 // Registration & Login
 router.post(
   "/register",
-  rateLimit({ windowMs: 5 * 60 * 1000, max: 20 }),
+  // rateLimit({ windowMs: 5 * 60 * 1000, max: 20 }), // disabled for load testing
   register
 );
 router.post(

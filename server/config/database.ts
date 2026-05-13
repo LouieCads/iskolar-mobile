@@ -4,7 +4,7 @@ import config from "./config";
 const env = process.env.NODE_ENV || "development";
 const dbConfig = (config as any)[env];
 
-const pool = { max: 20, min: 2, acquire: 30000, idle: 10000 };
+const pool = { max: 20, min: 0, acquire: 60000, idle: 10000 };
 
 const sequelize = process.env.DATABASE_URL
   ? new Sequelize(process.env.DATABASE_URL, {

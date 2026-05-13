@@ -100,10 +100,8 @@ export const login = async (req: Request, res: Response) => {
       return forbidden(res, "Your account has been deactivated. Please contact an administrator.");
     }
 
-    // Fire-and-forget — don't block the JWT response for a timestamp update
-    User.update({ last_login: new Date() }, { where: { user_id: user.user_id } }).catch((err: Error) => {
-      console.error("Failed to update last_login:", err);
-    });
+    user.last_login = new Date();
+    await user.save();
 
     const expiresIn = rememberMe ? "30d" : "1d";
 

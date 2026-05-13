@@ -91,23 +91,26 @@ export const setupStudentProfile = async (req: AuthenticatedRequest, res: Respon
       });
     }
 
-    const user = await User.findByPk(userId);
+    const [user, existingStudent] = await Promise.all([
+      User.findByPk(userId),
+      Student.findOne({ where: { user_id: userId } }),
+    ]);
+    let student = existingStudent;
+
     if (!user) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: "User not found." 
+        message: "User not found."
       });
     }
 
     if (user.role !== 'student') {
-      return res.status(403).json({ 
+      return res.status(403).json({
         success: false,
-        message: "You must have student role to create student profile." 
+        message: "You must have student role to create student profile."
       });
     }
 
-    let student = await Student.findOne({ where: { user_id: userId } });
-    
     if (student && student.has_completed_profile) {
       return res.status(400).json({ 
         success: false,
@@ -191,22 +194,25 @@ export const setupSponsorProfile = async (req: AuthenticatedRequest, res: Respon
       });
     }
 
-    const user = await User.findByPk(userId);
+    const [user, existingSponsor] = await Promise.all([
+      User.findByPk(userId),
+      Sponsor.findOne({ where: { user_id: userId } }),
+    ]);
+    let sponsor = existingSponsor;
+
     if (!user) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: "User not found." 
+        message: "User not found."
       });
     }
 
     if (user.role !== 'sponsor') {
-      return res.status(403).json({ 
+      return res.status(403).json({
         success: false,
-        message: "User must have sponsor role to create sponsor profile." 
+        message: "User must have sponsor role to create sponsor profile."
       });
     }
-
-    let sponsor = await Sponsor.findOne({ where: { user_id: userId } });
     
     if (sponsor && sponsor.has_completed_profile) {
       return res.status(400).json({ 

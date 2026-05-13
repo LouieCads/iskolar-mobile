@@ -130,10 +130,11 @@ export const submitApplication = async (req: AuthenticatedRequest, res: Response
       return;
     }
 
-    // Get the student record from the user_id
-    const student = await Student.findOne({
-      where: { user_id: user_id }
-    });
+    // Fetch student and scholarship in parallel — independent queries
+    const [student, scholarship] = await Promise.all([
+      Student.findOne({ where: { user_id: user_id } }),
+      Scholarship.findByPk(scholarship_id),
+    ]);
 
     if (!student) {
       res.status(404).json({
@@ -143,10 +144,6 @@ export const submitApplication = async (req: AuthenticatedRequest, res: Response
       return;
     }
 
-    const student_id = student.student_id;
-
-    // Check if scholarship exists and is active
-    const scholarship = await Scholarship.findByPk(scholarship_id);
     if (!scholarship) {
       res.status(404).json({
         success: false,
@@ -154,6 +151,8 @@ export const submitApplication = async (req: AuthenticatedRequest, res: Response
       });
       return;
     }
+
+    const student_id = student.student_id;
 
     if (scholarship.status !== 'active') {
       res.status(400).json({
@@ -657,10 +656,20 @@ export const updateApplicationStatus = async (req: AuthenticatedRequest, res: Re
       return;
     }
 
-    // Get the sponsor record from the user_id
-    const sponsor = await Sponsor.findOne({
-      where: { user_id: user_id }
-    });
+    // Fetch sponsor and application in parallel — independent queries
+    const [sponsor, application] = await Promise.all([
+      Sponsor.findOne({ where: { user_id: user_id } }),
+      ScholarshipApplication.findByPk(application_id, {
+        include: [
+          { model: Scholarship, as: "scholarship" },
+          {
+            model: Student,
+            as: "student",
+            include: [{ model: User, as: "user", attributes: ["email"] }],
+          },
+        ],
+      }),
+    ]);
 
     if (!sponsor) {
       res.status(404).json({
@@ -669,26 +678,6 @@ export const updateApplicationStatus = async (req: AuthenticatedRequest, res: Re
       });
       return;
     }
-
-    const application = await ScholarshipApplication.findByPk(application_id, {
-      include: [
-        {
-          model: Scholarship,
-          as: "scholarship",
-        },
-        {
-          model: Student,
-          as: "student",
-          include: [
-            {
-              model: User,
-              as: "user",
-              attributes: ["email"],
-            },
-          ],
-        },
-      ],
-    });
 
     if (!application) {
       res.status(404).json({

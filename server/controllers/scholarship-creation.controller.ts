@@ -95,19 +95,22 @@ export const createScholarship = async (req: AuthenticatedRequest, res: Response
       });
     }
 
-    const user = await User.findByPk(userId);
+    const [user, sponsor] = await Promise.all([
+      User.findByPk(userId),
+      Sponsor.findOne({ where: { user_id: userId } }),
+    ]);
+
     if (!user || user.role !== 'sponsor') {
-      return res.status(403).json({ 
+      return res.status(403).json({
         success: false,
-        message: "Only sponsors can create scholarships." 
+        message: "Only sponsors can create scholarships."
       });
     }
 
-    const sponsor = await Sponsor.findOne({ where: { user_id: userId } });
     if (!sponsor) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: "Sponsor profile not found." 
+        message: "Sponsor profile not found."
       });
     }
 

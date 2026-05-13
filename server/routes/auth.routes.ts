@@ -12,7 +12,7 @@ router.post(
 );
 router.post(
   "/login",
-  rateLimit({ windowMs: 2 * 60 * 1000, max: 15 }),
+  // rateLimit({ windowMs: 2 * 60 * 1000, max: 15 }), // disabled for load testing
   login
 );
 

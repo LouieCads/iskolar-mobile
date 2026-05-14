@@ -71,7 +71,7 @@ export default function WelcomePage() {
       {/* Get Started Button */}
       <Animated.View style={{ opacity: buttonOpacity }}>
         <Pressable
-          onPress={() => router.push('/role-selection')}
+          onPress={() => router.replace('/role-selection')}
           style={styles.button}
         >
           <Text style={styles.buttonText}>Get Started</Text>

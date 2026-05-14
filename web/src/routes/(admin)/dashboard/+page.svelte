@@ -5,11 +5,12 @@
 
 	interface DashboardStats {
 		totalUsers: number;
-		activeStudents: number;
-		activeSponsors: number;
 		totalStudents: number;
 		totalSponsors: number;
+		totalAdmins: number;
 		totalScholarships: number;
+		activeStudents: number;
+		activeSponsors: number;
 		activeScholarships: number;
 		closedScholarships: number;
 		archivedScholarships: number;
@@ -59,17 +60,17 @@
 		clearInterval(intervalId);
 	});
 
-	function pct(part: number, total: number) {
-		if (!total) return 0;
-		return Math.round((part / total) * 100);
-	}
-
 	const actionShortcuts = [
 		{ label: 'User List', href: '/user-management', icon: 'users' },
 		{ label: 'Scholarship List', href: '/scholarship-management', icon: 'scholarship' },
 		{ label: 'User Reports', href: '/user-reports', icon: 'reports' },
 		{ label: 'Scholarship Reports', href: '/scholarship-reports', icon: 'bar-chart' }
 	];
+
+	function pct(part: number, total: number) {
+		if (!total) return 0;
+		return Math.round((part / total) * 100);
+	}
 </script>
 
 <svelte:head>
@@ -77,7 +78,7 @@
 </svelte:head>
 
 <!-- Header row -->
-<div class="mb-4 flex items-center justify-between">
+<div class="mb-6 flex items-center justify-between">
 	<div>
 		{#if lastRefreshed}
 			<p class="text-[10px] text-gray-400">
@@ -88,7 +89,7 @@
 	<button
 		onclick={() => fetchStats(true)}
 		disabled={refreshing}
-		class="flex items-center gap-2 rounded-lg bg-[#3A52A6] px-4 py-2 text-xs text-white shadow transition-all hover:bg-[#2d3f8a] hover:shadow-md active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+		class="flex items-center gap-2 rounded-lg bg-[#3A52A6] px-4 py-2 text-xs text-white shadow transition-all hover:bg-[#2d3f8a] hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
 	>
 		<svg
 			class="h-3.5 w-3.5 {refreshing ? 'animate-spin' : ''}"
@@ -114,11 +115,11 @@
 {/if}
 
 <!-- Stat Cards -->
-<div class="mb-4 grid grid-cols-4 gap-4">
+<div class="grid grid-cols-5 gap-4">
 	<!-- Total Registered Users -->
 	<a
 		href="/user-management"
-		class="group rounded-xl border-t-4 border-t-blue-500 bg-white p-4 shadow-sm transition-all hover:shadow-md flex flex-col gap-2"
+		class="group flex flex-col gap-3 rounded-xl border-t-4 border-t-blue-500 bg-white p-5 shadow-sm transition-all hover:shadow-md"
 	>
 		<div class="flex h-9 w-9 items-center justify-center rounded-lg text-blue-500">
 			<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -126,100 +127,37 @@
 			</svg>
 		</div>
 		<div>
-			<p class="text-[10px] tracking-wide text-gray-400">TOTAL REGISTERED USERS</p>
-			<p class="text-2xl text-gray-800">
+			<p class="text-[10px] tracking-wide text-gray-400">TOTAL USERS</p>
+			<p class="text-3xl font-light text-gray-800">
 				{#if loading}—{:else}{stats?.totalUsers ?? 0}{/if}
 			</p>
-			<p class="text-xs text-gray-400 group-hover:text-blue-500">View User Management →</p>
+			<p class="mt-1 text-xs text-gray-400 group-hover:text-blue-500">View all →</p>
 		</div>
 	</a>
 
-	<!-- Active Scholarships -->
-	<a
-		href="/scholarship-management"
-		class="group rounded-xl border-t-4 border-t-emerald-400 bg-white p-4 shadow-sm transition-all hover:shadow-md flex flex-col gap-2"
-	>
-		<div class="flex h-9 w-9 items-center justify-center rounded-lg text-emerald-500">
-			<svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-				<path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z" />
-			</svg>
-		</div>
-		<div>
-			<p class="text-[10px] tracking-wide text-gray-400">ACTIVE SCHOLARSHIPS</p>
-			<p class="text-2xl text-gray-800">
-				{#if loading}—{:else}{stats?.activeScholarships ?? 0}{/if}
-			</p>
-			<p class="text-xs text-gray-400 group-hover:text-emerald-500">View Scholarships →</p>
-		</div>
-	</a>
-
-	<!-- Total Applications -->
-	<a
-		href="/scholarship-management"
-		class="group rounded-xl border-t-4 border-t-amber-400 bg-white p-4 shadow-sm transition-all hover:shadow-md flex flex-col gap-2"
-	>
-		<div class="flex h-9 w-9 items-center justify-center rounded-lg text-amber-500">
-			<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-				<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-			</svg>
-		</div>
-		<div>
-			<p class="text-[10px] tracking-wide text-gray-400">TOTAL APPLICATIONS</p>
-			<p class="text-2xl text-gray-800">
-				{#if loading}—{:else}{stats?.totalApplications ?? 0}{/if}
-			</p>
-			<p class="text-xs text-gray-400 group-hover:text-amber-500">View Scholarships →</p>
-		</div>
-	</a>
-
-	<!-- Approved Applications -->
-	<a
-		href="/scholarship-management"
-		class="group rounded-xl border-t-4 border-t-blue-500 bg-white p-4 shadow-sm transition-all hover:shadow-md flex flex-col gap-2"
-	>
-		<div class="flex h-9 w-9 items-center justify-center rounded-lg text-blue-500">
-			<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-				<path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-			</svg>
-		</div>
-		<div>
-			<p class="text-[10px] tracking-wide text-gray-400">APPROVED APPLICATIONS</p>
-			<p class="text-2xl text-gray-800">
-				{#if loading}—{:else}{stats?.approvedApplications ?? 0}{/if}
-			</p>
-			{#if stats && stats.totalApplications > 0}
-				<p class="text-xs text-green-500">
-					{pct(stats.approvedApplications, stats.totalApplications)}% approval rate
-				</p>
-			{:else}
-				<p class="text-xs text-gray-400 group-hover:text-blue-500">View Scholarships →</p>
-			{/if}
-		</div>
-	</a>
-
-	<!-- Active Students -->
+	<!-- Students -->
 	<a
 		href="/user-management"
-		class="group rounded-xl border-t-4 border-t-blue-500 bg-white p-4 shadow-sm transition-all hover:shadow-md flex flex-col gap-2"
+		class="group flex flex-col gap-3 rounded-xl border-t-4 border-t-sky-500 bg-white p-5 shadow-sm transition-all hover:shadow-md"
 	>
-		<div class="flex h-9 w-9 items-center justify-center rounded-lg text-blue-500">
+		<div class="flex h-9 w-9 items-center justify-center rounded-lg text-sky-500">
 			<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
 				<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
 			</svg>
 		</div>
 		<div>
-			<p class="text-[10px] tracking-wide text-gray-400">ACTIVE STUDENTS</p>
-			<p class="text-2xl text-gray-800">
-				{#if loading}—{:else}{stats?.activeStudents ?? 0}{/if}
+			<p class="text-[10px] tracking-wide text-gray-400">STUDENTS</p>
+			<p class="text-3xl font-light text-gray-800">
+				{#if loading}—{:else}{stats?.totalStudents ?? 0}{/if}
 			</p>
-			<p class="text-xs text-gray-400 group-hover:text-blue-500">View User Management →</p>
+			<p class="mt-1 text-xs text-gray-400 group-hover:text-sky-500">View all →</p>
 		</div>
 	</a>
 
-	<!-- Active Sponsors -->
+	<!-- Sponsors -->
 	<a
 		href="/user-management"
-		class="group rounded-xl border-t-4 border-t-amber-400 bg-white p-4 shadow-sm transition-all hover:shadow-md flex flex-col gap-2"
+		class="group flex flex-col gap-3 rounded-xl border-t-4 border-t-amber-400 bg-white p-5 shadow-sm transition-all hover:shadow-md"
 	>
 		<div class="flex h-9 w-9 items-center justify-center rounded-lg text-amber-500">
 			<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -227,157 +165,55 @@
 			</svg>
 		</div>
 		<div>
-			<p class="text-[10px] tracking-wide text-gray-400">ACTIVE SPONSORS</p>
-			<p class="text-2xl text-gray-800">
-				{#if loading}—{:else}{stats?.activeSponsors ?? 0}{/if}
+			<p class="text-[10px] tracking-wide text-gray-400">SPONSORS</p>
+			<p class="text-3xl font-light text-gray-800">
+				{#if loading}—{:else}{stats?.totalSponsors ?? 0}{/if}
 			</p>
-			<p class="text-xs text-gray-400 group-hover:text-amber-500">View User Management →</p>
+			<p class="mt-1 text-xs text-gray-400 group-hover:text-amber-500">View all →</p>
 		</div>
 	</a>
 
-	<!-- Total Scholarships Posted -->
+	<!-- Admins -->
+	<a
+		href="/user-management"
+		class="group flex flex-col gap-3 rounded-xl border-t-4 border-t-violet-500 bg-white p-5 shadow-sm transition-all hover:shadow-md"
+	>
+		<div class="flex h-9 w-9 items-center justify-center rounded-lg text-violet-500">
+			<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+			</svg>
+		</div>
+		<div>
+			<p class="text-[10px] tracking-wide text-gray-400">ADMINS</p>
+			<p class="text-3xl font-light text-gray-800">
+				{#if loading}—{:else}{stats?.totalAdmins ?? 0}{/if}
+			</p>
+			<p class="mt-1 text-xs text-gray-400 group-hover:text-violet-500">View all →</p>
+		</div>
+	</a>
+
+	<!-- Scholarships Posted -->
 	<a
 		href="/scholarship-management"
-		class="group rounded-xl border-t-4 border-t-indigo-400 bg-white p-4 shadow-sm transition-all hover:shadow-md flex flex-col gap-2"
+		class="group flex flex-col gap-3 rounded-xl border-t-4 border-t-indigo-400 bg-white p-5 shadow-sm transition-all hover:shadow-md"
 	>
 		<div class="flex h-9 w-9 items-center justify-center rounded-lg text-indigo-500">
 			<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-				<path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+				<path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
 			</svg>
 		</div>
 		<div>
-			<p class="text-[10px] tracking-wide text-gray-400">TOTAL SCHOLARSHIPS POSTED</p>
-			<p class="text-2xl text-gray-800">
+			<p class="text-[10px] tracking-wide text-gray-400">SCHOLARSHIPS POSTED</p>
+			<p class="text-3xl font-light text-gray-800">
 				{#if loading}—{:else}{stats?.totalScholarships ?? 0}{/if}
 			</p>
-			<p class="text-xs text-gray-400 group-hover:text-indigo-500">View Scholarships →</p>
+			<p class="mt-1 text-xs text-gray-400 group-hover:text-indigo-500">View all →</p>
 		</div>
 	</a>
-
-	<!-- Denied Applications -->
-	<a
-		href="/scholarship-management"
-		class="group rounded-xl border-t-4 border-t-red-400 bg-white p-4 shadow-sm transition-all hover:shadow-md flex flex-col gap-2"
-	>
-		<div class="flex h-9 w-9 items-center justify-center rounded-lg text-red-400">
-			<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-				<path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-			</svg>
-		</div>
-		<div>
-			<p class="text-[10px] tracking-wide text-gray-400">DENIED APPLICATIONS</p>
-			<p class="text-2xl text-gray-800">
-				{#if loading}—{:else}{stats?.deniedApplications ?? 0}{/if}
-			</p>
-			{#if stats && stats.totalApplications > 0}
-				<p class="text-xs text-red-500">
-					{pct(stats.deniedApplications, stats.totalApplications)}% denial rate
-				</p>
-			{:else}
-				<p class="text-xs text-gray-400 group-hover:text-red-400">View Scholarships →</p>
-			{/if}
-		</div>
-	</a>
-</div>
-
-<!-- Middle Section -->
-<div class="mb-4 flex gap-4">
-	<!-- Closed Scholarships stat (spans left panel space) -->
-	<div class="flex-1 rounded-xl bg-white p-5 shadow-sm">
-		<div class="mb-4 flex items-center justify-between">
-			<h2 class="text-sm text-gray-700">Closed Scholarships</h2>
-			<a
-				href="/scholarship-management"
-				class="text-[11px] text-[#3A52A6] hover:underline"
-			>View all →</a>
-		</div>
-		<div class="flex items-end gap-6">
-			<div class="text-center">
-				<p class="text-3xl font-light text-gray-800">
-					{#if loading}—{:else}{stats?.closedScholarships ?? 0}{/if}
-				</p>
-				<p class="mt-1 text-xs text-gray-400">Closed</p>
-			</div>
-			<div class="text-center">
-				<p class="text-3xl font-light text-gray-800">
-					{#if loading}—{:else}{stats?.archivedScholarships ?? 0}{/if}
-				</p>
-				<p class="mt-1 text-xs text-gray-400">Archived</p>
-			</div>
-		</div>
-	</div>
-
-	<!-- Right Column -->
-	<div class="flex w-72 shrink-0 flex-col gap-4">
-		<!-- Scholarship Breakdown -->
-		<div class="rounded-xl bg-white p-5 shadow-sm">
-			<h2 class="mb-4 text-sm text-gray-700">Scholarship Breakdown</h2>
-			{#if loading}
-				<div class="space-y-3">
-					{#each [1, 2, 3, 4] as _}
-						<div class="h-4 animate-pulse rounded bg-gray-100"></div>
-					{/each}
-				</div>
-			{:else if stats}
-				<div class="space-y-3">
-					{#each [
-						{ label: 'Active', count: stats.activeScholarships, color: 'bg-emerald-500' },
-						{ label: 'Closed', count: stats.closedScholarships, color: 'bg-gray-400' },
-						{ label: 'Archived', count: stats.archivedScholarships, color: 'bg-gray-300' }
-					] as item (item.label)}
-						<div>
-							<div class="mb-1 flex items-center justify-between text-xs">
-								<span class="text-gray-500">{item.label}</span>
-								<span class="text-gray-700">{item.count}</span>
-							</div>
-							<div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-								<div
-									class="h-full rounded-full {item.color}"
-									style="width: {pct(item.count, stats.activeScholarships + stats.closedScholarships + stats.archivedScholarships)}%"
-								></div>
-							</div>
-						</div>
-					{/each}
-				</div>
-			{/if}
-		</div>
-
-		<!-- User Distribution -->
-		<div class="rounded-xl bg-white p-5 shadow-sm">
-			<h2 class="mb-4 text-sm text-gray-700">User Distribution</h2>
-			{#if loading}
-				<div class="space-y-3">
-					{#each [1, 2] as _}
-						<div class="h-4 animate-pulse rounded bg-gray-100"></div>
-					{/each}
-				</div>
-			{:else if stats}
-				<div class="space-y-3">
-					{#each [
-						{ label: 'Students', count: stats.totalStudents, color: 'bg-blue-500' },
-						{ label: 'Sponsors', count: stats.totalSponsors, color: 'bg-amber-400' }
-					] as item (item.label)}
-						<div>
-							<div class="mb-1 flex items-center justify-between text-xs">
-								<span class="text-gray-500">{item.label}</span>
-								<span class="text-gray-700">{item.count}</span>
-							</div>
-							<div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-								<div
-									class="h-full rounded-full {item.color}"
-									style="width: {pct(item.count, stats.totalStudents + stats.totalSponsors)}%"
-								></div>
-							</div>
-						</div>
-					{/each}
-				</div>
-			{/if}
-		</div>
-	</div>
 </div>
 
 <!-- Bottom Section -->
-<div class="flex gap-4">
+<div class="mt-4 flex gap-4">
 	<!-- Stats Summary -->
 	<div class="flex-1 rounded-xl bg-white p-5 shadow-sm">
 		<h2 class="mb-4 text-sm text-gray-700">Platform Summary</h2>

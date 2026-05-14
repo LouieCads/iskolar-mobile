@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import Toast from '@/components/toast';
 import { authService } from '@/services/auth.service';
 
 const EXPO_API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -12,13 +11,6 @@ type RoleType = 'student' | 'sponsor' | null;
 export default function RoleSelectionPage() {
   const router = useRouter();
   const [selectedRole, setSelectedRole] = useState<RoleType>(null);
-  const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({
-    visible: false,
-    type: 'success' as 'success' | 'error',
-    title: '',
-    message: '',
-  });
 
   const slideAnim = useRef(new Animated.Value(-1000)).current;
   const studentAnim = useRef(new Animated.Value(0)).current;
@@ -42,10 +34,11 @@ export default function RoleSelectionPage() {
         const result = await authService.getProfileStatus();
         
         if (result.user?.has_selected_role && result.user?.role) {
-          router.replace({
-            pathname: '/profile-setup',
-            params: { role: result.user.role }
-          });
+          if (result.user.role === 'student') {
+            router.replace('../(student)/home');
+          } else if (result.user.role === 'sponsor') {
+            router.replace('../(sponsor)/my-scholarships');
+          }
         }
       } catch (error) {
         console.error('Error checking user role:', error);
@@ -54,13 +47,6 @@ export default function RoleSelectionPage() {
 
     checkUserRole();
   }, []);
-
-  const showToast = (type: 'success' | 'error', title: string, message: string) => {
-    setToast({ visible: true, type, title, message });
-    setTimeout(() => {
-      setToast(prev => ({ ...prev, visible: false }));
-    }, 2000);
-  };
 
   const handleRoleSelect = (role: RoleType) => {
     setSelectedRole(role);
@@ -79,47 +65,12 @@ export default function RoleSelectionPage() {
     ]).start();
   };
 
-  const handleContinue = async () => {
+  const handleContinue = () => {
     if (!selectedRole) return;
-
-    try {
-      setLoading(true);
-      
-      const result = await authService.selectRole(selectedRole);
-      
-      if (result.success) {
-        const roleText = selectedRole === 'student' ? 'Student' : 'Sponsor';
-        showToast('success', 'Role Selected', `You have selected ${roleText} role`);
-        
-        setTimeout(() => {
-          router.push({
-            pathname: '/profile-setup',
-            params: { role: selectedRole }
-          });
-        }, 2000);
-      } else {
-        if (result.message?.includes('already selected your role')) {
-          showToast('error', 'Role Already Selected', result.message);
-          setTimeout(() => {
-            router.push({
-              pathname: '/profile-setup',
-              params: { role: result.currentRole }
-            });
-          }, 2000);
-        } else {
-          showToast('error', 'Error', result.message || 'Failed to select role');
-        }
-      }
-    } catch (error) {
-      console.error('Role selection error:', error);
-      showToast(
-        'error',
-        'Connection Error',
-        'Failed to connect to server'
-      );
-    } finally {
-      setLoading(false);
-    }
+    router.push({
+      pathname: '/profile-setup',
+      params: { role: selectedRole }
+    });
   };
 
   const studentBg = studentAnim.interpolate({
@@ -144,8 +95,6 @@ export default function RoleSelectionPage() {
     <Animated.View
       style={[styles.container, { transform: [{ translateY: slideAnim }] }]}
     >
-      <Toast visible={toast.visible} type={toast.type} title={toast.title} message={toast.message} />
-
       {/* Header */}
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
@@ -248,11 +197,11 @@ export default function RoleSelectionPage() {
       <View style={styles.buttonContainer}>
         <Pressable
           onPress={handleContinue}
-          style={[styles.button, (!selectedRole || loading) && styles.buttonDisabled]}
-          disabled={!selectedRole || loading}
+          style={[styles.button, !selectedRole && styles.buttonDisabled]}
+          disabled={!selectedRole}
         >
-          <Text style={[styles.buttonText, (!selectedRole || loading) && styles.buttonTextDisabled]}>
-            {loading ? 'Selecting...' : 'Select'}
+          <Text style={[styles.buttonText, !selectedRole && styles.buttonTextDisabled]}>
+            Select
           </Text>
         </Pressable>
       </View>

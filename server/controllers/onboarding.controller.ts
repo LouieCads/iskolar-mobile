@@ -104,7 +104,7 @@ export const setupStudentProfile = async (req: AuthenticatedRequest, res: Respon
       });
     }
 
-    if (user.role !== 'student') {
+    if (user.role && user.role !== 'student') {
       return res.status(403).json({
         success: false,
         message: "You must have student role to create student profile."
@@ -133,6 +133,12 @@ export const setupStudentProfile = async (req: AuthenticatedRequest, res: Respon
         success: false,
         message: "Gender must be either 'male' or 'female'."
       });
+    }
+
+    if (!user.has_selected_role) {
+      user.role = 'student';
+      user.has_selected_role = true;
+      await user.save();
     }
 
     if (student) {
@@ -207,7 +213,7 @@ export const setupSponsorProfile = async (req: AuthenticatedRequest, res: Respon
       });
     }
 
-    if (user.role !== 'sponsor') {
+    if (user.role && user.role !== 'sponsor') {
       return res.status(403).json({
         success: false,
         message: "User must have sponsor role to create sponsor profile."
@@ -237,6 +243,12 @@ export const setupSponsorProfile = async (req: AuthenticatedRequest, res: Respon
         success: false,
         message: "Invalid organization type."
       });
+    }
+
+    if (!user.has_selected_role) {
+      user.role = 'sponsor';
+      user.has_selected_role = true;
+      await user.save();
     }
 
     if (sponsor) {

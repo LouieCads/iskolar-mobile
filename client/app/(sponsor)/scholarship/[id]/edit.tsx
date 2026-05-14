@@ -7,6 +7,8 @@ import Toast from '@/components/toast';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { Dropdown } from 'react-native-element-dropdown';
+import PresetPickerModal from '@/components/preset-picker-modal';
+import { PRESET_CRITERIA, PRESET_DOCUMENTS } from '@/constants/presets';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -74,9 +76,6 @@ export default function EditScholarshipPage() {
   const [toastTitle, setToastTitle] = useState('');
   const [toastMessage, setToastMessage] = useState('');
 
-  // For array inputs
-  const [criteriaInput, setCriteriaInput] = useState('');
-  const [documentsInput, setDocumentsInput] = useState('');
 
   // Custom form fields state
   const [showCustomFormModal, setShowCustomFormModal] = useState(false);
@@ -233,24 +232,8 @@ export default function EditScholarshipPage() {
     }
   };
 
-  const addCriterion = () => {
-    const trimmedInput = criteriaInput.trim();
-    if (trimmedInput) {
-      setValue('criteria', [...criteria, trimmedInput]);
-      setCriteriaInput('');
-    }
-  };
-
   const removeCriterion = (index: number) => {
     setValue('criteria', criteria.filter((_, i) => i !== index));
-  };
-
-  const addDocument = () => {
-    const trimmedInput = documentsInput.trim();
-    if (trimmedInput) {
-      setValue('documents', [...documents, trimmedInput]);
-      setDocumentsInput('');
-    }
   };
 
   const removeDocument = (index: number) => {
@@ -542,20 +525,13 @@ export default function EditScholarshipPage() {
             {/* Criteria */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Criteria</Text>
-              <View style={styles.arrayInputContainer}>
-                <TextInput
-                  style={[styles.arrayInput, errors.criteria && styles.inputError]}
-                  value={criteriaInput}
-                  onChangeText={setCriteriaInput}
-                  placeholder="Enter eligibility criterion"
-                  placeholderTextColor="#A0AEC0"
-                  onSubmitEditing={addCriterion}
-                  returnKeyType="done"
-                />
-                <Pressable style={styles.addButton} onPress={addCriterion}>
-                  <MaterialIcons name="add" size={20} color="#F0F7FF" />
-                </Pressable>
-              </View>
+              <PresetPickerModal
+                presets={PRESET_CRITERIA}
+                selectedItems={criteria}
+                onSelect={(value) => setValue('criteria', [...criteria, value])}
+                hasError={!!errors.criteria}
+                placeholder="Select eligibility criteria"
+              />
               {errors.criteria && (
                 <Text style={styles.errorText}>{errors.criteria.message}</Text>
               )}
@@ -576,20 +552,13 @@ export default function EditScholarshipPage() {
             {/* Required Documents */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Required Documents</Text>
-              <View style={styles.arrayInputContainer}>
-                <TextInput
-                  style={[styles.arrayInput, errors.documents && styles.inputError]}
-                  value={documentsInput}
-                  onChangeText={setDocumentsInput}
-                  placeholder="Enter required document"
-                  placeholderTextColor="#A0AEC0"
-                  onSubmitEditing={addDocument}
-                  returnKeyType="done"
-                />
-                <Pressable style={styles.addButton} onPress={addDocument}>
-                  <MaterialIcons name="add" size={20} color="#F0F7FF" />
-                </Pressable>
-              </View>
+              <PresetPickerModal
+                presets={PRESET_DOCUMENTS}
+                selectedItems={documents}
+                onSelect={(value) => setValue('documents', [...documents, value])}
+                hasError={!!errors.documents}
+                placeholder="Select required documents"
+              />
               {errors.documents && (
                 <Text style={styles.errorText}>{errors.documents.message}</Text>
               )}

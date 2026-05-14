@@ -70,11 +70,12 @@ export default function ProfileSetupPage() {
           return;
         }
 
-        const result = await authService.getProfileStatus();
-        
-        if (!result.user?.has_selected_role && !result.user?.role) {
+        if (!role) {
           router.replace({ pathname: '/role-selection' });
+          return;
         }
+
+        const result = await authService.getProfileStatus();
 
         if (result.user?.profile_completed) {
           if (result.user?.role === 'student') {

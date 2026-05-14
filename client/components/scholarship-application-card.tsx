@@ -80,11 +80,6 @@ export default function ScholarshipApplicationCard({
     });
   };
 
-  const displayCriteria = criteria.slice(0, 2);
-  const moreCriteria = criteria.length > 2 ? criteria.length - 2 : 0;
-  const displayDocuments = documents.slice(0, 2);
-  const moreDocuments = documents.length > 2 ? documents.length - 2 : 0;
-
   const statusIcon = statusIconMap[status];
 
   return (
@@ -171,41 +166,6 @@ export default function ScholarshipApplicationCard({
             </View>
           </View>
 
-          {criteria.length > 0 && (
-            <View style={styles.infoSection}>
-              <Text style={styles.sectionTitle}>Criteria</Text>
-              <View style={styles.chipsContainer}>
-                {displayCriteria.map((item, index) => (
-                  <View key={index} style={styles.chip}>
-                    <Text style={styles.chipText}>{item}</Text>
-                  </View>
-                ))}
-                {moreCriteria > 0 && (
-                  <View style={styles.chip}>
-                    <Text style={styles.chipText}>+ {moreCriteria} more</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-          )}
-
-          {documents.length > 0 && (
-            <View style={styles.infoSection}>
-              <Text style={styles.sectionTitle}>Required Documents</Text>
-              <View style={styles.chipsContainer}>
-                {displayDocuments.map((doc, index) => (
-                  <View key={index} style={styles.chip}>
-                    <Text style={styles.chipText}>{doc}</Text>
-                  </View>
-                ))}
-                {moreDocuments > 0 && (
-                  <View style={styles.chip}>
-                    <Text style={styles.chipText}>+ {moreDocuments} more</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-          )}
         </View>
         </Pressable>
       </Animated.View>

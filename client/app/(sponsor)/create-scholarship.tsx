@@ -717,7 +717,7 @@ export default function CreateScholarshipPage() {
         <View style={styles.inputGroup}>
           <View style={styles.sectionHeader}>
             <Text style={styles.label}>Application Form</Text>
-            <Text style={styles.helperText}>Add custom fields to collect information from applicants.</Text>
+            <Text style={styles.helperText}>Add questionnaires to collect information from applicants.</Text>
           </View>
           
           {customFormFields.length > 0 && (

@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Header from '@/components/header';
 import ScholarshipApplicationCard from '@/components/scholarship-application-card';
 import { scholarshipApplicationService } from '@/services/scholarship-application.service';
+import { formatDateTime, formatTag, formatLabel } from '@/utils/format';
 
 type FilterType = 'all' | 'applied' | 'past';
 
@@ -140,17 +141,6 @@ export default function StudentHomePage() {
   //   return 0;
   // };
 
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
   const handleCardPress = (applicationId: string) => {
     router.push({
       pathname: '/(student)/application/[id]',
@@ -158,36 +148,11 @@ export default function StudentHomePage() {
     } as any);
   };
 
-  const formatText = (text: string): string => {
-    return text
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join('-');
-  };
-
-  const formatArrayText = (text: string): string => {
-    return text
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
-  };
-
   const getTags = (scholarship: NonNullable<Application['scholarship']>): string[] => {
     const tags: string[] = [];
-    
-    if (scholarship.type) {
-      tags.push(formatText(scholarship.type));
-    }
-    
-    if (scholarship.purpose) {
-      tags.push(formatText(scholarship.purpose));
-    }
-    
-    // Add original tags if they exist
-    if (scholarship.tags && scholarship.tags.length > 0) {
-      tags.push(...scholarship.tags);
-    }
-    
+    if (scholarship.type) tags.push(formatTag(scholarship.type));
+    if (scholarship.purpose) tags.push(formatTag(scholarship.purpose));
+    if (scholarship.tags && scholarship.tags.length > 0) tags.push(...scholarship.tags);
     return tags;
   };
 
@@ -318,7 +283,7 @@ export default function StudentHomePage() {
               <View style={styles.timelineCardContainer}>
                 <View style={styles.applicationDateRow}>
                   <Text style={styles.applicationDateTextTimeline}>
-                    {formatDate(application.applied_at)}
+                    {formatDateTime(application.applied_at)}
                   </Text>
                 </View>
                 <ScholarshipApplicationCard
@@ -330,8 +295,8 @@ export default function StudentHomePage() {
                   deadline={application.scholarship.application_deadline}
                   amount={application.scholarship.total_amount || 0}
                   slots={application.scholarship.total_slot || 0}
-                  criteria={application.scholarship.criteria?.map(c => formatArrayText(c)) || []}
-                  documents={application.scholarship.required_documents?.map(d => formatArrayText(d)) || []}
+                  criteria={application.scholarship.criteria?.map(c => formatLabel(c)) || []}
+                  documents={application.scholarship.required_documents?.map(d => formatLabel(d)) || []}
                   tags={getTags(application.scholarship)}
                   status={application.status}
                   onPress={() => handleCardPress(application.scholarship_application_id)}

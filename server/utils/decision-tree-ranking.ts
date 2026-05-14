@@ -1,3 +1,16 @@
+/**
+ * Decision-tree applicant ranking algorithm.
+ *
+ * Scores each applicant on a 0–1 scale using four weighted nodes:
+ *   - Criteria Matching  (40%) — fuzzy match of form responses against scholarship criteria
+ *   - Academic Performance (25%) — normalizes GPA/GWA across three common scales:
+ *       percentage (0–100), Philippine GWA (1.0–5.0, lower is better), and 4.0-scale GPA
+ *   - Form Completeness  (20%) — ratio of filled required fields
+ *   - Response Quality   (15%) — average response length heuristic
+ *
+ * Bonus +0.05 each for 100% form completion and meeting all criteria (capped at 1.0).
+ * Ties are broken by criteria matches, then form completeness.
+ */
 interface ApplicantData {
   scholarship_application_id: string;
   custom_form_response: Array<{ label: string; value: any }>;

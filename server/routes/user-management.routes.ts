@@ -1,3 +1,11 @@
+/**
+ * User management routes — admin CRUD over all platform users.
+ *
+ * Provides list/detail/status-patch for the admin web dashboard.
+ * `trigger-auto-deactivate` is a manual backdoor to run the same
+ * logic as the daily cron job on demand (useful for admin-initiated cleanups).
+ * Admin-only access is enforced inside the controller.
+ */
 import { Router } from "express";
 import { authenticateToken } from "../middlewares/auth.middleware";
 import { getUsers, getUserById, updateUserStatus, triggerAutoDeactivate } from "../controllers/user-management.controller";

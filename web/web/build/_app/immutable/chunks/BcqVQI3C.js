@@ -1,0 +1,1 @@
+const o="iskolar_token",n="iskolar_token_expires";function l(e,t){localStorage.setItem(o,e),localStorage.setItem(n,String(t))}function r(){const e=localStorage.getItem(o),t=Number(localStorage.getItem(n));return e?t&&Date.now()>t?(a(),null):e:null}function a(){localStorage.removeItem(o),localStorage.removeItem(n)}function c(){return r()!==null}export{a as c,r as g,c as i,l as s};

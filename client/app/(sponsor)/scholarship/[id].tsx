@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Alert
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import Header from '@/components/header';
 import { scholarshipService, CustomFormField } from '@/services/scholarship-creation.service';
+import { formatAmount, formatDate } from '@/utils/format';
 import { profileService } from '@/services/profile.service';
 
 export default function ScholarshipDetailsPage() {
@@ -66,17 +67,6 @@ export default function ScholarshipDetailsPage() {
     ? scholarship.total_amount / scholarship.total_slot 
     : scholarship?.total_amount;
 
-  const formatAmount = (value?: number | string) => {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
-    if (typeof num !== 'number' || isNaN(num)) return '₱ 0.00';
-    return `₱ ${num.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'No deadline';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  };
 
   const getFieldTypeLabel = (type: string) => {
     const typeMap: Record<string, string> = {
@@ -221,7 +211,7 @@ export default function ScholarshipDetailsPage() {
             </View>
             <View style={styles.metaRow}>
               <Ionicons name="calendar-outline" size={16} color="#6B7280" />
-              <Text style={styles.metaText}>{formatDate(scholarship?.application_deadline)}</Text>
+              <Text style={styles.metaText}>{formatDate(scholarship?.application_deadline, 'No deadline')}</Text>
             </View>
           </View>
 

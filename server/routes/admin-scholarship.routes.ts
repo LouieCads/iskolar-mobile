@@ -1,3 +1,9 @@
+/**
+ * Admin scholarship routes — read and moderate all scholarships across sponsors.
+ *
+ * Exposes list, detail, and status-patch endpoints for the admin web dashboard.
+ * Admin-only access is enforced inside the controller by checking req.user.role.
+ */
 import { Router } from "express";
 import { authenticateToken } from "../middlewares/auth.middleware";
 import {

@@ -1,4 +1,5 @@
 import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, Platform, Animated, Modal, Image, ActivityIndicator } from 'react-native';
+import { formatDate } from '@/utils/format';
 import { useState, useRef, useEffect } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -174,15 +175,6 @@ export default function CreateScholarshipPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-  };
 
   const animateDropdown = (rotation: Animated.Value, scale: Animated.Value, isOpen: boolean) => {
     Animated.parallel([
@@ -612,7 +604,7 @@ export default function CreateScholarshipPage() {
           >
             <MaterialIcons name="calendar-today" size={18} color="#6B7280" />
             <Text style={[styles.dateInputText, !deadline && styles.placeholderText]}>
-              {deadline ? formatDate(deadline) : 'Set application deadline'}
+              {formatDate(deadline, 'Set application deadline')}
             </Text>
           </Pressable>
           

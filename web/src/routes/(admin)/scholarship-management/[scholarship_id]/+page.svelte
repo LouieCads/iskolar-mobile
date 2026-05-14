@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { API_URL } from '$lib/config';
 	import { getToken } from '$lib/auth';
+	import { formatDate, isDeadlinePassed, formatAmount, formatType, formatPurpose } from '$lib/utils/format';
 
 	type ScholarshipStatus = 'active' | 'closed' | 'archived' | 'draft';
 
@@ -62,40 +63,6 @@
 		} finally {
 			loading = false;
 		}
-	}
-
-	function formatDate(dateStr: string): string {
-		const d = new Date(dateStr);
-		return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-	}
-
-	function formatDeadline(dateStr: string | null): string {
-		if (!dateStr) return '—';
-		const d = new Date(dateStr);
-		return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-	}
-
-	function isDeadlinePassed(dateStr: string | null): boolean {
-		if (!dateStr) return false;
-		return new Date(dateStr) < new Date();
-	}
-
-	function formatAmount(amount: number): string {
-		return new Intl.NumberFormat('en-PH', {
-			style: 'currency',
-			currency: 'PHP',
-			maximumFractionDigits: 0
-		}).format(amount);
-	}
-
-	function formatType(type: string | null): string {
-		if (!type) return '—';
-		return type === 'merit_based' ? 'Merit-Based' : 'Skill-Based';
-	}
-
-	function formatPurpose(purpose: string | null): string {
-		if (!purpose) return '—';
-		return purpose === 'allowance' ? 'Allowance' : 'Tuition';
 	}
 
 	function formatSponsorType(type: string | null): string {
@@ -350,7 +317,7 @@
 					<div>
 						<p class="text-[10px] uppercase tracking-wider text-gray-400">Application Deadline</p>
 						<p class="mt-1 text-sm {isDeadlinePassed(scholarship.application_deadline) ? 'text-red-500' : 'text-gray-700'}">
-							{formatDeadline(scholarship.application_deadline)}
+							{formatDate(scholarship.application_deadline)}
 							{#if isDeadlinePassed(scholarship.application_deadline)}
 								<span class="ml-1 text-[10px]">(Passed)</span>
 							{/if}

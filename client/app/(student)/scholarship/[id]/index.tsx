@@ -14,6 +14,7 @@ import Header from '@/components/header';
 import { scholarshipService } from '@/services/scholarship-creation.service';
 import { authService } from '@/services/auth.service';
 import { scholarshipApplicationService } from '@/services/scholarship-application.service';
+import { formatAmount, formatDate } from '@/utils/format';
 import Toast from '@/components/toast';
 
 export default function ScholarshipDetailsPage() {
@@ -89,18 +90,6 @@ export default function ScholarshipDetailsPage() {
   const amountPerScholar = scholarship?.total_slot > 0
     ? scholarship.total_amount / scholarship.total_slot
     : scholarship?.total_amount;
-
-  const formatAmount = (value?: number | string) => {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
-    if (typeof num !== 'number' || isNaN(num)) return '₱ 0.00';
-    return `₱ ${num.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'No deadline';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  };
 
   const isClosed = useCallback(() => {
     return scholarship?.status === 'closed';
@@ -223,7 +212,7 @@ export default function ScholarshipDetailsPage() {
               </View>
               <View style={styles.metaRow}>
                 <Ionicons name="calendar-outline" size={16} color="#6B7280" />
-                <Text style={styles.metaText}>Deadline: {formatDate(scholarship?.application_deadline)}</Text>
+                <Text style={styles.metaText}>Deadline: {formatDate(scholarship?.application_deadline, 'No deadline')}</Text>
               </View>
             </View>
 

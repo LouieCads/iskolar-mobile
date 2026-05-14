@@ -16,6 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import Header from '@/components/header';
 import { scholarshipApplicationService } from '@/services/scholarship-application.service';
+import { formatAmount, formatDate, formatDateTime, formatLabel } from '@/utils/format';
 
 interface Application {
   scholarship_application_id: string;
@@ -104,37 +105,6 @@ export default function ApplicationDetailsPage() {
   useEffect(() => {
     fetchApplicationDetails();
   }, [fetchApplicationDetails]);
-
-  const formatAmount = (value?: number | string) => {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
-    if (typeof num !== 'number' || isNaN(num)) return '₱0.00';
-    return `₱${num.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'No date';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  };
-
-  const formatDateTime = (dateString?: string) => {
-    if (!dateString) return 'No date';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const formatText = (text: string): string => {
-    return text
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
-  };
 
   const isFileField = (value: any): boolean => {
     return Array.isArray(value) && value.length > 0 && typeof value[0] === 'string' && value[0].startsWith('http');
@@ -283,7 +253,7 @@ export default function ApplicationDetailsPage() {
                   <View style={styles.tagsContainer}>
                     {application.scholarship.criteria.map((c: string, idx: number) => (
                       <View key={idx} style={styles.tag}>
-                        <Text style={styles.tagText}>{formatText(c)}</Text>
+                        <Text style={styles.tagText}>{formatLabel(c)}</Text>
                       </View>
                     ))}
                   </View>
@@ -298,7 +268,7 @@ export default function ApplicationDetailsPage() {
                     <View style={styles.tagsContainer}>
                       {application.scholarship.required_documents.map((d: string, idx: number) => (
                         <View key={idx} style={styles.tag}>
-                          <Text style={styles.tagText}>{formatText(d)}</Text>
+                          <Text style={styles.tagText}>{formatLabel(d)}</Text>
                         </View>
                       ))}
                     </View>

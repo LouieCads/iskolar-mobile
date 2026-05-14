@@ -1,3 +1,13 @@
+/**
+ * Scholarship service — sponsor-side scholarship management.
+ *
+ * Covers the full lifecycle: create → publish (active) → close (auto via cron) → archive.
+ * `getActionPermissions` derives what operations are allowed from the current status,
+ * keeping status-transition logic in one place instead of scattered across UI components.
+ *
+ * Public endpoints (getAllScholarships, getScholarshipById) use raw `fetch` without
+ * a token so the student discovery feed works before the user logs in.
+ */
 import { authService } from './auth.service';
 
 const EXPO_API_URL = process.env.EXPO_PUBLIC_API_URL;

@@ -1,3 +1,12 @@
+/**
+ * Server entry point for iSkolar Mobile backend.
+ *
+ * Startup sequence:
+ *   1. Register all model associations (must happen before DB connection)
+ *   2. Connect to PostgreSQL and, in development only, sync schema with alter:true
+ *   3. Seed the default admin account if not present
+ *   4. Start HTTP server and background cron jobs
+ */
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";

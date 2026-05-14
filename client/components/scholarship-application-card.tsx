@@ -2,6 +2,7 @@ import { View, Text, Image, Pressable, StyleSheet, Animated } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState, useRef } from 'react';
+import { formatAmount, formatDate } from '@/utils/format';
 
 interface ScholarshipApplicationCardProps {
   scholarship_id: string;
@@ -66,20 +67,6 @@ export default function ScholarshipApplicationCard({
 
   const amountPerScholar = slots > 0 ? amount / slots : amount;
 
-  const formatAmount = (value: number) => {
-    return `₱ ${value.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'No deadline';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
   const statusIcon = statusIconMap[status];
 
   return (
@@ -140,7 +127,7 @@ export default function ScholarshipApplicationCard({
             </View>
             <View style={styles.infoRow}>
               <Ionicons name="calendar-outline" size={16} color="#F0F7FF" />
-              <Text style={styles.infoText}>{formatDate(deadline)}</Text>
+              <Text style={styles.infoText}>{formatDate(deadline, 'No deadline')}</Text>
             </View>
           </View>
         </View>

@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { API_URL } from '$lib/config';
 	import { getToken } from '$lib/auth';
+	import { formatDate } from '$lib/utils/format';
 
 	type Role = 'Student' | 'Sponsor' | 'Admin' | 'Unknown';
 	type Status = 'Active' | 'Deactivated';
@@ -75,16 +76,7 @@
 		}
 	}
 
-	function formatDate(dateStr: string): string {
-		const d = new Date(dateStr);
-		return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-	}
-
-	function formatDOB(dateStr: string | null): string {
-		if (!dateStr) return '—';
-		const d = new Date(dateStr);
-		return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-	}
+	const formatDOB = (dateStr: string | null) => formatDate(dateStr);
 
 	function getInitials(name: string): string {
 		return name

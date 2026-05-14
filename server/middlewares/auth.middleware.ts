@@ -1,3 +1,12 @@
+/**
+ * JWT authentication middleware.
+ *
+ * Validates the `Authorization: Bearer <token>` header on protected routes and
+ * injects `req.user` ({ id, email }) for downstream controllers.
+ *
+ * The token is checked against isSafeInput before JWT verification to reject
+ * oversized or structurally malformed strings before they reach the crypto layer.
+ */
 import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { isSafeInput } from "../utils/validation";

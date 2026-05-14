@@ -1,3 +1,13 @@
+/**
+ * Scholarship application service — student-side apply flow and sponsor-side review.
+ *
+ * Students: submit applications, upload supporting files, and track their application status.
+ * Sponsors: list applicants for a scholarship, update individual or bulk statuses,
+ *           and trigger the decision-tree ranking algorithm.
+ *
+ * File uploads bypass `authenticatedRequest` and use raw `fetch` so that FormData
+ * boundaries are set automatically (setting Content-Type manually breaks multipart parsing).
+ */
 import { authService } from './auth.service';
 
 const EXPO_API_URL = process.env.EXPO_PUBLIC_API_URL;

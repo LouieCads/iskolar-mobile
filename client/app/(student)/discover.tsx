@@ -7,6 +7,7 @@ import ScholarshipMetrics from '@/components/scholarship-metrics';
 import Header from '@/components/header';
 import { scholarshipService } from '@/services/scholarship-creation.service';
 import { scholarshipApplicationService } from '@/services/scholarship-application.service';
+import { formatTag, formatLabel } from '@/utils/format';
 
 interface Sponsor {
   sponsor_id: string;
@@ -81,31 +82,10 @@ export default function DiscoverPage() {
     router.push(`/(student)/scholarship/${scholarshipId}` as any);
   };
 
-  const formatText = (text: string): string => {
-    return text
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join('-');
-  };
-
-  const formatArrayText = (text: string): string => {
-    return text
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
-  };
-
   const getTags = (scholarship: Scholarship): string[] => {
     const tags: string[] = [];
-    
-    if (scholarship.type) {
-      tags.push(formatText(scholarship.type));
-    }
-    
-    if (scholarship.purpose) {
-      tags.push(formatText(scholarship.purpose));
-    }
-    
+    if (scholarship.type) tags.push(formatTag(scholarship.type));
+    if (scholarship.purpose) tags.push(formatTag(scholarship.purpose));
     return tags;
   };
 
@@ -230,8 +210,8 @@ export default function DiscoverPage() {
               deadline={scholarship.application_deadline}
               amount={scholarship.total_amount}
               slots={scholarship.total_slot}
-              criteria={scholarship.criteria?.map(c => formatArrayText(c)) || []}
-              documents={scholarship.required_documents?.map(d => formatArrayText(d)) || []}
+              criteria={scholarship.criteria?.map(c => formatLabel(c)) || []}
+              documents={scholarship.required_documents?.map(d => formatLabel(d)) || []}
               tags={getTags(scholarship)}
               onPress={() => handleScholarshipPress(scholarship.scholarship_id)}
             />

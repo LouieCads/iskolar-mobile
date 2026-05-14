@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, TextInput, Alert, Animated, Platform, Image, Modal } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { scholarshipService, CustomFormField } from '@/services/scholarship-creation.service';
+import { formatDate } from '@/utils/format';
 import Toast from '@/components/toast';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
@@ -342,11 +343,6 @@ export default function EditScholarshipPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '';
-    const d = new Date(dateString);
-    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  };
 
   const typeIconRotate = typeDropdownRotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
   const purposeIconRotate = purposeDropdownRotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
@@ -515,7 +511,7 @@ export default function EditScholarshipPage() {
             {/* Deadline */}
             <Text style={styles.label}>Application Deadline</Text>
             <Pressable style={styles.dateInputContainer} onPress={() => setShowDatePicker(true)}>
-              <Text style={styles.dateInputText}>{deadline ? formatDate(deadline) : 'Set application deadline'}</Text>
+              <Text style={styles.dateInputText}>{formatDate(deadline, 'Set application deadline')}</Text>
               <Ionicons name="calendar-outline" size={18} color="#6B7280" />
             </Pressable>
             {showDatePicker && (

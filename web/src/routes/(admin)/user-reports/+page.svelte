@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { API_URL } from '$lib/config';
 	import { getToken } from '$lib/auth';
+	import { formatShortDate } from '$lib/utils/format';
 
 	type RoleFilter = 'All' | 'Student' | 'Sponsor' | 'Admin';
 	type StatusFilter = 'All' | 'Active' | 'Suspended' | 'Deactivated';
@@ -88,13 +89,7 @@
 		}
 	}
 
-	function formatDate(dateStr: string): string {
-		return new Date(dateStr).toLocaleDateString('en-US', {
-			month: 'short',
-			day: 'numeric',
-			year: 'numeric'
-		});
-	}
+	const formatDate = (dateStr: string) => formatShortDate(dateStr);
 
 	async function exportPDF() {
 		if (!report) return;

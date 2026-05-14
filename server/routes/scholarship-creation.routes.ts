@@ -1,3 +1,15 @@
+/**
+ * Scholarship creation routes — sponsor-facing CRUD for scholarships.
+ *
+ * GET / and GET /:scholarship_id are public (no auth) so the mobile discovery
+ * feed can list scholarships without requiring login.
+ *
+ * Write operations (create, update, delete, archive, image upload) require an
+ * authenticated sponsor token; ownership is enforced in the controller.
+ *
+ * Status transitions: draft → active → closed (auto, via cron) → archived.
+ * Archive is only allowed once a scholarship is closed; delete only before deadline.
+ */
 import { Router } from "express";
 import { authenticateToken } from "../middlewares/auth.middleware";
 import { 

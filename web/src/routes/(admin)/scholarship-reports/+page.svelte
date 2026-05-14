@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { API_URL } from '$lib/config';
 	import { getToken } from '$lib/auth';
+	import { formatShortDate, formatAmount } from '$lib/utils/format';
 
 	type StatusFilter = 'All' | 'Draft' | 'Active' | 'Closed' | 'Suspended' | 'Archived';
 
@@ -93,18 +94,8 @@
 		}
 	}
 
-	function formatDate(dateStr: string | null): string {
-		if (!dateStr) return '—';
-		return new Date(dateStr).toLocaleDateString('en-US', {
-			month: 'short',
-			day: 'numeric',
-			year: 'numeric'
-		});
-	}
-
-	function formatCurrency(amount: number): string {
-		return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 }).format(amount);
-	}
+	const formatDate = (dateStr: string | null) => formatShortDate(dateStr);
+	const formatCurrency = (amount: number) => formatAmount(amount);
 
 	async function exportPDF() {
 		if (!report) return;

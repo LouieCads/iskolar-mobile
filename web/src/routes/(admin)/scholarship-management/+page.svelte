@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { resolve } from '$app/paths';
-	import { API_URL } from '$lib/config';
-	import { getToken } from '$lib/auth';
+	import { fetchScholarships } from '$lib/api/admin';
+	import { formatAmount, formatShortDate, isDeadlinePassed, formatType, formatPurpose, getVisiblePages } from '$lib/utils/format';
 
 	type ScholarshipStatus = 'active' | 'closed' | 'archived' | 'draft';
 
@@ -39,26 +38,21 @@
 	let searchTimeout: ReturnType<typeof setTimeout>;
 	let sponsorTimeout: ReturnType<typeof setTimeout>;
 
-	async function fetchScholarships() {
+	async function loadScholarships() {
 		loading = true;
 		error = '';
 
 		try {
-			const token = getToken();
-			const params = new SvelteURLSearchParams();
-			params.set('page', String(currentPage));
-			params.set('limit', String(pageSize));
+			const params: Record<string, string> = {
+				page: String(currentPage),
+				limit: String(pageSize),
+			};
+			if (searchQuery.trim()) params.search = searchQuery.trim();
+			if (sponsorQuery.trim()) params.sponsor = sponsorQuery.trim();
+			if (statusFilter !== 'All Status') params.status = statusFilter.toLowerCase();
+			if (deadlineFilter !== 'All Deadlines') params.deadline = deadlineFilter.toLowerCase();
 
-			if (searchQuery.trim()) params.set('search', searchQuery.trim());
-			if (sponsorQuery.trim()) params.set('sponsor', sponsorQuery.trim());
-			if (statusFilter !== 'All Status') params.set('status', statusFilter.toLowerCase());
-			if (deadlineFilter !== 'All Deadlines') params.set('deadline', deadlineFilter.toLowerCase());
-
-			const res = await fetch(`${API_URL}/admin/scholarships?${params}`, {
-				headers: { Authorization: `Bearer ${token}` }
-			});
-
-			const data = await res.json();
+			const data = await fetchScholarships(params);
 
 			if (!data.success) {
 				error = data.message;
@@ -75,36 +69,11 @@
 		}
 	}
 
-	function formatAmount(amount: number): string {
-		return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 }).format(amount);
-	}
-
-	function formatDeadline(dateStr: string | null): string {
-		if (!dateStr) return '—';
-		const d = new Date(dateStr);
-		return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-	}
-
-	function isDeadlinePassed(dateStr: string | null): boolean {
-		if (!dateStr) return false;
-		return new Date(dateStr) < new Date();
-	}
-
-	function formatType(type: string | null): string {
-		if (!type) return '—';
-		return type === 'merit_based' ? 'Merit-Based' : 'Skill-Based';
-	}
-
-	function formatPurpose(purpose: string | null): string {
-		if (!purpose) return '—';
-		return purpose === 'allowance' ? 'Allowance' : 'Tuition';
-	}
-
 	function onSearchInput() {
 		clearTimeout(searchTimeout);
 		searchTimeout = setTimeout(() => {
 			currentPage = 1;
-			fetchScholarships();
+			loadScholarships();
 		}, 300);
 	}
 
@@ -112,22 +81,22 @@
 		clearTimeout(sponsorTimeout);
 		sponsorTimeout = setTimeout(() => {
 			currentPage = 1;
-			fetchScholarships();
+			loadScholarships();
 		}, 300);
 	}
 
 	function onFilterChange() {
 		currentPage = 1;
-		fetchScholarships();
+		loadScholarships();
 	}
 
 	function goToPage(p: number) {
 		currentPage = p;
-		fetchScholarships();
+		loadScholarships();
 	}
 
 	onMount(() => {
-		fetchScholarships();
+		loadScholarships();
 	});
 
 	const statusStyle: Record<string, { dot: string; text: string }> = {
@@ -136,13 +105,6 @@
 		archived: { dot: 'bg-red-400', text: 'text-red-500' },
 		draft: { dot: 'bg-blue-400', text: 'text-blue-500' }
 	};
-
-	function getVisiblePages(): (number | '...')[] {
-		if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
-		if (currentPage <= 3) return [1, 2, 3, '...', totalPages];
-		if (currentPage >= totalPages - 2) return [1, '...', totalPages - 2, totalPages - 1, totalPages];
-		return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
-	}
 </script>
 
 <svelte:head>
@@ -292,7 +254,7 @@
 						<td class="py-3.5 pr-4">
 							{#if s.application_deadline}
 								<p class="text-xs {isDeadlinePassed(s.application_deadline) ? 'text-red-400' : 'text-gray-600'}">
-									{formatDeadline(s.application_deadline)}
+									{formatShortDate(s.application_deadline)}
 								</p>
 								{#if isDeadlinePassed(s.application_deadline)}
 									<p class="mt-0.5 text-[10px] text-red-400">Passed</p>
@@ -355,7 +317,7 @@
 					&lt;
 				</button>
 
-				{#each getVisiblePages() as p (p)}
+				{#each getVisiblePages(currentPage, totalPages) as p (p)}
 					{#if p === '...'}
 						<span class="flex h-7 w-7 items-center justify-center text-xs text-gray-400">…</span>
 					{:else}

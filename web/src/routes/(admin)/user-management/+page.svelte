@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { resolve } from '$app/paths';
-	import { API_URL } from '$lib/config';
-	import { getToken } from '$lib/auth';
+	import { fetchUsers } from '$lib/api/admin';
+	import { formatShortDate, getVisiblePages } from '$lib/utils/format';
 
 	type Role = 'Student' | 'Sponsor' | 'Admin' | 'Unknown';
 	type Status = 'Active' | 'Suspended' | 'Deactivated';
@@ -36,26 +35,19 @@
 
 	let searchTimeout: ReturnType<typeof setTimeout>;
 
-	async function fetchUsers() {
+	async function loadUsers() {
 		loading = true;
 		error = '';
 
 		try {
-			const token = getToken();
-			const params = new SvelteURLSearchParams();
-			params.set('page', String(currentPage));
-			params.set('limit', String(pageSize));
+			const params: Record<string, string> = {
+				page: String(currentPage),
+				limit: String(pageSize),
+			};
+			if (searchQuery.trim()) params.search = searchQuery.trim();
+			if (roleFilter !== 'All Roles') params.role = roleFilter.toLowerCase();
 
-			if (searchQuery.trim()) params.set('search', searchQuery.trim());
-			if (roleFilter !== 'All Roles') params.set('role', roleFilter.toLowerCase());
-
-			const res = await fetch(`${API_URL}/admin/users?${params}`, {
-				headers: {
-					Authorization: `Bearer ${token}`
-				}
-			});
-
-			const data = await res.json();
+			const data = await fetchUsers(params);
 
 			if (!data.success) {
 				error = data.message;
@@ -64,7 +56,7 @@
 
 			users = data.users.map((u: User) => ({
 				...u,
-				registration_date: formatDate(u.registration_date)
+				registration_date: formatShortDate(u.registration_date)
 			}));
 			totalPages = data.pagination.totalPages;
 			totalUsers = data.pagination.total;
@@ -73,11 +65,6 @@
 		} finally {
 			loading = false;
 		}
-	}
-
-	function formatDate(dateStr: string): string {
-		const d = new Date(dateStr);
-		return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 	}
 
 	// Client-side status filter (until status field is added to backend)
@@ -92,22 +79,22 @@
 		clearTimeout(searchTimeout);
 		searchTimeout = setTimeout(() => {
 			currentPage = 1;
-			fetchUsers();
+			loadUsers();
 		}, 300);
 	}
 
 	function onRoleChange() {
 		currentPage = 1;
-		fetchUsers();
+		loadUsers();
 	}
 
 	function goToPage(page: number) {
 		currentPage = page;
-		fetchUsers();
+		loadUsers();
 	}
 
 	onMount(() => {
-		fetchUsers();
+		loadUsers();
 	});
 
 	const avatarColors = [
@@ -142,13 +129,6 @@
 		Deactivated: { dot: 'bg-red-500', text: 'text-red-500' }
 	};
 
-	function getVisiblePages(): (number | '...')[] {
-		if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
-		if (currentPage <= 3) return [1, 2, 3, '...', totalPages];
-		if (currentPage >= totalPages - 2)
-			return [1, '...', totalPages - 2, totalPages - 1, totalPages];
-		return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
-	}
 </script>
 
 <svelte:head>
@@ -367,7 +347,7 @@
 					&lt;
 				</button>
 
-				{#each getVisiblePages() as p (p)}
+				{#each getVisiblePages(currentPage, totalPages) as p (p)}
 					{#if p === '...'}
 						<span class="flex h-7 w-7 items-center justify-center text-xs text-gray-400"
 							>…</span

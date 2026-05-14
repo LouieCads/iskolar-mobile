@@ -1,4 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { formatDate } from '@/utils/format';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -366,11 +367,6 @@ export default function ScholarshipApplyPage() {
     }
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'No deadline';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  };
 
   const handleCustomFileUpload = useCallback(async (fieldLabel: string) => {
     try {
@@ -511,7 +507,7 @@ export default function ScholarshipApplyPage() {
                 >
                   <MaterialIcons name="calendar-today" size={18} color="#6B7280" />
                   <Text style={[styles.customFieldDateText, !value && styles.placeholderText]}>
-                    {value ? formatDate(value) : `Select ${field.label.toLowerCase()}`}
+                    {formatDate(value, `Select ${field.label.toLowerCase()}`)}
                   </Text>
                 </Pressable>
                 {showDatePicker && (
@@ -710,7 +706,7 @@ export default function ScholarshipApplyPage() {
               </View>
               <View style={styles.metaRow}>
                 <Ionicons name="calendar-outline" size={16} color="#6B7280" />
-                <Text style={styles.metaText}>Deadline: {formatDate(scholarship?.application_deadline)}</Text>
+                <Text style={styles.metaText}>Deadline: {formatDate(scholarship?.application_deadline, 'No deadline')}</Text>
               </View>
             </View>
 

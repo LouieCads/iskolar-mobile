@@ -5,6 +5,7 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import Header from '@/components/header';
 import Toast from '@/components/toast';
 import { scholarshipService } from '@/services/scholarship-creation.service';
+import { formatDateTime } from '@/utils/format';
 import { scholarshipApplicationService } from '@/services/scholarship-application.service';
 
 interface Applicant {
@@ -231,16 +232,6 @@ export default function ApplicantsListPage() {
     setModalVisible(true);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
 
   const handleFileOpen = async (url: string, fileName: string) => {
     try {
@@ -685,7 +676,7 @@ export default function ApplicantsListPage() {
                     <View style={styles.applicantFooter}>
                       <Ionicons name="calendar-outline" size={14} color="#6B7280" />
                       <Text style={styles.appliedDate}>
-                        {formatDate(applicant.applied_at)}
+                        {formatDateTime(applicant.applied_at)}
                       </Text>
                     </View>
                   </View>

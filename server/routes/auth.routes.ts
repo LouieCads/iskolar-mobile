@@ -1,3 +1,9 @@
+/**
+ * Auth routes — public endpoints for user registration, login, and password reset.
+ *
+ * All routes are rate-limited to prevent brute-force and OTP enumeration attacks.
+ * No authentication middleware is applied here; tokens are issued by these endpoints.
+ */
 import { Router } from "express";
 import { register, login, sendOTP, verifyOTP, resetPassword } from "../controllers/auth.controller";
 import { rateLimit } from "../middlewares/rateLimit.middleware";

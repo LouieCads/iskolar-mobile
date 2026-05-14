@@ -1,3 +1,10 @@
+/**
+ * Admin web auth helpers — JWT token storage in localStorage.
+ *
+ * Uses `browser` guard so SvelteKit SSR/prerender passes never touch localStorage.
+ * `getToken` automatically clears and returns null when the stored expiry has passed,
+ * so callers don't need to check expiration separately.
+ */
 import { browser } from '$app/environment';
 
 const TOKEN_KEY = 'iskolar_token';

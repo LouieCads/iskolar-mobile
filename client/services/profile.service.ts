@@ -1,3 +1,11 @@
+/**
+ * Profile service — CRUD for the authenticated user's own profile.
+ *
+ * Profile picture uploads use raw `fetch` with FormData instead of
+ * `authenticatedRequest` because multipart/form-data requires the
+ * Content-Type header to be omitted so the browser/RN runtime can
+ * set the correct boundary automatically.
+ */
 import { authService } from './auth.service';
 
 const EXPO_API_URL = process.env.EXPO_PUBLIC_API_URL;

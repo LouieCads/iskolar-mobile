@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { API_URL } from '$lib/config';
-	import { getToken } from '$lib/auth';
+	import { fetchDashboardStats } from '$lib/api/admin';
 
 	interface DashboardStats {
 		totalUsers: number;
@@ -31,11 +30,7 @@
 	async function fetchStats(isManual = false) {
 		if (isManual) refreshing = true;
 		try {
-			const token = getToken();
-			const res = await fetch(`${API_URL}/admin/dashboard`, {
-				headers: { Authorization: `Bearer ${token}` }
-			});
-			const data = await res.json();
+			const data = await fetchDashboardStats();
 			if (!data.success) {
 				error = data.message || 'Failed to load dashboard stats';
 				return;

@@ -1,3 +1,13 @@
+/**
+ * Authentication service — manages JWT token lifecycle and onboarding navigation.
+ *
+ * Tokens are persisted in `expo-secure-store` (device keychain) under TOKEN_KEY.
+ * `authenticatedRequest` is the single entry point for all API calls that need
+ * a Bearer token; other services call this method rather than managing headers themselves.
+ *
+ * `redirectIfAuthenticated` is called on public screens (login/register) to skip
+ * them when the user already has a valid token and a completed profile.
+ */
 import * as SecureStore from 'expo-secure-store';
 
 const EXPO_API_URL = process.env.EXPO_PUBLIC_API_URL;

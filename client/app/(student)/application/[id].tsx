@@ -11,6 +11,7 @@ import {
   Pressable,
   Linking,
   Alert,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '@/components/header';
@@ -68,6 +69,7 @@ export default function ApplicationDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [application, setApplication] = useState<Application | null>(null);
+  const [showSubmissionsModal, setShowSubmissionsModal] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(8)).current;
@@ -306,79 +308,23 @@ export default function ApplicationDetailsPage() {
           )}
 
           {/* Your Application */}
-          <View style={styles.card}>
+          <Pressable
+            style={({ pressed }) => [styles.card, styles.yourApplicationButton, pressed && styles.yourApplicationButtonPressed]}
+            onPress={() => setShowSubmissionsModal(true)}
+          >
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Your Application</Text>
-            </View>
-
-            {application.custom_form_response && application.custom_form_response.length > 0 ? (
-              <View style={styles.formResponsesContainer}>
-                {application.custom_form_response.map((response, index) => (
-                  <View key={index} style={styles.formResponseItem}>
-                    <Text style={styles.formLabel}>{response.label}</Text>
-                    {isFileField(response.value) ? (
-                      <View style={styles.filesContainer}>
-                        {Array.isArray(response.value) ? (
-                          response.value.map((fileUrl: string, idx: number) => {
-                            const fileName = getFileNameFromUrl(fileUrl, `File ${idx + 1}`);
-                            return (
-                              <View key={idx} style={styles.fileItemContainer}>
-                                <View style={styles.fileContent}>
-                                  <Ionicons name="document-outline" size={16} color="#3A52A6" />
-                                  <View style={styles.fileInfo}>
-                                    <Text style={styles.fileName} numberOfLines={2}>
-                                      {response.label}
-                                    </Text>
-                                  </View>
-                                </View>
-                                <View style={styles.fileActions}>
-                                  <Pressable 
-                                    style={styles.fileActionButton}
-                                    onPress={() => handleFileOpen(fileUrl, fileName)}
-                                    hitSlop={8}
-                                  >
-                                    <Ionicons name="open-outline" size={16} color="#111827" />
-                                  </Pressable>
-                                </View>
-                              </View>
-                            );
-                          })
-                        ) : (
-                          <View style={styles.fileItemContainer}>
-                            <View style={styles.fileContent}>
-                              <Ionicons name="document-outline" size={16} color="#3A52A6" />
-                              <View style={styles.fileInfo}>
-                                <Text style={styles.fileName} numberOfLines={2}>
-                                  Uploaded File
-                                </Text>
-                              </View>
-                            </View>
-                            <View style={styles.fileActions}>
-                            <Pressable 
-                              style={styles.fileActionButton}
-                              onPress={() => handleFileOpen(response.value, 'File')}
-                              hitSlop={8}
-                            >
-                              <Ionicons name="open-outline" size={16} color="#111827" />
-                            </Pressable>
-                            </View>
-                          </View>
-                        )}
-                      </View>
-                    ) : (
-                      <Text style={styles.formValue}>
-                        {Array.isArray(response.value)
-                          ? response.value.join(', ')
-                          : String(response.value || 'N/A')}
-                      </Text>
-                    )}
-                  </View>
-                ))}
+              <View style={styles.viewSubmissionsChip}>
+                <Ionicons name="eye-outline" size={14} color="#3A52A6" />
+                <Text style={styles.viewSubmissionsText}>View Submissions</Text>
               </View>
-            ) : (
-              <Text style={styles.emptyResponseText}>No application responses provided</Text>
-            )}
-          </View>
+            </View>
+            <Text style={styles.yourApplicationHint}>
+              {application.custom_form_response?.length > 0
+                ? `${application.custom_form_response.length} response${application.custom_form_response.length === 1 ? '' : 's'} submitted`
+                : 'No responses submitted'}
+            </Text>
+          </Pressable>
 
           {/* Application Timeline */}
           <View style={styles.card}>
@@ -419,6 +365,103 @@ export default function ApplicationDetailsPage() {
           <View style={{ height: 24 }} />
         </Animated.ScrollView>
       ) : null}
+
+      {/* Submissions Modal — must be outside ScrollView */}
+      <Modal
+        visible={showSubmissionsModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowSubmissionsModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Your Submissions</Text>
+              <Pressable
+                style={({ pressed }) => [styles.modalCloseButton, pressed && { opacity: 0.7 }]}
+                onPress={() => setShowSubmissionsModal(false)}
+                hitSlop={8}
+              >
+                <Ionicons name="close" size={20} color="#111827" />
+              </Pressable>
+            </View>
+
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {application?.custom_form_response && application.custom_form_response.length > 0 ? (
+                <View style={styles.formResponsesContainer}>
+                  {application.custom_form_response.map((response, index) => (
+                    <View key={index} style={styles.formResponseItem}>
+                      <Text style={styles.formLabel}>{response.label}</Text>
+                      {isFileField(response.value) ? (
+                        <View style={styles.filesContainer}>
+                          {Array.isArray(response.value) ? (
+                            response.value.map((fileUrl: string, idx: number) => {
+                              const fileName = getFileNameFromUrl(fileUrl, `File ${idx + 1}`);
+                              return (
+                                <View key={idx} style={styles.fileItemContainer}>
+                                  <View style={styles.fileContent}>
+                                    <Ionicons name="document-outline" size={16} color="#3A52A6" />
+                                    <View style={styles.fileInfo}>
+                                      <Text style={styles.fileName} numberOfLines={2}>
+                                        {response.label}
+                                      </Text>
+                                    </View>
+                                  </View>
+                                  <View style={styles.fileActions}>
+                                    <Pressable
+                                      style={styles.fileActionButton}
+                                      onPress={() => handleFileOpen(fileUrl, fileName)}
+                                      hitSlop={8}
+                                    >
+                                      <Ionicons name="open-outline" size={16} color="#111827" />
+                                    </Pressable>
+                                  </View>
+                                </View>
+                              );
+                            })
+                          ) : (
+                            <View style={styles.fileItemContainer}>
+                              <View style={styles.fileContent}>
+                                <Ionicons name="document-outline" size={16} color="#3A52A6" />
+                                <View style={styles.fileInfo}>
+                                  <Text style={styles.fileName} numberOfLines={2}>
+                                    Uploaded File
+                                  </Text>
+                                </View>
+                              </View>
+                              <View style={styles.fileActions}>
+                                <Pressable
+                                  style={styles.fileActionButton}
+                                  onPress={() => handleFileOpen(response.value, 'File')}
+                                  hitSlop={8}
+                                >
+                                  <Ionicons name="open-outline" size={16} color="#111827" />
+                                </Pressable>
+                              </View>
+                            </View>
+                          )}
+                        </View>
+                      ) : (
+                        <Text style={styles.formValue}>
+                          {Array.isArray(response.value)
+                            ? response.value.join(', ')
+                            : String(response.value || 'N/A')}
+                        </Text>
+                      )}
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.emptyResponseText}>No application responses provided</Text>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -607,6 +650,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 10,
     marginBottom: 12,
   },
@@ -640,6 +684,84 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#111827',
     textTransform: 'capitalize',
+  },
+
+  // Your Application Button
+  yourApplicationButton: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  yourApplicationButtonPressed: {
+    opacity: 0.8,
+    backgroundColor: '#F0F7FF',
+  },
+  viewSubmissionsChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  viewSubmissionsText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#3A52A6',
+  },
+  yourApplicationHint: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+    minHeight: 320,
+    paddingTop: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitle: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 16,
+    color: '#111827',
+  },
+  modalCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalScroll: {
+    flex: 1,
+    flexGrow: 1,
+  },
+  modalScrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 32,
   },
 
   // Form Responses
